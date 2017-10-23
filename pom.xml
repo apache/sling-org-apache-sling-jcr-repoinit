@@ -41,7 +41,7 @@
   </properties>
 
   <scm>
-    <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-repoinit.git</conncetion>
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-repoinit.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-repoinit.git</developerConnection>
     <url>https://gitbox.apache.org/repos/asf?p=sling-org-apache-sling-jcr-repoinit.git</url>
   </scm>
