@@ -81,7 +81,11 @@ public class AclUtil {
                    values[i] = vf.createValue(rc.getValues().get(i),type);
                }
 
-               if(values.length == 1) {
+               if("rep:glob".equals(restrictionName) && values.length == 0) {
+                   // SLING-7280 - special case for rep:glob which supports an empty string
+                   // to mean "no values"
+                   restrictions.put(restrictionName, vf.createValue(""));
+               } else if(values.length == 1) {
                    restrictions.put(restrictionName, values[0]);
                } else {
                    mvrestrictions.put(restrictionName, values);

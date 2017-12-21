@@ -310,19 +310,33 @@ public class GeneralAclTest {
      * @param successExpected
      * @throws RepositoryException
      */
-    private void verifyAddProperty(Session userSession,String nodeName,String propertyName,boolean successExpected) throws RepositoryException{
+    private void verifyAddProperty(Session userSession,String relativePath,String propertyName,boolean successExpected) throws RepositoryException{
         try {
-            Node rootNode = userSession.getRootNode();
-            Node node = rootNode.getNode(nodeName);
-            node.setProperty(propertyName,"test");
+            final Node n = userSession.getNode("/" + relativePath);
+            n.setProperty(propertyName,"test");
             userSession.save();
-            assertTrue(successExpected);
-        } catch(Exception e) {
+            assertTrue("Expected setProperty " + propertyName + " to fail on " + relativePath, successExpected);
+        } catch(RepositoryException e) {
             userSession.refresh(false); // remove changes causing failure
-            assertTrue("Error " + e.getMessage(), !successExpected);
+            assertFalse(
+                "Expected setProperty " + propertyName + " to to succeed on " + relativePath + " but got " + e.getMessage(),
+                successExpected);
         }
     }
 
+    /**
+     * Verifies that a node is readable
+     */
+    private void verifyCanRead(Session userSession, String relativePath, boolean successExpected) {
+        final String path = "/" + relativePath;
+        Node n = null;
+        try {
+            n = userSession.getNode(path);
+            assertTrue("Not expecting " + path + " to be readable but it was successfully read", successExpected);
+        } catch(RepositoryException notReadable) {
+            assertFalse("Expecting " + path + " to be readable but could not read it", successExpected);
+        }
+    }
 
    /**
     * Verifies that ACEs for existing principal are replaced
@@ -666,5 +680,37 @@ public class GeneralAclTest {
         U.parseAndExecute(aclSetup);
     }
 
+    /**
+     * Tests empty rep:glob restriction which actually does something useful
+     * @throws Exception
+     */
+    @Test
+    public void emptyGlobRestrictionTest() throws Exception {
+        final String parentName = "empty_glob_" + U.id;
+        final String childName = "child";
+        final String childPath = parentName + "/" + childName;
 
+        try {
+            U.adminSession.getRootNode().addNode(parentName).addNode(childName);
+            U.adminSession.save();
+
+            // Allow for reading the parent node but not its children with an empty glob restriction
+            // as per https://jackrabbit.apache.org/oak/docs/security/authorization/restriction.html
+            final String aclSetup =
+                    "set ACL for " + U.username + "\n"
+                            + "deny jcr:read on /\n"
+                            + "allow jcr:read on /" + parentName + " restriction (rep:glob)\n"
+                            + "end"
+                    ;
+
+            U.parseAndExecute(aclSetup);
+
+            // Verify read access with a non-admin session opened with U.username
+            verifyCanRead(s, parentName, true);
+            verifyCanRead(s, childPath, false);
+
+        } finally {
+            s.logout();
+        }
+    }
 }
