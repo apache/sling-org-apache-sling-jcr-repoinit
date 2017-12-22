@@ -95,4 +95,14 @@ public class CreateServiceUsersTest {
             U.assertServiceUser("after deleting users", user(i), false);
         }
     }
+
+    @Test
+    public void createServiceUserWithPathTest() throws Exception {
+        final String userId = namePrefix + "_cdst";
+        // Oak requires system/ prefix for service users
+        final String path = "system/forServiceUser/test";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create service user " + userId + " with path " + path);
+        U.assertServiceUser("after creating user", userId, true, path);
+    }
 }

@@ -64,7 +64,21 @@ public class TestUtil {
         }
     }
 
+    private void assertPathContains(User u, String pathShouldContain) throws RepositoryException {
+        if(pathShouldContain != null) {
+            final String path = u.getPath();
+            assertTrue(
+                    "Expecting path " + path + " to contain " + pathShouldContain,
+                    path.contains(pathShouldContain)
+            );
+        }
+    }
+
     public void assertUser(String info, String id, boolean expectToExist) throws RepositoryException {
+        assertUser(info, id, expectToExist, null);
+    }
+
+    public void assertUser(String info, String id, boolean expectToExist, String pathShouldContain) throws RepositoryException {
         final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(id);
         if(!expectToExist) {
             assertNull(info + ", expecting Principal to be absent:" + id, a);
@@ -72,10 +86,15 @@ public class TestUtil {
             assertNotNull(info + ", expecting Principal to exist:" + id, a);
             final User u = (User)a;
             assertFalse(info + ", expecting Principal to be a plain user:" + id, u.isSystemUser());
+            assertPathContains(u, pathShouldContain);
         }
     }
 
     public void assertServiceUser(String info, String id, boolean expectToExist) throws RepositoryException {
+        assertServiceUser(info, id, expectToExist, null);
+    }
+
+    public void assertServiceUser(String info, String id, boolean expectToExist, String pathShouldContain) throws RepositoryException {
         final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(id);
         if(!expectToExist) {
             assertNull(info + ", expecting Principal to be absent:" + id, a);
@@ -83,6 +102,7 @@ public class TestUtil {
             assertNotNull(info + ", expecting Principal to exist:" + id, a);
             final User u = (User)a;
             assertTrue(info + ", expecting Principal to be a System user:" + id, u.isSystemUser());
+            assertPathContains(u, pathShouldContain);
         }
     }
 

@@ -44,7 +44,7 @@ class UserVisitor extends DoNothingVisitor {
         try {
             if (!UserUtil.userExists(session, username)) {
                 log.info("Creating service user {}", username);
-                UserUtil.createServiceUser(session, username);
+                UserUtil.createServiceUser(session, username, s.getPath());
             } else if (UserUtil.isServiceUser(session, username)) {
                 log.info("Service user {} already exists, no changes made.", username);
             } else {
@@ -81,7 +81,7 @@ class UserVisitor extends DoNothingVisitor {
                 } else {
                     log.info("Creating user {}", username);
                 }
-                UserUtil.createUser(session, username, pwd);
+                UserUtil.createUser(session, username, pwd, u.getPath());
             } else {
                 log.info("User {} already exists, no changes made", username);
             }

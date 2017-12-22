@@ -63,6 +63,22 @@ public class CreateUsersTest {
         U.assertUser("after deleting user", userId, false);
     }
 
+    @Test
+    public void createUserWithPathTest() throws Exception {
+        final String userId = namePrefix + "_cuwpt";
+        final String path = "testusers/folder_for_" + userId;
+        U.parseAndExecute("create user " + userId + " with path " + path);
+        U.assertUser("after creating user " + userId, userId, true, path);
+    }
+
+    @Test
+    public void createUserWithPathAndPasswordTest() throws Exception {
+        final String userId = namePrefix + "_cuwpt";
+        final String path = "testuserwithpassword/folder_for_" + userId;
+        U.parseAndExecute("create user " + userId + " with path " + path + " with password asdf");
+        U.assertUser("after creating user " + userId, userId, true, path);
+    }
+
     private String user(int index) {
         return namePrefix + "_" + index;
     }

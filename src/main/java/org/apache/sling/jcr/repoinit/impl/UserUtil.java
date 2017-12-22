@@ -16,6 +16,7 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.security.Principal;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
@@ -26,6 +27,35 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 
 /** Utilities for User management */
 public class UserUtil {
+
+    static class SameNamePrincipal implements Principal {
+
+        private final String name;
+
+        SameNamePrincipal(String name) {
+            if(name == null) {
+                throw new IllegalArgumentException("Name cannot be null");
+            }
+            this.name = name;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return (
+                    other instanceof SameNamePrincipal)
+                    && (this.name.equals(((SameNamePrincipal)other).name));
+        }
+
+        @Override
+        public int hashCode() {
+            return name.hashCode();
+        }
+    }
 
     public static UserManager getUserManager(Session session) throws RepositoryException {
         if(!(session instanceof JackrabbitSession)) {
@@ -39,8 +69,8 @@ public class UserUtil {
     }
 
     /** Create a service user - fails if it already exists */
-    public static void createServiceUser(Session session, String username) throws RepositoryException {
-        getUserManager(session).createSystemUser(username, null);
+    public static void createServiceUser(Session session, String username, String path) throws RepositoryException {
+        getUserManager(session).createSystemUser(username, path);
     }
 
     /** True if specified service user exists */
@@ -77,8 +107,13 @@ public class UserUtil {
     }
 
     /** Create a user - fails if it already exists */
-    public static void createUser(Session session, String username, String password) throws RepositoryException {
-        getUserManager(session).createUser(username, password);
+    public static void createUser(Session session, String username, String password, String path) throws RepositoryException {
+        if(path == null) {
+            getUserManager(session).createUser(username, password);
+        } else {
+            final Principal p = new SameNamePrincipal(username);
+            getUserManager(session).createUser(username, password, p, path);
+        }
     }
 
     /** True if specified user exists */

@@ -76,7 +76,7 @@ public class ManyServiceUsersTest {
             otherSession = s.getRepository().login(new SimpleCredentials("admin", "admin".toCharArray()));
             for(int i=1; i < N_USERS; i++) {
                 final String username = getClass().getSimpleName() + "_" + uniqueId + "_" + i;
-                UserUtil.createServiceUser(s, username);
+                UserUtil.createServiceUser(s, username, null);
                 U.assertServiceUser("Right after creation at index " + i, username, true);
                 
                 // Required for setAcl to work
