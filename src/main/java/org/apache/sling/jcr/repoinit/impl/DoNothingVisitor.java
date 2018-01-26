@@ -27,6 +27,7 @@ import org.apache.sling.repoinit.parser.operations.DisableServiceUser;
 import org.apache.sling.repoinit.parser.operations.OperationVisitor;
 import org.apache.sling.repoinit.parser.operations.RegisterNamespace;
 import org.apache.sling.repoinit.parser.operations.RegisterNodetypes;
+import org.apache.sling.repoinit.parser.operations.RegisterPrivilege;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipals;
 import org.slf4j.Logger;
@@ -94,6 +95,11 @@ class DoNothingVisitor implements OperationVisitor {
 
     @Override
     public void visitRegisterNodetypes(RegisterNodetypes rn) {
+    }
+
+    @Override
+    public void visitRegisterPrivilege(RegisterPrivilege rp) {
+
     }
 
     @Override

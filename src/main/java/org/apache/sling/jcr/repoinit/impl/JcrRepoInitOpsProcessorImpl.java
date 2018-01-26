@@ -44,6 +44,7 @@ public class JcrRepoInitOpsProcessorImpl implements JcrRepoInitOpsProcessor {
         final OperationVisitor [] visitors = {
                 new NamespacesVisitor(session),
                 new NodetypesVisitor(session),
+                new PrivilegeVisitor(session),
                 new UserVisitor(session),
                 new AclVisitor(session)
         };
