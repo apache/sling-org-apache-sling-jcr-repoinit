@@ -48,9 +48,9 @@ public class RegisterPrivilegeTest {
         U.parseAndExecute("register privilege withoutabstract_withoutaggregates1");
         U.parseAndExecute("register privilege withoutabstract_withoutaggregates2");
         U.parseAndExecute("register privilege withoutabstract_withoutaggregates3");
-        U.parseAndExecute("register privilege withabstract_withoutaggregates as abstract");
+        U.parseAndExecute("register abstract privilege withabstract_withoutaggregates");
         U.parseAndExecute("register privilege withoutabstract_withaggregates with withoutabstract_withoutaggregates1,withoutabstract_withoutaggregates2");
-        U.parseAndExecute("register privilege withabstract_withaggregates as abstract with withoutabstract_withoutaggregates1,withoutabstract_withoutaggregates3");
+        U.parseAndExecute("register abstract privilege withabstract_withaggregates with withoutabstract_withoutaggregates1,withoutabstract_withoutaggregates3");
     }
 
     @After
