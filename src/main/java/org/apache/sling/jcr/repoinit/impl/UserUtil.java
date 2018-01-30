@@ -86,10 +86,9 @@ public class UserUtil {
 
     public static void deleteUser(Session session, String id) throws RepositoryException {
         final Authorizable authorizable = getUserManager(session).getAuthorizable(id);
-        if(authorizable == null) {
-            throw new IllegalStateException("Authorizable not found:" + id);
+        if(authorizable != null) {
+            authorizable.remove();
         }
-        authorizable.remove();
     }
 
     public static void disableUser(Session session, String id, String reason) throws RepositoryException {
@@ -97,13 +96,12 @@ public class UserUtil {
             throw new IllegalArgumentException("reason can't be null");
         }
         Authorizable authorizable = getUserManager(session).getAuthorizable(id);
-        if (authorizable == null) {
-            throw new IllegalStateException("Authorizable not found: " + id);
+        if (authorizable != null) {
+            if (authorizable.isGroup()) {
+                throw new IllegalStateException("Can't disable a group: " + id);
+            }
+            ((User)authorizable).disable(reason);
         }
-        if (authorizable.isGroup()) {
-            throw new IllegalStateException("Can't disable a group: " + id);
-        }
-        ((User)authorizable).disable(reason);
     }
 
     /** Create a user - fails if it already exists */

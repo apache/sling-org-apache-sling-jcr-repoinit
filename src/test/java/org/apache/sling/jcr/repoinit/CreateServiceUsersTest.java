@@ -52,6 +52,34 @@ public class CreateServiceUsersTest {
         U.parseAndExecute("delete service user " + userId);
         U.assertServiceUser("after deleting user", userId, false);
     }
+
+    @Test
+    public void disableTest() throws Exception {
+        final String userId = namePrefix + "_cdst";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create service user " + userId);
+        U.assertServiceUser("after creating user", userId, true);
+        U.assertEnabledUser("after creating user", userId);
+        U.parseAndExecute("disable service user " + userId + " : \"Test\"");
+        U.assertServiceUser("after disable user", userId, true);
+        U.assertDisabledUser("after disable user", userId);
+    }
+
+    @Test
+    public void deleteNonExistingUserTest() throws Exception {
+        final String userId = namePrefix + "_cdst";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("delete service user " + userId);
+        U.assertServiceUser("after deleting user", userId, false);
+    }
+
+    @Test
+    public void disableNonExistingUserTest() throws Exception {
+        final String userId = namePrefix + "_cdst";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("disable service user " + userId + " : \"Test\"");
+        U.assertServiceUser("after disable user", userId, false);
+    }
     
     private String user(int index) {
         return namePrefix + "_" + index;
