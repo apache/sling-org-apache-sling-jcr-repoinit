@@ -84,14 +84,18 @@ public class UserUtil {
         return result;
     }
 
-    public static void deleteUser(Session session, String id) throws RepositoryException {
+    public static boolean deleteUser(Session session, String id) throws RepositoryException {
         final Authorizable authorizable = getUserManager(session).getAuthorizable(id);
         if(authorizable != null) {
             authorizable.remove();
+            return true;
+        }
+        else {
+            return false;
         }
     }
 
-    public static void disableUser(Session session, String id, String reason) throws RepositoryException {
+    public static boolean disableUser(Session session, String id, String reason) throws RepositoryException {
         if (reason == null) {
             throw new IllegalArgumentException("reason can't be null");
         }
@@ -101,6 +105,10 @@ public class UserUtil {
                 throw new IllegalStateException("Can't disable a group: " + id);
             }
             ((User)authorizable).disable(reason);
+            return true;
+        }
+        else {
+            return false;
         }
     }
 
