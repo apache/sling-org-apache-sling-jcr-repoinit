@@ -106,6 +106,16 @@ public class TestUtil {
         }
     }
 
+    public void assertEnabledUser(String info, String id) throws RepositoryException {
+        final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(id);
+        assertFalse(info + ", expecting Principal to not be disabled: " + id, ((User) a).isDisabled());
+    }
+
+    public void assertDisabledUser(String info, String id) throws RepositoryException {
+        final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(id);
+        assertTrue(info + ", expecting Principal to be disabled: " + id, ((User) a).isDisabled());
+    }
+
     public void assertNodeExists(String path) throws RepositoryException {
         assertNodeExists(path, null, null);
     }

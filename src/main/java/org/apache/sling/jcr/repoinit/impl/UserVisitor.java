@@ -95,7 +95,9 @@ class UserVisitor extends DoNothingVisitor {
         final String username = u.getUsername();
         log.info("Deleting user {}", username);
         try {
-            UserUtil.deleteUser(session, username);
+            if (!UserUtil.deleteUser(session, username)) {
+                log.debug("User {} doesn't exist - assuming delete to be a noop.", username);
+            }
         } catch(Exception e) {
             report(e, "Unable to delete user [" + username + "]:" + e);
         }
@@ -107,7 +109,9 @@ class UserVisitor extends DoNothingVisitor {
         final String reason = dsu.getParametersDescription();
         log.info("Disabling service user {} reason {}", new String[]{username, reason});
         try {
-            UserUtil.disableUser(session, username, reason);
+            if (!UserUtil.disableUser(session, username, reason)) {
+                log.debug("Service user {} doesn't existing - assuming disable to be a noop.", username);
+            }
         } catch(Exception e) {
             report(e, "Unable to disable service user [" + username + "]:" + e);
         }
