@@ -110,7 +110,7 @@ class UserVisitor extends DoNothingVisitor {
         log.info("Disabling service user {} reason {}", new String[]{username, reason});
         try {
             if (!UserUtil.disableUser(session, username, reason)) {
-                log.debug("Service user {} doesn't existing - assuming disable to be a noop.", username);
+                log.debug("Service user {} doesn't exist - assuming disable to be a noop.", username);
             }
         } catch(Exception e) {
             report(e, "Unable to disable service user [" + username + "]:" + e);
