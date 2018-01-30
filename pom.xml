@@ -37,8 +37,8 @@
   </description>
 
   <properties>
-    <jackrabbit.version>2.17.0</jackrabbit.version>
-    <oak.version>1.7.12</oak.version>
+    <jackrabbit.version>2.10.0</jackrabbit.version>
+    <oak.version>1.6.1</oak.version>
     <http.host>localhost</http.host>
     <sling.default.vm.options>-Xmx1024m -XX:MaxPermSize=256m -Djava.awt.headless=true</sling.default.vm.options>
   </properties>
@@ -110,35 +110,40 @@
                 <!-- the Sling instance is provisioned from the model in src/main/provisioning/model.txt -->
                 <groupId>org.apache.sling</groupId>
                 <artifactId>slingstart-maven-plugin</artifactId>
-                <version>1.7.0</version>
+                <version>1.7.16</version>
                 <extensions>true</extensions>
                 <executions>
                     <execution>
                         <id>prepare-launchpad-package</id>
+                        <phase>pre-integration-test</phase>
                         <goals>
                             <goal>prepare-package</goal>
                         </goals>
                     </execution>
                     <execution>
                         <id>build-launchpad-package</id>
+                        <phase>pre-integration-test</phase>
                         <goals>
                             <goal>package</goal>
                         </goals>
                     </execution>
                     <execution>
                          <id>start-container-before-IT</id>
+                        <phase>pre-integration-test</phase>
                         <goals>
                             <goal>start</goal>
                         </goals>
                     </execution>
                     <execution>
                          <id>stop-container-after-IT</id>
+                         <phase>post-integration-test</phase>
                         <goals>
                             <goal>stop</goal>
                         </goals>
                     </execution>
                 </executions>
                 <configuration>
+                    <usePomDependencies>true</usePomDependencies>
                     <servers>
                         <server>
                             <id>singleinstance</id>
@@ -154,12 +159,14 @@
                 <executions>
                     <execution>
                         <id>integration-test</id>
+                        <phase>integration-test</phase>
                         <goals>
                             <goal>integration-test</goal>
                         </goals>
                     </execution>
                     <execution>
                         <id>verify</id>
+                        <phase>integration-test</phase>
                         <goals>
                             <goal>verify</goal>
                         </goals>
@@ -264,7 +271,7 @@
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.provisioning.model</artifactId>
-            <version>1.8.4</version>
+            <version>1.8.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

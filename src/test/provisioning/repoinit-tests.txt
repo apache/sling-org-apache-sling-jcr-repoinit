@@ -19,6 +19,10 @@
 
 [feature name=repoinit-tests]
 
+[artifacts]
+  org.apache.sling/org.apache.sling.repoinit.parser
+  org.apache.sling/org.apache.sling.jcr.repoinit
+
 [configurations]
   org.apache.sling.jcr.repoinit.impl.RepositoryInitializer
     references=["model:context:/resources/provisioning/model.txt","model@repoinitTwo:context:/resources/provisioning/model.txt"]
@@ -36,8 +40,7 @@ end
 
 create service user thirdUserFromProvisioningModel
 
-# TODO need more recent snapshots than sling 9 for this
-# disable service user thirdUserFromProvisioningModel : "Disabled for testing reason"
+disable service user thirdUserFromProvisioningModel : "Disabled for testing reason"
 
 register namespace (slingtest) http://sling.apache.org/ns/test/repoinit-it/v1.0
 
