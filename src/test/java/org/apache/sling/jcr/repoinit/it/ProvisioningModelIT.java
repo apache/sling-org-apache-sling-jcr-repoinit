@@ -63,7 +63,6 @@ public class ProvisioningModelIT {
     }
 
     @Test
-    @Ignore("TODO - need more recent bundles for this test")
     public void userDisabled() throws Exception {
         assertTrue(String.format("Expecting user %s to be disabled", THIRD_TEST_USER), U.userIsDisabled(session, THIRD_TEST_USER));
         assertFalse(String.format("Expecting user %s to be enabled", TEST_USER), U.userIsDisabled(session,TEST_USER));
