@@ -129,14 +129,12 @@
                     </execution>
                     <execution>
                          <id>start-container-before-IT</id>
-                        <phase>pre-integration-test</phase>
                         <goals>
                             <goal>start</goal>
                         </goals>
                     </execution>
                     <execution>
                          <id>stop-container-after-IT</id>
-                         <phase>post-integration-test</phase>
                         <goals>
                             <goal>stop</goal>
                         </goals>
@@ -144,6 +142,7 @@
                 </executions>
                 <configuration>
                     <usePomDependencies>true</usePomDependencies>
+                    <attachArtifact>false</attachArtifact>
                     <servers>
                         <server>
                             <id>singleinstance</id>
