@@ -44,7 +44,7 @@ public class CreateGroupsTest {
     }
 
     @Test
-    public void createUser() throws Exception {
+    public void createGroup() throws Exception {
         final String groupId = namePrefix + "_cg";
         U.parseAndExecute("create group " + groupId);
         U.assertGroup("after creating group " + groupId, groupId, true);
@@ -61,7 +61,7 @@ public class CreateGroupsTest {
     }
 
     @Test
-    public void createUserWithPathTest() throws Exception {
+    public void createGroupWithPathTest() throws Exception {
         final String groupId = namePrefix + "_cgwpt";
         final String path = "testgroup/folder_for_" + groupId;
         U.parseAndExecute("create group " + groupId + " with path " + path);
