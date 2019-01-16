@@ -18,9 +18,11 @@ package org.apache.sling.jcr.repoinit.impl;
 
 import javax.jcr.Session;
 
+import org.apache.sling.repoinit.parser.operations.CreateGroup;
 import org.apache.sling.repoinit.parser.operations.CreatePath;
 import org.apache.sling.repoinit.parser.operations.CreateServiceUser;
 import org.apache.sling.repoinit.parser.operations.CreateUser;
+import org.apache.sling.repoinit.parser.operations.DeleteGroup;
 import org.apache.sling.repoinit.parser.operations.DeleteServiceUser;
 import org.apache.sling.repoinit.parser.operations.DeleteUser;
 import org.apache.sling.repoinit.parser.operations.DisableServiceUser;
@@ -104,5 +106,13 @@ class DoNothingVisitor implements OperationVisitor {
 
     @Override
     public void visitDisableServiceUser(DisableServiceUser dsu) {
+    }
+
+    @Override
+    public void visitCreateGroup(CreateGroup g) {
+    }
+
+    @Override
+    public void visitDeleteGroup(DeleteGroup g) {
     }
 }

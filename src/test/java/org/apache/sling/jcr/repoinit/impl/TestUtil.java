@@ -35,6 +35,7 @@ import javax.jcr.nodetype.NodeType;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.repoinit.parser.impl.RepoInitParserService;
@@ -64,13 +65,30 @@ public class TestUtil {
         }
     }
 
-    private void assertPathContains(User u, String pathShouldContain) throws RepositoryException {
+    private void assertPathContains(Authorizable u, String pathShouldContain) throws RepositoryException {
         if(pathShouldContain != null) {
             final String path = u.getPath();
             assertTrue(
                     "Expecting path " + path + " to contain " + pathShouldContain,
                     path.contains(pathShouldContain)
             );
+        }
+    }
+    
+
+
+    public void assertGroup(String info, String id, boolean expectToExist) throws RepositoryException {
+        assertGroup(info, id, expectToExist, null);
+    }
+
+    public void assertGroup(String info, String id, boolean expectToExist, String pathShouldContain) throws RepositoryException {
+        final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(id);
+        if(!expectToExist) {
+            assertNull(info + ", expecting Principal to be absent:" + id, a);
+        } else {
+            assertNotNull(info + ", expecting Principal to exist:" + id, a);
+            final Group g = (Group)a;
+            assertPathContains(g, pathShouldContain);
         }
     }
 

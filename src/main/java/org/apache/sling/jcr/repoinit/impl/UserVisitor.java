@@ -16,23 +16,30 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.security.Principal;
+
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.sling.repoinit.parser.operations.CreateGroup;
 import org.apache.sling.repoinit.parser.operations.CreateServiceUser;
 import org.apache.sling.repoinit.parser.operations.CreateUser;
+import org.apache.sling.repoinit.parser.operations.DeleteGroup;
 import org.apache.sling.repoinit.parser.operations.DeleteServiceUser;
 import org.apache.sling.repoinit.parser.operations.DeleteUser;
 import org.apache.sling.repoinit.parser.operations.DisableServiceUser;
 
-/** OperationVisitor which processes only operations related to
- *  service users and ACLs. Having several such specialized visitors
- *  makes it easy to control the execution order.
+/**
+ * OperationVisitor which processes only operations related to service users and
+ * ACLs. Having several such specialized visitors makes it easy to control the
+ * execution order.
  */
 class UserVisitor extends DoNothingVisitor {
 
-    /** Create a visitor using the supplied JCR Session.
-     * @param s must have sufficient rights to create users
-     *      and set ACLs.
+    /**
+     * Create a visitor using the supplied JCR Session.
+     * 
+     * @param s must have sufficient rights to create users and set ACLs.
      */
     public UserVisitor(Session s) {
         super(s);
@@ -51,7 +58,7 @@ class UserVisitor extends DoNothingVisitor {
                 final String message = String.format("Existing user %s is not a service user.", username);
                 throw new RuntimeException(message);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             report(e, "Unable to create service user [" + username + "]:" + e);
         }
     }
@@ -61,9 +68,46 @@ class UserVisitor extends DoNothingVisitor {
         final String username = s.getUsername();
         log.info("Deleting service user {}", username);
         try {
-            UserUtil.deleteUser(session, username);
-        } catch(Exception e) {
+            UserUtil.deleteAuthorizable(session, username);
+        } catch (Exception e) {
             report(e, "Unable to delete service user [" + username + "]:" + e);
+        }
+    }
+
+    @Override
+    public void visitCreateGroup(CreateGroup g) {
+        final String groupname = g.getGroupname();
+        try {
+            Authorizable group = UserUtil.getAuthorizable(session, groupname);
+            if (group == null || !group.isGroup()) {
+                log.info("Creating group {}", groupname);
+                if (g.getPath() == null) {
+                    UserUtil.getUserManager(session).createGroup(groupname);
+                } else {
+                    UserUtil.getUserManager(session).createGroup(new Principal() {
+                        public String getName() {
+                            return groupname;
+                        }
+                    }, g.getPath());
+                }
+            } else {
+                log.info("Group {} already exists, no changes made", groupname);
+            }
+        } catch (Exception e) {
+            report(e, "Unable to create group [" + groupname + "]:" + e);
+        }
+    }
+
+    @Override
+    public void visitDeleteGroup(DeleteGroup g) {
+        final String groupname = g.getGroupname();
+        log.info("Deleting group {}", groupname);
+        try {
+            if (!UserUtil.deleteAuthorizable(session, groupname)) {
+                log.debug("Group {} doesn't exist - assuming delete to be a noop.", groupname);
+            }
+        } catch (Exception e) {
+            report(e, "Unable to delete group [" + groupname + "]:" + e);
         }
     }
 
@@ -71,13 +115,14 @@ class UserVisitor extends DoNothingVisitor {
     public void visitCreateUser(CreateUser u) {
         final String username = u.getUsername();
         try {
-            if(!UserUtil.userExists(session, username)) {
+            if (!UserUtil.userExists(session, username)) {
                 final String pwd = u.getPassword();
-                if(pwd != null) {
+                if (pwd != null) {
                     // TODO we might revise this warning once we're able
                     // to create users by providing their encoded password
                     // using u.getPasswordEncoding - for now I think only cleartext works
-                    log.warn("Creating user {} with cleartext password - should NOT be used on production systems", username);
+                    log.warn("Creating user {} with cleartext password - should NOT be used on production systems",
+                            username);
                 } else {
                     log.info("Creating user {}", username);
                 }
@@ -85,7 +130,7 @@ class UserVisitor extends DoNothingVisitor {
             } else {
                 log.info("User {} already exists, no changes made", username);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             report(e, "Unable to create user [" + username + "]:" + e);
         }
     }
@@ -95,10 +140,10 @@ class UserVisitor extends DoNothingVisitor {
         final String username = u.getUsername();
         log.info("Deleting user {}", username);
         try {
-            if (!UserUtil.deleteUser(session, username)) {
+            if (!UserUtil.deleteAuthorizable(session, username)) {
                 log.debug("User {} doesn't exist - assuming delete to be a noop.", username);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             report(e, "Unable to delete user [" + username + "]:" + e);
         }
     }
@@ -107,12 +152,12 @@ class UserVisitor extends DoNothingVisitor {
     public void visitDisableServiceUser(DisableServiceUser dsu) {
         final String username = dsu.getUsername();
         final String reason = dsu.getParametersDescription();
-        log.info("Disabling service user {} reason {}", new String[]{username, reason});
+        log.info("Disabling service user {} reason {}", new String[] { username, reason });
         try {
             if (!UserUtil.disableUser(session, username, reason)) {
                 log.debug("Service user {} doesn't exist - assuming disable to be a noop.", username);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             report(e, "Unable to disable service user [" + username + "]:" + e);
         }
     }
