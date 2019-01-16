@@ -17,10 +17,12 @@
 package org.apache.sling.jcr.repoinit.impl;
 
 import java.security.Principal;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -57,6 +59,13 @@ public class UserUtil {
         }
     }
 
+    public static PrincipalManager getPrincipalManager(Session session) throws RepositoryException {
+        if(!(session instanceof JackrabbitSession)) {
+            throw new IllegalArgumentException("Session is not a JackrabbitSession");
+        }
+        return ((JackrabbitSession)session).getPrincipalManager();
+    }
+
     public static UserManager getUserManager(Session session) throws RepositoryException {
         if(!(session instanceof JackrabbitSession)) {
             throw new IllegalArgumentException("Session is not a JackrabbitSession");
@@ -84,7 +93,7 @@ public class UserUtil {
         return result;
     }
 
-    public static boolean deleteUser(Session session, String id) throws RepositoryException {
+    public static boolean deleteAuthorizable(Session session, String id) throws RepositoryException {
         final Authorizable authorizable = getUserManager(session).getAuthorizable(id);
         if(authorizable != null) {
             authorizable.remove();
