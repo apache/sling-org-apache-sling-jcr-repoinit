@@ -1,13 +1,9 @@
-[<img src="http://sling.apache.org/res/logos/sling.png"/>](http://sling.apache.org)
+[<img src="https://sling.apache.org/res/logos/sling.png"/>](https://sling.apache.org)
 
- [![Build Status](https://builds.apache.org/buildStatus/icon?job=sling-org-apache-sling-jcr-repoinit-1.8)](https://builds.apache.org/view/S-Z/view/Sling/job/sling-org-apache-sling-jcr-repoinit-1.8) [![Test Status](https://img.shields.io/jenkins/t/https/builds.apache.org/view/S-Z/view/Sling/job/sling-org-apache-sling-jcr-repoinit-1.8.svg)](https://builds.apache.org/view/S-Z/view/Sling/job/sling-org-apache-sling-jcr-repoinit-1.8/test_results_analyzer/) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apache.sling/org.apache.sling.jcr.repoinit/badge.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.apache.sling%22%20a%3A%22org.apache.sling.jcr.repoinit%22) [![JavaDocs](https://www.javadoc.io/badge/org.apache.sling/org.apache.sling.jcr.repoinit.svg)](https://www.javadoc.io/doc/org.apache.sling/org.apache.sling.jcr.repoinit) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0) [![jcr](https://sling.apache.org/badges/group-jcr.svg)](https://github.com/apache/sling-aggregator/blob/master/docs/groups/jcr.md)
+ [![Build Status](https://builds.apache.org/buildStatus/icon?job=Sling/sling-org-apache-sling-jcr-repoinit/master)](https://builds.apache.org/job/Sling/job/sling-org-apache-sling-jcr-repoinit/job/master) [![Test Status](https://img.shields.io/jenkins/t/https/builds.apache.org/job/Sling/job/sling-org-apache-sling-jcr-repoinit/job/master.svg)](https://builds.apache.org/job/Sling/job/sling-org-apache-sling-jcr-repoinit/job/master/test_results_analyzer/) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apache.sling/org.apache.sling.jcr.repoinit/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.apache.sling%22%20a%3A%22org.apache.sling.jcr.repoinit%22) [![JavaDocs](https://www.javadoc.io/badge/org.apache.sling/org.apache.sling.jcr.repoinit.svg)](https://www.javadoc.io/doc/org.apache.sling/org.apache.sling.jcr.repoinit) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0) [![jcr](https://sling.apache.org/badges/group-jcr.svg)](https://github.com/apache/sling-aggregator/blob/master/docs/groups/jcr.md)
 
 # Apache Sling JCR RepoInit module
 
 This module is part of the [Apache Sling](https://sling.apache.org) project.
 
-This module implements repoinit [1] operations to allow the repoinit language 
-to be used to initialize content, service users and privileges in a JCR 
-content repository.
-
-[1]: https://sling.apache.org/documentation/bundles/repository-initialization.html
+This module implements [Repository Initalization](https://sling.apache.org/documentation/bundles/repository-initialization.html) operations for the Sling _repoinit_ modules, operations that can initialize content, service users and privileges in a JCR content repository. 
