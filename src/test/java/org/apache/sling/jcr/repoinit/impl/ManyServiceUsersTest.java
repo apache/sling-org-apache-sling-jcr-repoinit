@@ -25,7 +25,6 @@ import javax.jcr.SimpleCredentials;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,11 +52,6 @@ public class ManyServiceUsersTest {
     public void setup() throws RepositoryException, RepoInitParsingException {
         U = new TestUtil(context);
         uniqueId = UUID.randomUUID().toString();
-    }
-    
-    @After
-    public void cleanup() {
-        U.cleanup();
     }
     
     @Test

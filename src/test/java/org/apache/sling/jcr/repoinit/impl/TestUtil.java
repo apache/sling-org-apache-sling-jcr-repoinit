@@ -198,10 +198,6 @@ public class TestUtil {
         return adminSession;
     }
 
-    public void cleanup() {
-        adminSession.logout();
-    }
-
     public String getTestCndStatement(String nsPrefix, String nsURI) throws RepositoryException, RepoInitParsingException {
         return "register nodetypes\n"
                 + "<<===\n"

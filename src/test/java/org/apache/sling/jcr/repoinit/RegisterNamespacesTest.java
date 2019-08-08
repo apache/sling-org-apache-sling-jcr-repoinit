@@ -27,7 +27,6 @@ import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,11 +52,6 @@ public class RegisterNamespacesTest {
         ns = U.getAdminSession().getWorkspace().getNamespaceRegistry();
     }
 
-    @After
-    public void cleanup() throws RepositoryException, RepoInitParsingException {
-        U.cleanup();
-    }
-    
     @Test
     public void NS1registered() throws Exception {
         assertEquals(NS1, ns.getURI("one"));
