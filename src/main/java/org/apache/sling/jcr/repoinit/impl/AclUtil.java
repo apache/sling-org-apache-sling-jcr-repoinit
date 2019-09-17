@@ -73,6 +73,7 @@ public class AclUtil {
            for(RestrictionClause rc : list){
                String restrictionName = rc.getName();
                int type = jacl.getRestrictionType(restrictionName);
+               boolean isMvRestriction = jacl.isMultiValueRestriction(restrictionName);
                Value[] values = new Value[rc.getValues().size()];
                for(int i=0;i<values.length;i++) {
                    values[i] = vf.createValue(rc.getValues().get(i),type);
@@ -82,15 +83,15 @@ public class AclUtil {
                    // SLING-7280 - special case for rep:glob which supports an empty string
                    // to mean "no values"
                    restrictions.put(restrictionName, vf.createValue(""));
-               } else if(values.length == 1) {
-                   restrictions.put(restrictionName, values[0]);
-               } else {
+               } else if (isMvRestriction) {
                    mvrestrictions.put(restrictionName, values);
+               } else {
+                   checkState(values.length == 1, "Expected just one value for single valued restriction with name " + restrictionName);
+                   restrictions.put(restrictionName, values[0]);
                }
            }
         }
         return new LocalRestrictions(restrictions,mvrestrictions);
-
     }
 
 
