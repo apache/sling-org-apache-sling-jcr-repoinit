@@ -17,15 +17,23 @@
 package org.apache.sling.jcr.repoinit.impl;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.security.Principal;
+import java.util.Collections;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
@@ -167,6 +175,75 @@ public class AclUtilTest {
         assertArrayCompare(a1, a5, true);
         assertArrayCompare(a4, a6, true);
         assertArrayCompare(emptyA, emptyB, true);
+    }
+
+    /**
+     * Repo init should work for principals even if they are not present as user/group with the user manager.
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/SLING-8604">SLING-8604</>
+     */
+    @Test
+    public void testSetAclForEveryone() throws Exception {
+        Session session = U.adminSession;
+        try {
+        assertTrue(session instanceof JackrabbitSession);
+        assertNull(((JackrabbitSession) session).getUserManager().getAuthorizable(EveryonePrincipal.getInstance()));
+
+        AclUtil.setAcl(session, Collections.singletonList(EveryonePrincipal.NAME), Collections.singletonList(PathUtils.ROOT_PATH), Collections.singletonList(Privilege.JCR_READ), false);
+
+        assertIsContained(AccessControlUtils.getAccessControlList(session, PathUtils.ROOT_PATH), EveryonePrincipal.NAME, new String[] {Privilege.JCR_READ}, false);
+        } finally {
+            session.refresh(false);
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/SLING-8604">SLING-8604</>
+     */
+    @Test
+    public void testSetAclForPrincipalNameDifferentFromId() throws Exception {
+        U.cleanupUser();
+        try {
+            Principal principal = new PrincipalImpl(U.id + "_principalName");
+            assertTrue(U.adminSession instanceof JackrabbitSession);
+            UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+            uMgr.createUser(U.username, null, principal, null);
+            U.adminSession.save();
+
+            AclUtil.setAcl(U.adminSession, Collections.singletonList(principal.getName()), Collections.singletonList(PathUtils.ROOT_PATH), Collections.singletonList(Privilege.JCR_READ), false);
+
+            assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, PathUtils.ROOT_PATH), principal.getName(), new String[] {Privilege.JCR_READ}, false);
+        } finally {
+            U.adminSession.refresh(false);
+        }
+    }
+
+    /**
+     * Test backwards compatibility of SLING-8604: test that the fallback mechanism still tries to
+     * resolve the given 'principalName' to an authorizable by treating it as the identifier, if there exists no principal
+     * for the given name (i.e ID is not equal to the principal name.
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/SLING-8604">SLING-8604</>
+     */
+    @Test
+    public void testSetAclUsingUserId() throws Exception {
+        U.cleanupUser();
+        try {
+            Principal principal = new PrincipalImpl(U.id + "_principalName");
+            assertTrue(U.adminSession instanceof JackrabbitSession);
+            UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+            uMgr.createUser(U.username, null, principal, null);
+            U.adminSession.save();
+
+            AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), Collections.singletonList(PathUtils.ROOT_PATH), Collections.singletonList(Privilege.JCR_READ), false);
+
+            // assert that the entries is created for the principal name (and not the identifier)
+            assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, PathUtils.ROOT_PATH), principal.getName(), new String[] {Privilege.JCR_READ}, false);
+            // assert no entry has been created for the identifier (which cannot be resolved to a principal)
+            assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, PathUtils.ROOT_PATH), U.username, new String[] {Privilege.JCR_READ}, false);
+        } finally {
+            U.adminSession.refresh(false);
+        }
     }
 
     private void assertIsContained(JackrabbitAccessControlList acl, String username, String[] privilegeNames, boolean isAllow) throws RepositoryException {

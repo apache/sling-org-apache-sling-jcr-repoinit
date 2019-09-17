@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -49,11 +50,7 @@ public class AclUtil {
     private static final Logger LOG = LoggerFactory.getLogger(AclUtil.class);
     public static JackrabbitAccessControlManager getJACM(Session s) throws RepositoryException {
         final AccessControlManager acm = s.getAccessControlManager();
-        if(!(acm instanceof JackrabbitAccessControlManager)) {
-            throw new IllegalStateException(
-                "AccessControlManager is not a JackrabbitAccessControlManager:"
-                + acm.getClass().getName());
-        }
+        checkState((acm instanceof JackrabbitAccessControlManager), "AccessControlManager is not a JackrabbitAccessControlManager:" + acm.getClass().getName());
         return (JackrabbitAccessControlManager) acm;
     }
 
@@ -119,6 +116,7 @@ public class AclUtil {
         final Privilege[] jcrPriv = AccessControlUtils.privilegesFromNames(session, privArray);
 
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, path);
+        checkState(acl != null, "No JackrabbitAccessControlList available for path " + path);
 
         LocalRestrictions localRestrictions = createLocalRestrictions(restrictionClauses, acl, session);
 
@@ -126,19 +124,14 @@ public class AclUtil {
 
         boolean changed = false;
         for (String name : principals) {
-            final Principal principal;
-            if (EveryonePrincipal.NAME.equals(name)) {
-                principal = AccessControlUtils.getPrincipal(session, name);
-            } else {
+            Principal principal = AccessControlUtils.getPrincipal(session, name);
+            if (principal == null) {
+                // backwards compatibility: fallback to original code treating principal name as authorizable ID (see SLING-8604)
                 final Authorizable authorizable = UserUtil.getAuthorizable(session, name);
-                if (authorizable == null) {
-                    throw new IllegalStateException("Authorizable not found:" + name);
-                }
+                checkState(authorizable != null, "Authorizable not found:" + name);
                 principal = authorizable.getPrincipal();
             }
-            if (principal == null) {
-                throw new IllegalStateException("Principal not found: " + name);
-            }
+            checkState(principal != null, "Principal not found: " + name);
             LocalAccessControlEntry newAce = new LocalAccessControlEntry(principal, jcrPriv, isAllow, localRestrictions);
             if (contains(existingAces, newAce)) {
                 LOG.info("Not adding {} to path {} since an equivalent access control entry already exists", newAce, path);
@@ -149,7 +142,7 @@ public class AclUtil {
             changed = true;
         }
         if ( changed ) {
-            getJACM(session).setPolicy(path, acl);
+            session.getAccessControlManager().setPolicy(path, acl);
         }
     }
 
@@ -174,6 +167,12 @@ public class AclUtil {
         return "[" + entry.getClass().getSimpleName() + "# principal: "
                 + "" + entry.getPrincipal() + ", privileges: " + Arrays.toString(entry.getPrivileges()) +
                 ", isAllow: " + entry.isAllow() + ", restrictionNames: " + entry.getRestrictionNames()  + "]";
+    }
+
+    private static void checkState(boolean expression, @Nullable String msg) {
+        if (!expression) {
+            throw new IllegalStateException(msg);
+        }
     }
 
     /** Compare arrays a and b, which do not need to be ordered
