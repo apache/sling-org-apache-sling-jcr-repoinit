@@ -108,7 +108,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <!-- the Sling instance is provisioned from the model in src/main/provisioning/model.txt -->
                 <groupId>org.apache.sling</groupId>
                 <artifactId>slingstart-maven-plugin</artifactId>
                 <version>1.7.16</version>
