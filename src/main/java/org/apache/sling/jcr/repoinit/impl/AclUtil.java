@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -39,7 +38,6 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -169,7 +167,7 @@ public class AclUtil {
                 ", isAllow: " + entry.isAllow() + ", restrictionNames: " + entry.getRestrictionNames()  + "]";
     }
 
-    private static void checkState(boolean expression, @Nullable String msg) {
+    private static void checkState(boolean expression, String msg) {
         if (!expression) {
             throw new IllegalStateException(msg);
         }

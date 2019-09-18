@@ -143,6 +143,7 @@
                 <configuration>
                     <usePomDependencies>true</usePomDependencies>
                     <attachArtifact>false</attachArtifact>
+                    <disableExtendingMavenClasspath>true</disableExtendingMavenClasspath>
                     <servers>
                         <server>
                             <id>singleinstance</id>
