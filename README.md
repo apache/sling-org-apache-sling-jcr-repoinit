@@ -7,3 +7,23 @@
 This module is part of the [Apache Sling](https://sling.apache.org) project.
 
 This module implements [Repository Initalization](https://sling.apache.org/documentation/bundles/repository-initialization.html) operations for the Sling _repoinit_ modules, operations that can initialize content, service users and privileges in a JCR content repository. 
+
+## Updating to a newer version of Jackrabbit Oak
+
+The Oak version (and the associated Jackrabbit version) must be maintained in two locations:
+
+- pom.xml for build and unit testing
+- src/test/features for integration testing
+
+Since the integration tests rely on the Sling Starter to provide the the base instance values, it
+happens that the Oak version used by repoinit is more recent than the one provided in the starter.
+
+We should not depend on SNAPSHOT starter versions, since this bundle is released more often than
+the Starter. Therefore the recommended approach is to override the needed bundles in the following
+manner:
+
+* in src/test/provisioning/sling.txt - all bundles from the Sling Starter part of the 'sling.txt' feature
+* in src/test/provisioning/oak.txt - all bundles from the Sling Starter part of the 'oak.txt' feature
+
+For a more concrete example, see [SLING-8627 - Update sling-jcr-repoinit to Oak 1.16.0 and Jackrabbit 2.18](https://issues.apache.org/jira/browse/SLING-8627)
+and associated commits.
