@@ -27,7 +27,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
@@ -143,6 +145,41 @@ public class GeneralAclTest {
             s.getNode(path).remove();
             s.save();
             assertFalse(s.itemExists(path));
+        } finally {
+            s.logout();
+        }
+    }
+
+    @Test
+    public void addPathAclWithRepositoryPath() throws Exception {
+        final String aclSetup =
+                "set ACL on :repository\n"
+                        + "allow jcr:namespaceManagement for "+U.username+"\n"
+                        + "end"
+                ;
+
+        U.parseAndExecute(aclSetup);
+        try {
+            s.refresh(false);
+            assertTrue(s.getAccessControlManager().hasPrivileges(null, AccessControlUtils.privilegesFromNames(s, "jcr:namespaceManagement")));
+        } finally {
+            s.logout();
+        }
+    }
+
+    @Test
+    public void addPrincipalAclWithRepositoryPath() throws Exception {
+        final String aclSetup =
+                "set ACL for " + U.username + "\n"
+                        + "allow jcr:all on :repository,/\n"
+                        + "end"
+                ;
+
+        U.parseAndExecute(aclSetup);
+        try {
+            s.refresh(false);
+            assertTrue(s.getAccessControlManager().hasPrivileges(null, AccessControlUtils.privilegesFromNames(s, Privilege.JCR_ALL)));
+            assertTrue(s.getAccessControlManager().hasPrivileges("/", AccessControlUtils.privilegesFromNames(s, Privilege.JCR_ALL)));
         } finally {
             s.logout();
         }

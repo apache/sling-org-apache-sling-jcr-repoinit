@@ -38,6 +38,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.sling.repoinit.parser.operations.AclLine;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,10 +102,14 @@ public class AclUtil {
     public static void setAcl(Session session, List<String> principals, List<String> paths, List<String> privileges, boolean isAllow, List<RestrictionClause> restrictionClauses)
             throws RepositoryException {
         for (String path : paths) {
-            if(!session.nodeExists(path)) {
-                throw new PathNotFoundException("Cannot set ACL on non-existent path " + path);
+            if (AclLine.PATH_REPOSITORY.equals(path)) {
+                setRepositoryAcl(session, principals, privileges, isAllow, restrictionClauses);
+            } else {
+                if (!session.nodeExists(path)) {
+                    throw new PathNotFoundException("Cannot set ACL on non-existent path " + path);
+                }
+                setAcl(session, principals, path, privileges, isAllow, restrictionClauses);
             }
-            setAcl(session, principals, path, privileges, isAllow, restrictionClauses);
         }
     }
 
