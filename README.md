@@ -8,6 +8,8 @@ This module is part of the [Apache Sling](https://sling.apache.org) project.
 
 This module implements [Repository Initalization](https://sling.apache.org/documentation/bundles/repository-initialization.html) operations for the Sling _repoinit_ modules, operations that can initialize content, service users and privileges in a JCR content repository. 
 
+The user documentation for the Sling Repoinit modules is at https://sling.apache.org/documentation/bundles/repository-initialization.html
+
 ## Updating to a newer version of Jackrabbit Oak
 
 The Oak version (and the associated Jackrabbit version) must be maintained in two locations:
