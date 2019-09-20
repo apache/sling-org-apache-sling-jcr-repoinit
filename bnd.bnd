@@ -1,0 +1,1 @@
+Provide-Capability: osgi.implementation;osgi.implementation="org.apache.sling.jcr.repoinit";version:Version="1.0"
