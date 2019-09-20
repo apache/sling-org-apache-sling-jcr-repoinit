@@ -18,6 +18,7 @@ package org.apache.sling.jcr.repoinit.impl;
 
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,18 +31,24 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.sling.repoinit.parser.operations.AclLine;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PATHS;
+import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PRIVILEGES;
 
 /** Utilities for ACL management */
 public class AclUtil {
@@ -153,6 +160,55 @@ public class AclUtil {
     public static void setRepositoryAcl(Session session, List<String> principals, List<String> privileges, boolean isAllow, List<RestrictionClause> restrictionClauses)
            throws RepositoryException {
         setAcl(session, principals, (String)null, privileges, isAllow, restrictionClauses);
+    }
+
+    public static void setPrincipalAcl(Session session, String principalName, Collection<AclLine> lines) throws RepositoryException {
+        JackrabbitAccessControlManager acMgr = getJACM(session);
+        Principal principal = AccessControlUtils.getPrincipal(session, principalName);
+        checkState(principal != null, "Principal not found: " + principalName);
+
+        PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal);
+        boolean modified = false;
+        for (AclLine line : lines) {
+            if (line.getAction() == AclLine.Action.DENY) {
+                throw new AccessControlException("PrincipalAccessControlList doesn't support 'deny' entries.");
+            }
+            LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
+            Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
+
+            for (String path : line.getProperty(PROP_PATHS)) {
+                String effectivePath = (path == null || path.isEmpty() || AclLine.PATH_REPOSITORY.equals(path)) ? null : path;
+                boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
+                if (!added) {
+                    LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, path);
+                } else {
+                    modified = true;
+                }
+            }
+        }
+        if (modified) {
+            acMgr.setPolicy(acl.getPath(), acl);
+        }
+    }
+
+    private static PrincipalAccessControlList getPrincipalAccessControlList(JackrabbitAccessControlManager acMgr, Principal principal) throws RepositoryException {
+        PrincipalAccessControlList acl = null;
+        for (AccessControlPolicy policy : acMgr.getPolicies(principal)) {
+            if (policy instanceof PrincipalAccessControlList) {
+                acl = (PrincipalAccessControlList) policy;
+                break;
+            }
+        }
+        if (acl == null) {
+            for (AccessControlPolicy policy : acMgr.getApplicablePolicies(principal)) {
+                if (policy instanceof PrincipalAccessControlList) {
+                    acl = (PrincipalAccessControlList) policy;
+                    break;
+                }
+            }
+        }
+        checkState(acl != null, "No PrincipalAccessControlList available for principal " + principal);
+        return acl;
     }
 
     // visible for testing

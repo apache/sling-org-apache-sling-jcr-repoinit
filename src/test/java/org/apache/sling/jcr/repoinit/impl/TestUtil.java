@@ -56,6 +56,12 @@ public class TestUtil {
         username = "user_" + id;
     }
 
+    public TestUtil(Session adminSession) {
+        this.adminSession = adminSession;
+        id = UUID.randomUUID().toString();
+        username = "user_" + id;
+    }
+
     public List<Operation> parse(String input) throws RepoInitParsingException {
         final Reader r = new StringReader(input);
         try {

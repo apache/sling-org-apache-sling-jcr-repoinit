@@ -30,6 +30,7 @@ import org.apache.sling.repoinit.parser.operations.CreatePath;
 import org.apache.sling.repoinit.parser.operations.PathSegmentDefinition;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
+import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipals;
 
 /** OperationVisitor which processes only operations related to ACLs.
@@ -95,6 +96,18 @@ class AclVisitor extends DoNothingVisitor {
         for(AclLine line : s.getLines()) {
             final boolean isAllow = line.getAction().equals(AclLine.Action.ALLOW);
             setAcl(line, session, require(line, PROP_PRINCIPALS), paths, require(line, PROP_PRIVILEGES), isAllow);
+        }
+    }
+
+    @Override
+    public void visitSetAclPrincipalBased(SetAclPrincipalBased s) {
+        for (String principalName : s.getPrincipals()) {
+            try {
+                log.info("Adding principal-based access control entry for {}", principalName);
+                AclUtil.setPrincipalAcl(session, principalName, s.getLines());
+            } catch(Exception e) {
+                throw new RuntimeException("Failed to set principal-based ACL (" + e.getMessage() + ")", e);
+            }
         }
     }
 

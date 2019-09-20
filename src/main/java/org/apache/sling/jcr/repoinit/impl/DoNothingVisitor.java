@@ -31,6 +31,7 @@ import org.apache.sling.repoinit.parser.operations.RegisterNamespace;
 import org.apache.sling.repoinit.parser.operations.RegisterNodetypes;
 import org.apache.sling.repoinit.parser.operations.RegisterPrivilege;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
+import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipals;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +86,10 @@ class DoNothingVisitor implements OperationVisitor {
 
     @Override
     public void visitSetAclPaths(SetAclPaths s) {
+    }
+
+    @Override
+    public void visitSetAclPrincipalBased(SetAclPrincipalBased operation) {
     }
 
     @Override
