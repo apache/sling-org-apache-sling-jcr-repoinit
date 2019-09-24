@@ -29,7 +29,7 @@
 
   <artifactId>org.apache.sling.jcr.repoinit</artifactId>
   <version>1.1.15-SNAPSHOT</version>
-  <name>Apache Sling JCR RepoInit module</name>
+  <name>Apache Sling Repoinit JCR</name>
   <description>
 	  Initializes a JCR repository based on the output
 	  of the RepoInit Language parser.
