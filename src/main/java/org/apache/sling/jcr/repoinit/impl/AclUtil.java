@@ -173,16 +173,21 @@ public class AclUtil {
             if (line.getAction() == AclLine.Action.DENY) {
                 throw new AccessControlException("PrincipalAccessControlList doesn't support 'deny' entries.");
             }
-            LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
             Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
-
             for (String path : line.getProperty(PROP_PATHS)) {
                 String effectivePath = (path == null || path.isEmpty() || AclLine.PATH_REPOSITORY.equals(path)) ? null : path;
-                boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
-                if (!added) {
-                    LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, path);
+                if (acl == null) {
+                    // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with the same definition exists.
+                    LOG.info("No PrincipalAccessControlList available for principal {}", principal);
+                    checkState(containsEquivalentEntry(session, path, principal, privileges, true, line.getRestrictions()), "No PrincipalAccessControlList available for principal '" + principal + "'.");
                 } else {
-                    modified = true;
+                    LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
+                    boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
+                    if (!added) {
+                        LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, path);
+                    } else {
+                        modified = true;
+                    }
                 }
             }
         }
@@ -207,8 +212,21 @@ public class AclUtil {
                 }
             }
         }
-        checkState(acl != null, "No PrincipalAccessControlList available for principal " + principal);
         return acl;
+    }
+
+    private static boolean containsEquivalentEntry(Session session, String absPath, Principal principal, Privilege[] privileges, boolean isAllow, List<RestrictionClause> restrictionList) throws RepositoryException {
+        for (AccessControlPolicy policy : session.getAccessControlManager().getPolicies(absPath)) {
+            if (policy instanceof JackrabbitAccessControlList) {
+                LocalRestrictions lr = createLocalRestrictions(restrictionList, ((JackrabbitAccessControlList) policy), session);
+                LocalAccessControlEntry newEntry = new LocalAccessControlEntry(principal, privileges, isAllow, lr);
+                if (contains(((JackrabbitAccessControlList) policy).getAccessControlEntries(), newEntry)) {
+                    LOG.info("Equivalent path-based entry exists for principal {} and effective path {} ", newEntry.principal.getName(), absPath);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // visible for testing

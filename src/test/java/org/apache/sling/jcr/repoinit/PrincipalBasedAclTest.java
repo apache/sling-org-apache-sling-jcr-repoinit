@@ -17,6 +17,9 @@
 package org.apache.sling.jcr.repoinit;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -47,25 +50,34 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.Privilege;
 import javax.security.auth.Subject;
+import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class PrincipalBasedAclTest {
+
+    private static final String PRINCIPAL_BASED_SUBTREE = "principalbased";
 
     @Rule
     public final OsgiContext context = new OsgiContext();
 
     private Repository repository;
-    private Session adminSession;
+    private JackrabbitSession adminSession;
 
     private TestUtil U;
 
     private String path;
     private String propPath;
+    private String relPath;
 
     private Session testSession;
 
@@ -75,7 +87,7 @@ public class PrincipalBasedAclTest {
         repository = new Jcr().with(sp).createRepository();
 
         String uid = sp.getParameters(UserConfiguration.NAME).getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
-        adminSession = repository.login(new SimpleCredentials(uid, uid.toCharArray()), null);
+        adminSession = (JackrabbitSession) repository.login(new SimpleCredentials(uid, uid.toCharArray()), null);
         U = new TestUtil(adminSession);
 
         Node tmp = adminSession.getRootNode().addNode("tmp_" + U.id);
@@ -84,7 +96,8 @@ public class PrincipalBasedAclTest {
         propPath = prop.getPath();
         adminSession.save();
 
-        U.parseAndExecute("create service user " + U.username);
+        relPath = sp.getParameters(UserConfiguration.NAME).getConfigValue(UserConstants.PARAM_SYSTEM_RELATIVE_PATH, UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH) + "/" + PRINCIPAL_BASED_SUBTREE;
+        U.parseAndExecute("create service user " + U.username + " with path " + relPath);
 
         testSession = loginSystemUserPrincipal(U.username);
 
@@ -121,8 +134,9 @@ public class PrincipalBasedAclTest {
         ConfigurationParameters userParams = sp.getParameters(UserConfiguration.NAME);
         String userRoot = userParams.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
         String systemRelPath = userParams.getConfigValue(UserConstants.PARAM_SYSTEM_RELATIVE_PATH, UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH);
+
         FilterProviderImpl fp = new FilterProviderImpl();
-        context.registerInjectActivateService(fp, Collections.singletonMap("path", PathUtils.concat(userRoot, systemRelPath)));
+        context.registerInjectActivateService(fp, Collections.singletonMap("path", PathUtils.concat(userRoot, systemRelPath, PRINCIPAL_BASED_SUBTREE)));
 
         PrincipalBasedAuthorizationConfiguration authorizationConfig = new PrincipalBasedAuthorizationConfiguration();
         authorizationConfig.bindMountInfoProvider(Mounts.defaultMountInfoProvider());
@@ -309,7 +323,6 @@ public class PrincipalBasedAclTest {
         assertPermission(testSession, path + "/propName", Session.ACTION_SET_PROPERTY, true);
     }
 
-
     @Test
     public void emptyMvRestrictionTest() throws Exception {
         String setup =
@@ -362,7 +375,7 @@ public class PrincipalBasedAclTest {
     public void multiplePrincipals() throws Exception {
         Session s = null;
         try {
-            U.parseAndExecute("create service user otherSystemPrincipal");
+            U.parseAndExecute("create service user otherSystemPrincipal with path " + relPath);
             String setup =
                     "set principal ACL for " + U.username + ",otherSystemPrincipal \n"
                             + "allow jcr:read on " + path + "\n"
@@ -389,5 +402,151 @@ public class PrincipalBasedAclTest {
                         + "end";
 
         U.parseAndExecute(setup);
+    }
+
+    @Test
+    public void redundantEntry() throws Exception {
+        String setup = "set principal ACL for " + U.username + "\n"
+                        + "allow jcr:read on "+path+"\n"
+                        + "allow jcr:read on "+path+"\n"
+                        + "end";
+        U.parseAndExecute(setup);
+
+        Principal principal = adminSession.getUserManager().getAuthorizable(U.username).getPrincipal();
+        JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) adminSession.getAccessControlManager();
+        PrincipalAccessControlList pacl = null;
+        for (AccessControlPolicy policy : acMgr.getPolicies(principal)) {
+            if (policy instanceof  PrincipalAccessControlList) {
+                pacl = (PrincipalAccessControlList) policy;
+                break;
+            }
+        }
+        assertNotNull(pacl);
+        // an identical entry should only be present once
+        assertEquals(1, pacl.size());
+    }
+
+    @Test
+    public void grantWithSecondSetup() throws Exception {
+        String setup = "set principal ACL for " + U.username + "\n"
+                + "allow jcr:read on "+path+"\n"
+                + "end";
+        U.parseAndExecute(setup);
+
+        setup = "set principal ACL for " + U.username + "\n"
+                + "allow jcr:write on "+path+"\n"
+                + "end";
+        U.parseAndExecute(setup);
+
+        Principal principal = adminSession.getUserManager().getAuthorizable(U.username).getPrincipal();
+        JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) adminSession.getAccessControlManager();
+        PrincipalAccessControlList pacl = null;
+        for (AccessControlPolicy policy : acMgr.getPolicies(principal)) {
+            if (policy instanceof  PrincipalAccessControlList) {
+                pacl = (PrincipalAccessControlList) policy;
+                break;
+            }
+        }
+        assertNotNull(pacl);
+        assertEquals(2, pacl.size());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void  principalAclNotAvailable() throws Exception {
+        try {
+            // create service user outside of supported tree for principal-based access control
+            U.parseAndExecute("create service user otherSystemPrincipal");
+            // principal-based ac-setup must fail as service user is not located below supported path
+            String setup = "set principal ACL for otherSystemPrincipal \n"
+                            + "allow jcr:read on " + path + "\n"
+                            + "end";
+            U.parseAndExecute(setup);
+        } finally {
+            U.cleanupServiceUser("otherSystemPrincipal");
+        }
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void  principalAclNotAvailableRestrictionMismatch() throws Exception {
+        JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) adminSession.getAccessControlManager();
+        try {
+            // create service user outside of supported tree for principal-based access control
+            U.parseAndExecute("create service user otherSystemPrincipal");
+            // setup path-based access control to establish effective permission setup
+            String setup = "set ACL for otherSystemPrincipal \n"
+                    + "allow jcr:read on " + path + "\n"
+                    + "end";
+            U.parseAndExecute(setup);
+
+            Principal principal = adminSession.getUserManager().getAuthorizable("otherSystemPrincipal").getPrincipal();
+            assertTrue(acMgr.hasPrivileges(path, Collections.singleton(principal), AccessControlUtils.privilegesFromNames(adminSession, Privilege.JCR_READ)));
+
+            // setting up principal-acl will not succeed (principal not located below supported path)
+            // since effective entry doesn't match the restriction -> setup must fail
+            setup = "set principal ACL for otherSystemPrincipal \n"
+                    + "allow jcr:read on " + path + " restriction(rep:glob,*mismatch)\n"
+                    + "end";
+            U.parseAndExecute(setup);
+        } finally {
+            U.cleanupServiceUser("otherSystemPrincipal");
+        }
+    }
+
+    @Test
+    public void  principalAclNotAvailableEntryPresent() throws Exception {
+        JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) adminSession.getAccessControlManager();
+        try {
+            // create service user outside of supported tree for principal-based access control
+            U.parseAndExecute("create service user otherSystemPrincipal");
+            // setup path-based access control to establish effective permission setup
+            String setup = "set ACL for otherSystemPrincipal \n"
+                    + "allow jcr:read on " + path + "\n"
+                    + "end";
+            U.parseAndExecute(setup);
+
+            Principal principal = adminSession.getUserManager().getAuthorizable("otherSystemPrincipal").getPrincipal();
+            assertTrue(acMgr.hasPrivileges(path, Collections.singleton(principal), AccessControlUtils.privilegesFromNames(adminSession, Privilege.JCR_READ)));
+
+            // setting up principal-acl will not succeed (principal not located below supported path)
+            // but there exists an effective entry with the same definition -> no exception
+            setup = "set principal ACL for otherSystemPrincipal \n"
+                    + "allow jcr:read on " + path + "\n"
+                    + "end";
+            U.parseAndExecute(setup);
+
+            for (AccessControlPolicy policy : acMgr.getPolicies(principal)) {
+                assertFalse(policy instanceof PrincipalAccessControlList);
+            }
+        } finally {
+            U.cleanupServiceUser("otherSystemPrincipal");
+        }
+    }
+
+    @Test
+    public void  principalAclNotAvailableEntryWithRestrictionPresent() throws Exception {
+        JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) adminSession.getAccessControlManager();
+        try {
+            // create service user outside of supported tree for principal-based access control
+            U.parseAndExecute("create service user otherSystemPrincipal");
+            // setup path-based access control to establish effective permission setup
+            String setup = "set ACL for otherSystemPrincipal \n"
+                    + "allow jcr:read on " + path + " restriction(rep:glob,*abc*)\n"
+                    + "end";
+            U.parseAndExecute(setup);
+
+            // setting up principal-acl will not succeed (principal not located below supported path)
+            // but there exists an equivalent entry with the same definition -> no exception
+            setup = "set principal ACL for otherSystemPrincipal \n"
+                    + "allow jcr:read on " + path + " restriction(rep:glob,*abc*)\n"
+                    + "end";
+            U.parseAndExecute(setup);
+
+            Principal principal = adminSession.getUserManager().getAuthorizable("otherSystemPrincipal").getPrincipal();
+            for (AccessControlPolicy policy : acMgr.getPolicies(principal)) {
+                assertFalse(policy instanceof PrincipalAccessControlList);
+            }
+        } finally {
+            U.cleanupServiceUser("otherSystemPrincipal");
+        }
     }
 }
