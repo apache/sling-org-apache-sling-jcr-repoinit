@@ -21,14 +21,18 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -40,6 +44,7 @@ import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -70,6 +75,9 @@ public class AclUtilTest {
 
     @After
     public void cleanup() throws RepositoryException, RepoInitParsingException {
+        if (U.adminSession != null) {
+            U.adminSession.refresh(false);
+        }
         U.cleanupUser();
     }
 
@@ -244,6 +252,135 @@ public class AclUtilTest {
         } finally {
             U.adminSession.refresh(false);
         }
+    }
+
+    @Test
+    public void testSetAclWithHomePath() throws Exception {
+        UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+        String userHomePath = uMgr.getAuthorizable(U.username).getPath();
+        assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, userHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+
+        List<String> paths = Collections.singletonList(":home:"+U.username+"#");
+        AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_READ), true);
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, userHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+    }
+
+    @Test
+    public void testSetAclWithHomePathMultipleIds() throws Exception {
+        UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+        String userHomePath = uMgr.getAuthorizable(U.username).getPath();
+        assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, userHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+
+        Group gr = uMgr.createGroup("groupId");
+        String groupHomePath = gr.getPath();
+        assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+
+        List<String> paths = Collections.singletonList(":home:"+U.username+","+gr.getID()+"#");
+        AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_READ), true);
+
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, userHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+    }
+
+    @Test
+    public void testSetAclWithHomePathMultiplePath() throws Exception {
+        UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+        String userHomePath = uMgr.getAuthorizable(U.username).getPath();
+
+        List<String> paths = Arrays.asList(":home:" + U.username + "#", ":repository", PathUtils.ROOT_PATH);
+        AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_ALL), true);
+
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, userHomePath), U.username, new String[] {Privilege.JCR_ALL}, true);
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, null), U.username, new String[] {Privilege.JCR_ALL}, true);
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, PathUtils.ROOT_PATH), U.username, new String[] {Privilege.JCR_ALL}, true);
+    }
+
+    @Test
+    public void testSetAclWithHomePathAndSubtree() throws Exception {
+        UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+        String userHomePath = U.adminSession.getNode(uMgr.getAuthorizable(U.username).getPath()).addNode("profiles").addNode("private").getPath();
+        assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, userHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+
+        Group gr = uMgr.createGroup("groupId");
+        String groupHomePath = U.adminSession.getNode(gr.getPath()).addNode("profiles").addNode("private").getPath();
+        assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+
+        List<String> paths = Collections.singletonList(":home:"+U.username+","+gr.getID()+"#/profiles/private");
+        AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_READ), true);
+
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, userHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+    }
+
+    @Test(expected = PathNotFoundException.class)
+    public void testSetAclWithHomePathAndMissingSubtree() throws Exception {
+        UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+        String userHomePath = uMgr.getAuthorizable(U.username).getPath() + "/profiles/private";
+        assertFalse(U.adminSession.nodeExists(userHomePath));
+        assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, userHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+
+        Group gr = uMgr.createGroup("groupId");
+        String groupHomePath = U.adminSession.getNode(gr.getPath()).addNode("profiles").addNode("private").getPath();
+
+        assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+
+        List<String> paths = Collections.singletonList(":home:"+U.username+","+gr.getID()+"#/profiles/private");
+        AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_READ), true);
+    }
+
+    @Test
+    public void testSetAclWithHomePathIdWithHash() throws Exception {
+        UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+
+        Group gr = uMgr.createGroup("g#roupId#");
+        String groupHomePath = gr.getPath();
+        assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+
+        List<String> paths = Collections.singletonList(":home:"+gr.getID()+","+U.username+"#");
+        AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_READ), true);
+
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+    }
+
+    @Test
+    public void testSetAclWithHomePathIdWithColon() throws Exception {
+        UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+
+        Group gr = uMgr.createGroup(":group:Id");
+        String groupHomePath = gr.getPath();
+        assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+
+        List<String> paths = Collections.singletonList(":home:"+gr.getID()+","+U.username+"#");
+        AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_READ), true);
+
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+    }
+
+    @Ignore("TODO: user/groupId containing , will fail ac setup")
+    @Test
+    public void testSetAclWithHomePathIdWithComma() throws Exception {
+        UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+
+        Group gr = uMgr.createGroup(",group,Id,");
+        String groupHomePath = gr.getPath();
+        assertIsNotContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+
+        List<String> paths = Collections.singletonList(":home:"+gr.getID()+","+U.username+"#");
+        AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_READ), true);
+
+        assertIsContained(AccessControlUtils.getAccessControlList(U.adminSession, groupHomePath), U.username, new String[] {Privilege.JCR_READ}, true);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testSetAclWithHomePathMissingTrailingHash() throws Exception {
+        List<String> paths = Collections.singletonList(":home:"+U.username);
+        AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_READ), true);
+    }
+
+    @Test(expected = PathNotFoundException.class)
+    public void testSetAclWithHomePathUnknownUser() throws Exception {
+        List<String> paths = Collections.singletonList(":home:alice#");
+        AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_READ), true);
     }
 
     private void assertIsContained(JackrabbitAccessControlList acl, String username, String[] privilegeNames, boolean isAllow) throws RepositoryException {
