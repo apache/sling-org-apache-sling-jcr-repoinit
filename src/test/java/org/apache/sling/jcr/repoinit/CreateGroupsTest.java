@@ -61,9 +61,17 @@ public class CreateGroupsTest {
     }
 
     @Test
-    public void createGroupWithPathTest() throws Exception {
+    public void createGroupWithRelativePathTest() throws Exception {
         final String groupId = namePrefix + "_cgwpt";
         final String path = "testgroup/folder_for_" + groupId;
+        U.parseAndExecute("create group " + groupId + " with path " + path);
+        U.assertGroup("after creating group " + groupId, groupId, true, path);
+    }
+
+    @Test
+    public void createGroupWithAbsolutePathTest() throws Exception {
+        final String groupId = namePrefix + "_cgwpt";
+        final String path = "/rep:security/rep:authorizables/rep:groups/testgroup/folder_for_" + groupId;
         U.parseAndExecute("create group " + groupId + " with path " + path);
         U.assertGroup("after creating group " + groupId, groupId, true, path);
     }
