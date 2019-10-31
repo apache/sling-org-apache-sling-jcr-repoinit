@@ -23,21 +23,36 @@ import static org.junit.Assert.assertTrue;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import javax.inject.Inject;
 import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
 
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.junit.rules.TeleporterRule;
 import org.apache.sling.repoinit.parser.RepoInitParser;
+import org.apache.sling.testing.paxexam.TestSupport;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.ops4j.pax.exam.Configuration;
+import org.ops4j.pax.exam.Option;
+import org.ops4j.pax.exam.junit.PaxExam;
+import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
+import org.ops4j.pax.exam.spi.reactors.PerClass;
+import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
+import static org.ops4j.pax.exam.CoreOptions.composite;
+import static org.ops4j.pax.exam.CoreOptions.junitBundles;
+import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
 
 /** Basic integration test of the repoinit parser and execution
  *  services, reading statements from a text file.
  */
-public class RepoInitTextIT {
+@RunWith(PaxExam.class)
+@ExamReactorStrategy(PerClass.class)
+public class RepoInitTextIT extends TestSupport {
 
     private Session session;
     private static final String FRED_WILMA = "fredWilmaService";
@@ -45,9 +60,33 @@ public class RepoInitTextIT {
 
     public static final String REPO_INIT_FILE = "/repoinit.txt";
 
+    @Inject
+    private SlingRepository repository;
+
+    @Configuration
+    public Option[] configuration() {
+        return new Option[]{
+            baseConfiguration(),
+            slingQuickstart(),
+            //testBundle("bundle.filename"),
+            junitBundles(),
+            newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
+                .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
+                .asOption(),        
+        };
+    }
+    
+    protected Option slingQuickstart() {
+        final String workingDirectory = workingDirectory();
+        final int httpPort = findFreePort();
+        return composite(
+            slingQuickstartOakTar(workingDirectory, httpPort)
+        );
+    }
+    
     @Before
     public void setup() throws Exception {
-        session = null; // TODO
+        session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
         // Execute some repoinit statements
         final InputStream is = getClass().getResourceAsStream(REPO_INIT_FILE);
@@ -70,6 +109,11 @@ public class RepoInitTextIT {
         if(session != null) {
             session.logout();
         }
+    }
+
+    @Test
+    public void TODO() throws Exception {
+        assertNotNull(session);
     }
 
     /*
