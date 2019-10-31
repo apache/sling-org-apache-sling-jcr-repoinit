@@ -41,3 +41,9 @@ end
 set ACL on /acltest/A/B
   deny jcr:write for anotherService
 end
+
+register nodetypes
+<<===
+<< <slingtest='http://sling.apache.org/ns/test/repoinit-it/v1.0'>
+<< [slingtest:unstructured] > nt:unstructured
+===>>

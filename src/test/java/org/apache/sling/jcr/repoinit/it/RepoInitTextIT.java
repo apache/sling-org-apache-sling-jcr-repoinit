@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.UUID;
 
 import javax.inject.Inject;
 import javax.jcr.Session;
@@ -118,5 +119,12 @@ public class RepoInitTextIT extends RepoInitTestSupport {
                 return null;
             }
         };
+    }
+
+    @Test
+    public void namespaceAndCndRegistered() throws Exception {
+        final String nodeName = "ns-" + UUID.randomUUID();
+        session.getRootNode().addNode(nodeName, "slingtest:unstructured");
+        session.save();
     }
 }
