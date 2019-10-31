@@ -29,30 +29,21 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
-import org.apache.sling.junit.rules.TeleporterRule;
 import org.apache.sling.repoinit.parser.RepoInitParser;
-import org.apache.sling.testing.paxexam.TestSupport;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.ops4j.pax.exam.Configuration;
-import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
-import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
-import static org.ops4j.pax.exam.CoreOptions.composite;
-import static org.ops4j.pax.exam.CoreOptions.junitBundles;
-import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
 
 /** Basic integration test of the repoinit parser and execution
  *  services, reading statements from a text file.
  */
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
-public class RepoInitTextIT extends TestSupport {
+public class RepoInitTextIT extends RepoInitTestSupport {
 
     private Session session;
     private static final String FRED_WILMA = "fredWilmaService";
@@ -63,27 +54,12 @@ public class RepoInitTextIT extends TestSupport {
     @Inject
     private SlingRepository repository;
 
-    @Configuration
-    public Option[] configuration() {
-        return new Option[]{
-            baseConfiguration(),
-            slingQuickstart(),
-            //testBundle("bundle.filename"),
-            junitBundles(),
-            newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
-                .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
-                .asOption(),        
-        };
-    }
-    
-    protected Option slingQuickstart() {
-        final String workingDirectory = workingDirectory();
-        final int httpPort = findFreePort();
-        return composite(
-            slingQuickstartOakTar(workingDirectory, httpPort)
-        );
-    }
-    
+    @Inject
+    private RepoInitParser parser;
+
+    @Inject
+    private JcrRepoInitOpsProcessor processor;
+
     @Before
     public void setup() throws Exception {
         session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
@@ -92,16 +68,14 @@ public class RepoInitTextIT extends TestSupport {
         final InputStream is = getClass().getResourceAsStream(REPO_INIT_FILE);
         assertNotNull("Expecting " + REPO_INIT_FILE, is);
         try {
-            //final RepoInitParser  parser = teleporter.getService(RepoInitParser.class);
-            //final JcrRepoInitOpsProcessor processor = teleporter.getService(JcrRepoInitOpsProcessor.class);
-            //processor.apply(session, parser.parse(new InputStreamReader(is, "UTF-8")));
-            //session.save();
+            processor.apply(session, parser.parse(new InputStreamReader(is, "UTF-8")));
+            session.save();
         } finally {
             is.close();
         }
 
         // The repoinit file causes those nodes to be created
-        //assertTrue("Expecting test nodes to be created", session.itemExists("/acltest/A/B"));
+        assertTrue("Expecting test nodes to be created", session.itemExists("/acltest/A/B"));
     }
 
     @After
@@ -111,12 +85,6 @@ public class RepoInitTextIT extends TestSupport {
         }
     }
 
-    @Test
-    public void TODO() throws Exception {
-        assertNotNull(session);
-    }
-
-    /*
     @Test
     public void serviceUserCreated() throws Exception {
         new Retry() {
@@ -151,5 +119,4 @@ public class RepoInitTextIT extends TestSupport {
             }
         };
     }
-    */
 }
