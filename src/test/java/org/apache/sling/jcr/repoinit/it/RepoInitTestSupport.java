@@ -20,7 +20,9 @@ import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
+
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
+
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
@@ -40,9 +42,12 @@ public abstract class RepoInitTestSupport extends TestSupport {
             newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
                 .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
                 .asOption(),        
+            newConfiguration("org.apache.sling.jcr.repoinit.impl.RepositoryInitializer")
+                .put("references", RepositoryInitializerIT.REPOINIT_SRC_URLS)
+                .asOption(),
         };
     }
-    
+
     protected Option slingQuickstart() {
         final String workingDirectory = workingDirectory();
         final int httpPort = findFreePort();

@@ -88,6 +88,10 @@
                         <name>bundle.filename</name>
                         <value>${basedir}/target/${project.build.finalName}.jar</value>
                         </property>
+                        <property>
+                        <name>repoinit.test.files.path</name>
+                        <value>${basedir}/src/test/resources</value>
+                        </property>
                     </systemProperties>
                 </configuration>
             </plugin>
