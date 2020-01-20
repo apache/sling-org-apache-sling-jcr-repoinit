@@ -16,6 +16,7 @@
  */
 package org.apache.sling.jcr.repoinit.it;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
 import org.ops4j.pax.exam.Configuration;
@@ -33,7 +34,7 @@ public abstract class RepoInitTestSupport extends TestSupport {
     @Configuration
     public Option[] configuration() {
         SlingOptions.versionResolver.setVersionFromProject("org.apache.jackrabbit", "jackrabbit-api");
-        return new Option[]{
+        final Option[] options = {
             baseConfiguration(),
             slingQuickstart(),
             testBundle("bundle.filename"),
@@ -41,11 +42,13 @@ public abstract class RepoInitTestSupport extends TestSupport {
             junitBundles(),
             newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
                 .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
-                .asOption(),        
-            newConfiguration("org.apache.sling.jcr.repoinit.impl.RepositoryInitializer")
-                .put("references", RepositoryInitializerIT.REPOINIT_SRC_URLS)
-                .asOption(),
+                .asOption()
         };
+        return ArrayUtils.addAll(options, additionalOptions());
+    }
+
+    protected Option[] additionalOptions() {
+        return new Option[] {};
     }
 
     protected Option slingQuickstart() {

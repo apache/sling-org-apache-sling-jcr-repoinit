@@ -17,6 +17,7 @@
 package org.apache.sling.jcr.repoinit.it;
 
 import static org.junit.Assert.assertTrue;
+import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
 import javax.inject.Inject;
 import javax.jcr.Session;
@@ -27,6 +28,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
@@ -47,6 +49,14 @@ public class RepositoryInitializerIT extends RepoInitTestSupport {
 
     @Inject
     private SlingRepository repository;
+
+    protected Option[] additionalOptions() {
+        return new Option[] {
+            newConfiguration("org.apache.sling.jcr.repoinit.impl.RepositoryInitializer")
+            .put("references", RepositoryInitializerIT.REPOINIT_SRC_URLS)
+            .asOption()
+        };
+    }
 
     @Before
     public void setup() throws Exception {
