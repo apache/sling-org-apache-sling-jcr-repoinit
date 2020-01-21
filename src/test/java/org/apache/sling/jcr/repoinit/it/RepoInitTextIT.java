@@ -25,7 +25,6 @@ import java.io.InputStreamReader;
 import java.util.UUID;
 
 import javax.inject.Inject;
-import javax.jcr.Session;
 
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.repoinit.parser.RepoInitParser;
