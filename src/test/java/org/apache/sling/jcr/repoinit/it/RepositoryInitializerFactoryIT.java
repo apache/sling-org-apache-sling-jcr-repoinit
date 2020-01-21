@@ -87,12 +87,10 @@ public class RepositoryInitializerFactoryIT extends RepoInitTestSupport {
             "create path /repoinit-test/scripts/A", 
             "/repoinit-test/scripts/A");
 
-        /* Fails due to SLING-9015 
         assertConfigAndPaths(
             "", 
             "create path /repoinit-test/scripts/B", 
             "/repoinit-test/scripts/B");
-        */
 
         assertConfigAndPaths(
             getTestFileUrl("/repoinit-path-3.txt"), 

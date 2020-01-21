@@ -106,6 +106,9 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                 if ( config.references() != null ) {
                     final RepoinitTextProvider p = new RepoinitTextProvider();
                     for(final String reference : config.references()) {
+                        if(reference == null || reference.trim().length() == 0) {
+                            continue;
+                        }
                         final String repoinitText = p.getRepoinitText("raw:" + reference);
                         final List<Operation> ops = parser.parse(new StringReader(repoinitText));
                         log.info("Executing {} repoinit operations", ops.size());
@@ -115,6 +118,9 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                 }
                 if ( config.scripts() != null ) {
                     for(final String script : config.scripts()) {
+                        if(script == null || script.trim().length() == 0) {
+                            continue;
+                        }
                         final List<Operation> ops = parser.parse(new StringReader(script));
                         log.info("Executing {} repoinit operations", ops.size());
                         processor.apply(s, ops);
