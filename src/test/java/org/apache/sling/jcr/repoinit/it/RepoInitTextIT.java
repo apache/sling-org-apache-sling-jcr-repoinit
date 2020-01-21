@@ -26,12 +26,9 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 
-import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.repoinit.parser.RepoInitParser;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,14 +43,10 @@ import org.ops4j.pax.exam.spi.reactors.PerClass;
 @ExamReactorStrategy(PerClass.class)
 public class RepoInitTextIT extends RepoInitTestSupport {
 
-    private Session session;
     private static final String FRED_WILMA = "fredWilmaService";
     private static final String ANOTHER = "anotherService";
 
     public static final String REPO_INIT_FILE = "/repoinit.txt";
-
-    @Inject
-    private SlingRepository repository;
 
     @Inject
     private RepoInitParser parser;
@@ -63,7 +56,7 @@ public class RepoInitTextIT extends RepoInitTestSupport {
 
     @Before
     public void setup() throws Exception {
-        session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        setupSession();
 
         // Execute some repoinit statements
         final InputStream is = getClass().getResourceAsStream(REPO_INIT_FILE);
@@ -77,13 +70,6 @@ public class RepoInitTextIT extends RepoInitTestSupport {
 
         // The repoinit file causes those nodes to be created
         assertTrue("Expecting test nodes to be created", session.itemExists("/acltest/A/B"));
-    }
-
-    @After
-    public void cleanup() {
-        if(session != null) {
-            session.logout();
-        }
     }
 
     @Test

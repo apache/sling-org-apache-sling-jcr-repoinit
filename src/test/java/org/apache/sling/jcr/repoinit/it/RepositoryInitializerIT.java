@@ -19,13 +19,6 @@ package org.apache.sling.jcr.repoinit.it;
 import static org.junit.Assert.assertTrue;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
-import javax.inject.Inject;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-
-import org.apache.sling.jcr.api.SlingRepository;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Option;
@@ -45,29 +38,13 @@ public class RepositoryInitializerIT extends RepoInitTestSupport {
         "raw:file://" + getRepoinitFilesPath() + "/repoinit-path-2.txt",
     };
 
-    private Session session;
-
-    @Inject
-    private SlingRepository repository;
-
+    @Override
     protected Option[] additionalOptions() {
         return new Option[] {
             newConfiguration("org.apache.sling.jcr.repoinit.impl.RepositoryInitializer")
             .put("references", RepositoryInitializerIT.REPOINIT_SRC_URLS)
             .asOption()
         };
-    }
-
-    @Before
-    public void setup() throws Exception {
-        session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
-    }
-
-    @After
-    public void cleanup() {
-        if(session != null) {
-            session.logout();
-        }
     }
 
     @Test
@@ -78,9 +55,5 @@ public class RepositoryInitializerIT extends RepoInitTestSupport {
     @Test
     public void path2Created() throws Exception {
         assertTrue(session.itemExists("/repoinit-test/path-2"));
-    }
-
-    static String getRepoinitFilesPath() {
-        return System.getProperty("repoinit.test.files.path");
     }
 }

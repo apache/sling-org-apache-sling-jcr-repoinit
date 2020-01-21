@@ -38,6 +38,8 @@
   <properties>
     <jackrabbit.version>2.18.2</jackrabbit.version>
     <oak.version>1.16.0</oak.version>
+    <!-- To debug the pax process, override this with -D -->
+    <pax.vm.options>-Ddefault.pom.options=unused</pax.vm.options>
   </properties>
 
   <scm>
@@ -92,6 +94,10 @@
                         <name>repoinit.test.files.path</name>
                         <value>${basedir}/src/test/resources</value>
                         </property>
+                        <property>
+                        <name>pax.vm.options</name>
+                        <value>${pax.vm.options}</value>
+                        </property>
                     </systemProperties>
                 </configuration>
             </plugin>
@@ -132,7 +138,7 @@
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.testing.paxexam</artifactId>
-            <version>3.0.0</version>
+            <version>3.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
