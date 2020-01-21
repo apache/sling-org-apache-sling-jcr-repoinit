@@ -25,6 +25,8 @@ import org.junit.Before;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.CompositeOption;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 import static org.apache.sling.testing.paxexam.SlingOptions.versionResolver;
@@ -47,6 +49,8 @@ import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTa
 public abstract class RepoInitTestSupport extends TestSupport {
 
     protected Session session;
+
+    protected static final Logger log = LoggerFactory.getLogger(RepoInitTestSupport.class.getName());
 
     @Inject
     private SlingRepository repository;
@@ -85,8 +89,8 @@ public abstract class RepoInitTestSupport extends TestSupport {
         );
     }
 
-    static String getRepoinitFilesPath() {
-        return System.getProperty("repoinit.test.files.path");
+    public String getTestFileUrl(String path) {
+        return getClass().getResource(path).toExternalForm();
     }
 
     @Before

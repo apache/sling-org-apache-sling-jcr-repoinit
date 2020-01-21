@@ -85,14 +85,12 @@
                 </executions>
                 <configuration>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <!-- pax exam bug, often times out at exit -->
+                    <forkedProcessExitTimeoutInSeconds>1</forkedProcessExitTimeoutInSeconds>
                     <systemProperties>
                         <property>
                         <name>bundle.filename</name>
                         <value>${basedir}/target/${project.build.finalName}.jar</value>
-                        </property>
-                        <property>
-                        <name>repoinit.test.files.path</name>
-                        <value>${basedir}/src/test/resources</value>
                         </property>
                         <property>
                         <name>pax.vm.options</name>

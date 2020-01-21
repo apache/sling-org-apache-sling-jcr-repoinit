@@ -16,21 +16,19 @@
  */
 package org.apache.sling.jcr.repoinit.it;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.factoryConfiguration;
 
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
@@ -47,91 +45,69 @@ public class RepositoryInitializerFactoryIT extends RepoInitTestSupport {
     @Inject
     private ConfigurationAdmin configAdmin;
 
-    private static final String TEST_MARKER = "TEST_MARKER";
-    private static final String TEST_MARKER_VALUE = "TEST_VALUE";
-
-    @Override
-    protected Option[] additionalOptions() {
-        return new Option[] {
-            factoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer")
-            .put(TEST_MARKER, TEST_MARKER_VALUE)
-            .put("scripts", "create path /repoinit-test/scripts/A")
-            .asOption(),
-            factoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer")
-            .put(TEST_MARKER, TEST_MARKER_VALUE)
-            .put("scripts", "create path /repoinit-test/scripts/B")
-            .put("references", "")
-            .asOption(),
-            factoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer")
-            .put(TEST_MARKER, TEST_MARKER_VALUE)
-            .put("scripts", "create path /repoinit-test/scripts/C")
-            .put("references", "file://" + getRepoinitFilesPath() + "/repoinit-path-3.txt")
-            .asOption(),
-            factoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer")
-            .put(TEST_MARKER, TEST_MARKER_VALUE)
-            .put("references", "file://" + getRepoinitFilesPath() + "/repoinit-path-4.txt")
-            .asOption(),
-            factoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer")
-            .put(TEST_MARKER, TEST_MARKER_VALUE)
-            .put("references", "file://" + getRepoinitFilesPath() + "/repoinit-path-5.txt")
-            .put("scripts", "")
-            .asOption(),
-            factoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer")
-            .put(TEST_MARKER, TEST_MARKER_VALUE)
-            .put("references", "file://" + getRepoinitFilesPath() + "/repoinit-path-6.txt")
-            .put("scripts", "create path /repoinit-test/scripts/D")
-            .asOption(),
-        };
-    }
-
-    private List<String> getMissingPaths() throws Exception {
-        final String [] paths = {
-            "/repoinit-test/scripts/A",
-            // TODO fails due to SLING-9015  ?? "/repoinit-test/scripts/B", 
-            "/repoinit-test/scripts/C",
-            "/repoinit-test/scripts/D",
-            "/repoinit-test/path-3",
-            "/repoinit-test/path-4",
-            "/repoinit-test/path-5",
-            "/repoinit-test/path-6",
-        };
-        final List<String> missing = new ArrayList<>();
-        for(String path : paths) {
-            if(!session.itemExists(path)) {
-                missing.add(path);
-            }
-        }
-        return missing;
-    }
-
-    @Test
-    public void allConfigsRegistered() throws Exception {
-        int markerCount = 0;
-        for(Configuration cfg : configAdmin.listConfigurations(null)) {
-            if(cfg.getProperties().get(TEST_MARKER) != null) {
-                markerCount++;
-            }
+    private void assertConfigAndPaths(String references, String scripts, String ... expectedPaths) throws Exception {
+        for(String path : expectedPaths) {
+            assertFalse("Expecting path to be absent before test:" + path, session.itemExists(path));
         }
 
-        // allPathsCreated fails semi-randomly, trying to find out what's happening
-        final int expectedMarkers = 6;
-        assertEquals("Expecting the correct amount of registered configs", expectedMarkers, markerCount);
-    }
-
-    @Test
-    public void allPathsCreated() throws Exception {
-        final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(15);
-        List<String> missing = null;
+        final Dictionary<String, Object> props = new Hashtable<>();
+        if(references != null) {
+            props.put("references", references);
+        }
+        if(scripts != null) {
+            props.put("scripts", scripts);
+        }
+        final Configuration cfg = configAdmin.createFactoryConfiguration("org.apache.sling.jcr.repoinit.RepositoryInitializer");
+        cfg.setBundleLocation(null);
+        cfg.update(props);
 
         // Configs are processed asynchronously, give them some time
+        final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5);
+        List<String> missing = null;
         while(System.currentTimeMillis() < endTime) {
-            missing = getMissingPaths();
+            session.refresh(false);
+            missing = new ArrayList<>();
+            for(String path : expectedPaths) {
+                if(!session.itemExists(path)) {
+                    missing.add(path);
+                }
+            }
             if(missing.isEmpty()) {
                 break;
             }
             Thread.sleep(250);
         }
-        assertTrue("Expecting all paths to be created, missing: " + missing, missing.isEmpty());
+        assertTrue("Expected all paths to be created, missing: " + missing, missing.isEmpty());
     }
 
+    @Test
+    public void testReferencesAndScripts() throws Exception {
+        assertConfigAndPaths(
+            null, 
+            "create path /repoinit-test/scripts/A", 
+            "/repoinit-test/scripts/A");
+
+        /* Fails due to SLING-9015 
+        assertConfigAndPaths(
+            "", 
+            "create path /repoinit-test/scripts/B", 
+            "/repoinit-test/scripts/B");
+        */
+
+        assertConfigAndPaths(
+            getTestFileUrl("/repoinit-path-3.txt"), 
+            "create path /repoinit-test/scripts/C", 
+            "/repoinit-test/path-3",
+            "/repoinit-test/scripts/C");
+
+        assertConfigAndPaths(
+            getTestFileUrl("/repoinit-path-4.txt"), 
+                null,
+                "/repoinit-test/path-4");
+
+        assertConfigAndPaths(
+            getTestFileUrl("/repoinit-path-5.txt"), 
+                "", 
+                "/repoinit-test/path-5");
+    }
 }

@@ -33,16 +33,16 @@ import org.ops4j.pax.exam.spi.reactors.PerClass;
 @ExamReactorStrategy(PerClass.class)
 public class RepositoryInitializerIT extends RepoInitTestSupport {
 
-    static final String [] REPOINIT_SRC_URLS = {
-        "raw:file://" + getRepoinitFilesPath() + "/repoinit-path-1.txt",
-        "raw:file://" + getRepoinitFilesPath() + "/repoinit-path-2.txt",
-    };
-
     @Override
     protected Option[] additionalOptions() {
+        final String [] srcUrls = {
+            "raw:" + getTestFileUrl("/repoinit-path-1.txt"),
+            "raw:" + getTestFileUrl("/repoinit-path-2.txt")
+        };
+
         return new Option[] {
             newConfiguration("org.apache.sling.jcr.repoinit.impl.RepositoryInitializer")
-            .put("references", RepositoryInitializerIT.REPOINIT_SRC_URLS)
+            .put("references", srcUrls)
             .asOption()
         };
     }
