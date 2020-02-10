@@ -64,9 +64,17 @@ public class CreateUsersTest {
     }
 
     @Test
-    public void createUserWithPathTest() throws Exception {
+    public void createUserWithRelativePathTest() throws Exception {
         final String userId = namePrefix + "_cuwpt";
         final String path = "testusers/folder_for_" + userId;
+        U.parseAndExecute("create user " + userId + " with path " + path);
+        U.assertUser("after creating user " + userId, userId, true, path);
+    }
+
+    @Test
+    public void createUserWithAbsolutePathTest() throws Exception {
+        final String userId = namePrefix + "_cuwpt";
+        final String path = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId;
         U.parseAndExecute("create user " + userId + " with path " + path);
         U.assertUser("after creating user " + userId, userId, true, path);
     }

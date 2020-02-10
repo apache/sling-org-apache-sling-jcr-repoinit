@@ -28,7 +28,7 @@
   </parent>
 
   <artifactId>org.apache.sling.jcr.repoinit</artifactId>
-  <version>1.1.15-SNAPSHOT</version>
+  <version>1.1.17-SNAPSHOT</version>
   <name>Apache Sling Repoinit JCR</name>
   <description>
 	  Initializes a JCR repository based on the output
@@ -38,8 +38,8 @@
   <properties>
     <jackrabbit.version>2.18.2</jackrabbit.version>
     <oak.version>1.16.0</oak.version>
-    <http.host>localhost</http.host>
-    <sling.default.vm.options>-Xmx1024m -XX:MaxPermSize=256m -Djava.awt.headless=true</sling.default.vm.options>
+    <!-- To debug the pax process, override this with -D -->
+    <pax.vm.options>-Xmx512M</pax.vm.options>
   </properties>
 
   <scm>
@@ -52,77 +52,16 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.servicemix.tooling</groupId>
+                <artifactId>depends-maven-plugin</artifactId>
+            </plugin>
+              <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <excludePackageNames>
                         org.apache.sling.jcr.repoinit.impl
                     </excludePackageNames>
-                </configuration>
-            </plugin>
-             <plugin>
-                <!-- Find free ports to run our server -->
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>reserve-server-port</id>
-                        <goals>
-                            <goal>reserve-network-port</goal>
-                        </goals>
-                        <phase>process-resources</phase>
-                        <configuration>
-                            <portNames>
-                                <!-- used port name must be stored in property because it must be used for the base url -->
-                                <portName>http.port</portName>
-                            </portNames>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.sling</groupId>
-                <artifactId>slingstart-maven-plugin</artifactId>
-                <extensions>true</extensions>
-                <executions>
-                    <execution>
-                        <id>prepare-launchpad-package</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>prepare-package</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>build-launchpad-package</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>package</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                         <id>start-container-before-IT</id>
-                        <goals>
-                            <goal>start</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                         <id>stop-container-after-IT</id>
-                        <goals>
-                            <goal>stop</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <usePomDependencies>true</usePomDependencies>
-                    <attachArtifact>false</attachArtifact>
-                    <disableExtendingMavenClasspath>true</disableExtendingMavenClasspath>
-                    <servers>
-                        <server>
-                            <id>singleinstance</id>
-                            <port>${http.port}</port>
-                            <vmOpts>${sling.vm.options}</vmOpts>
-                        </server>
-                    </servers>
                 </configuration>
             </plugin>
             <plugin>
@@ -145,16 +84,67 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <systemPropertyVariables>
-                        <ClientSideTeleporter.baseUrl>http://${http.host}:${http.port}/</ClientSideTeleporter.baseUrl>
-                        <ClientSideTeleporter.testReadyTimeoutSeconds>20</ClientSideTeleporter.testReadyTimeoutSeconds>
-                    </systemPropertyVariables>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <!-- pax exam bug, often times out at exit -->
+                    <forkedProcessExitTimeoutInSeconds>1</forkedProcessExitTimeoutInSeconds>
+                    <systemProperties>
+                        <property>
+                        <name>bundle.filename</name>
+                        <value>${basedir}/target/${project.build.finalName}.jar</value>
+                        </property>
+                        <property>
+                        <name>pax.vm.options</name>
+                        <value>${pax.vm.options}</value>
+                        </property>
+                    </systemProperties>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
     <dependencies>
+        <dependency>
+            <groupId>org.ops4j.pax.exam</groupId>
+            <artifactId>pax-exam</artifactId>
+            <version>4.13.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.ops4j.pax.exam</groupId>
+            <artifactId>pax-exam-cm</artifactId>
+            <version>4.13.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.ops4j.pax.exam</groupId>
+            <artifactId>pax-exam-container-forked</artifactId>
+            <version>4.13.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.ops4j.pax.exam</groupId>
+            <artifactId>pax-exam-junit4</artifactId>
+            <version>4.13.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.ops4j.pax.exam</groupId>
+            <artifactId>pax-exam-link-mvn</artifactId>
+            <version>4.13.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.testing.paxexam</artifactId>
+            <version>3.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.framework</artifactId>
+            <version>6.0.3</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
@@ -176,7 +166,7 @@
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.testing.sling-mock-oak</artifactId>
-            <version>2.1.9-1.16.0-SNAPSHOT</version>
+            <version>2.1.8-1.16.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

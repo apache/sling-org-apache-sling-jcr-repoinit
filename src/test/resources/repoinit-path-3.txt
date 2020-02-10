@@ -17,31 +17,4 @@
 #  under the License.
 #
 
-[feature name=sling]
-
-[variables]
-    jackrabbit.version=2.18.2
-
-# Dependencies
-[artifacts]
-  org.apache.sling/org.apache.sling.starter/11/slingstart
-  org.apache.sling/org.apache.sling.junit.core/1.0.26
-  # various dependency bumps for Oak
-  commons-codec/commons-codec/1.13
-  org.apache.tika/tika-core/1.22
-  org.apache.tika/tika-parsers/1.22
-
-# additional configuration for testing
-[configurations]
-  org.apache.sling.jcr.base.internal.LoginAdminWhitelist.fragment-testing
-    whitelist.bundles=[ \
-    "org.apache.sling.junit.core" \
-    ]
-    whitelist.name="testing"
-
-  org.apache.sling.servlets.resolver.SlingServletResolver
-    # Set the servlet resolver's cache size to zero for testing
-    servletresolver.cacheSize=I"0"
-
-[settings]
-  org.apache.sling.commons.log.julenabled=true
+create path /repoinit-test/path-3

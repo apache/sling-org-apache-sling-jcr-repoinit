@@ -22,44 +22,45 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.UUID;
 
-import javax.jcr.Session;
+import javax.inject.Inject;
 
-import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
-import org.apache.sling.junit.rules.TeleporterRule;
 import org.apache.sling.repoinit.parser.RepoInitParser;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.ops4j.pax.exam.junit.PaxExam;
+import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
+import org.ops4j.pax.exam.spi.reactors.PerClass;
 
 /** Basic integration test of the repoinit parser and execution
  *  services, reading statements from a text file.
  */
-public class RepoInitTextIT {
+@RunWith(PaxExam.class)
+@ExamReactorStrategy(PerClass.class)
+public class RepoInitTextIT extends RepoInitTestSupport {
 
-    private Session session;
     private static final String FRED_WILMA = "fredWilmaService";
     private static final String ANOTHER = "anotherService";
 
     public static final String REPO_INIT_FILE = "/repoinit.txt";
 
-    @Rule
-    public TeleporterRule teleporter = TeleporterRule
-        .forClass(getClass(), "IT")
-        .withResources(REPO_INIT_FILE);
+    @Inject
+    private RepoInitParser parser;
+
+    @Inject
+    private JcrRepoInitOpsProcessor processor;
 
     @Before
     public void setup() throws Exception {
-        session = teleporter.getService(SlingRepository.class).loginAdministrative(null);
+        setupSession();
 
         // Execute some repoinit statements
         final InputStream is = getClass().getResourceAsStream(REPO_INIT_FILE);
         assertNotNull("Expecting " + REPO_INIT_FILE, is);
         try {
-            final RepoInitParser  parser = teleporter.getService(RepoInitParser.class);
-            final JcrRepoInitOpsProcessor processor = teleporter.getService(JcrRepoInitOpsProcessor.class);
             processor.apply(session, parser.parse(new InputStreamReader(is, "UTF-8")));
             session.save();
         } finally {
@@ -68,13 +69,6 @@ public class RepoInitTextIT {
 
         // The repoinit file causes those nodes to be created
         assertTrue("Expecting test nodes to be created", session.itemExists("/acltest/A/B"));
-    }
-
-    @After
-    public void cleanup() {
-        if(session != null) {
-            session.logout();
-        }
     }
 
     @Test
@@ -110,5 +104,12 @@ public class RepoInitTextIT {
                 return null;
             }
         };
+    }
+
+    @Test
+    public void namespaceAndCndRegistered() throws Exception {
+        final String nodeName = "ns-" + UUID.randomUUID();
+        session.getRootNode().addNode(nodeName, "slingtest:unstructured");
+        session.save();
     }
 }

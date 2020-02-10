@@ -125,10 +125,19 @@ public class CreateServiceUsersTest {
     }
 
     @Test
-    public void createServiceUserWithPathTest() throws Exception {
+    public void createServiceUserWithRelativePathTest() throws Exception {
         final String userId = namePrefix + "_cdst";
         // Oak requires system/ prefix for service users
         final String path = "system/forServiceUser/test";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create service user " + userId + " with path " + path);
+        U.assertServiceUser("after creating user", userId, true, path);
+    }
+
+    @Test
+    public void createServiceUserWithAbsPathTest() throws Exception {
+        final String userId = namePrefix + "_cdst";
+        final String path = "/rep:security/rep:authorizables/rep:users/system/forServiceUser/test";
         U.assertServiceUser("at start of test", userId, false);
         U.parseAndExecute("create service user " + userId + " with path " + path);
         U.assertServiceUser("after creating user", userId, true, path);

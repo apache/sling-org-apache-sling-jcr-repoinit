@@ -17,33 +17,4 @@
 #  under the License.
 #
 
-# Paths on which ACLs will be set
-create path /acltest/A/B
-
-# Service users and ACLs for our integration tests
-create service user fredWilmaService
-create service user anotherService
-
-# ACLs for those service users
-set ACL for fredWilmaService
-  allow jcr:all on /acltest
-  deny jcr:write on /acltest/A
-end
-
-set ACL for fredWilmaService
-  allow jcr:write on /acltest/A/B
-end
-
-set ACL on /acltest
-  allow jcr:all for anotherService
-end
-
-set ACL on /acltest/A/B
-  deny jcr:write for anotherService
-end
-
-register nodetypes
-<<===
-<< <slingtest='http://sling.apache.org/ns/test/repoinit-it/v1.0'>
-<< [slingtest:unstructured] > nt:unstructured
-===>>
+create path /repoinit-test/path-4
