@@ -20,6 +20,11 @@ import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -35,9 +40,13 @@ import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.sling.jcr.repoinit.impl.AclUtil;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
+import org.apache.sling.repoinit.parser.operations.AclLine;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -56,11 +65,14 @@ import javax.security.auth.Subject;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class PrincipalBasedAclTest {
@@ -548,5 +560,38 @@ public class PrincipalBasedAclTest {
         } finally {
             U.cleanupServiceUser("otherSystemPrincipal");
         }
+    }
+
+    @Test
+    public void testHomePath() throws Exception {
+        UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
+        Authorizable a = uMgr.getAuthorizable(U.username);
+        Principal principal = a.getPrincipal();
+
+        JackrabbitAccessControlManager accessControlManager = AclUtil.getJACM(U.adminSession);
+        assertNull(getAcl(principal, accessControlManager));
+
+        AclLine line = new AclLine(AclLine.Action.ALLOW);
+        line.setProperty(AclLine.PROP_PRINCIPALS, Collections.singletonList(principal.getName()));
+        line.setProperty(AclLine.PROP_PRIVILEGES, Collections.singletonList(Privilege.JCR_READ));
+        line.setProperty(AclLine.PROP_PATHS, Collections.singletonList(":home:"+U.username+"#"));
+        AclUtil.setPrincipalAcl(U.adminSession, U.username, Collections.singletonList(line));
+
+        PrincipalAccessControlList acl = getAcl(principal, accessControlManager);
+        assertNotNull(acl);
+        assertEquals(1, acl.size());
+        PrincipalAccessControlList.Entry entry = (PrincipalAccessControlList.Entry) acl.getAccessControlEntries()[0];
+        assertArrayEquals(AccessControlUtils.privilegesFromNames(accessControlManager, Privilege.JCR_READ), entry.getPrivileges());
+        assertEquals(a.getPath(), entry.getEffectivePath());
+    }
+
+    @Nullable
+    private static PrincipalAccessControlList getAcl(@NotNull Principal principal, @NotNull JackrabbitAccessControlManager jacm) throws RepositoryException {
+        for (AccessControlPolicy policy : jacm.getPolicies(principal)) {
+            if (policy instanceof PrincipalAccessControlList) {
+                return (PrincipalAccessControlList) policy;
+            }
+        }
+        return null;
     }
 }

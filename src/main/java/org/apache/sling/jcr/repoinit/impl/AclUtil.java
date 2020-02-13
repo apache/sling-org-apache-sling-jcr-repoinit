@@ -17,6 +17,7 @@
 package org.apache.sling.jcr.repoinit.impl;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -42,13 +43,20 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.util.Text;
 import org.apache.sling.repoinit.parser.operations.AclLine;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.sling.repoinit.parser.operations.AclLine.ID_DELIMINATOR;
+import static org.apache.sling.repoinit.parser.operations.AclLine.PATH_HOME;
+import static org.apache.sling.repoinit.parser.operations.AclLine.PATH_REPOSITORY;
 import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PATHS;
 import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PRIVILEGES;
+import static org.apache.sling.repoinit.parser.operations.AclLine.SUBTREE_DELIMINATOR;
 
 /** Utilities for ACL management */
 public class AclUtil {
@@ -108,26 +116,22 @@ public class AclUtil {
 
     public static void setAcl(Session session, List<String> principals, List<String> paths, List<String> privileges, boolean isAllow, List<RestrictionClause> restrictionClauses)
             throws RepositoryException {
-        for (String path : paths) {
-            if (AclLine.PATH_REPOSITORY.equals(path)) {
-                setRepositoryAcl(session, principals, privileges, isAllow, restrictionClauses);
-            } else {
-                if (!session.nodeExists(path)) {
-                    throw new PathNotFoundException("Cannot set ACL on non-existent path " + path);
-                }
-                setAcl(session, principals, path, privileges, isAllow, restrictionClauses);
+        for (String jcrPath : getJcrPaths(session, paths)) {
+            if (jcrPath != null && !session.nodeExists(jcrPath)) {
+                throw new PathNotFoundException("Cannot set ACL on non-existent path " + jcrPath);
             }
+            setAcl(session, principals, jcrPath, privileges, isAllow, restrictionClauses);
         }
     }
 
-    private static void setAcl(Session session, List<String> principals, String path, List<String> privileges, boolean isAllow, List<RestrictionClause> restrictionClauses)
+    private static void setAcl(Session session, List<String> principals, String jcrPath, List<String> privileges, boolean isAllow, List<RestrictionClause> restrictionClauses)
             throws RepositoryException {
 
         final String [] privArray = privileges.toArray(new String[privileges.size()]);
         final Privilege[] jcrPriv = AccessControlUtils.privilegesFromNames(session, privArray);
 
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, path);
-        checkState(acl != null, "No JackrabbitAccessControlList available for path " + path);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, jcrPath);
+        checkState(acl != null, "No JackrabbitAccessControlList available for path " + jcrPath);
 
         LocalRestrictions localRestrictions = createLocalRestrictions(restrictionClauses, acl, session);
 
@@ -145,7 +149,7 @@ public class AclUtil {
             checkState(principal != null, "Principal not found: " + name);
             LocalAccessControlEntry newAce = new LocalAccessControlEntry(principal, jcrPriv, isAllow, localRestrictions);
             if (contains(existingAces, newAce)) {
-                LOG.info("Not adding {} to path {} since an equivalent access control entry already exists", newAce, path);
+                LOG.info("Not adding {} to path {} since an equivalent access control entry already exists", newAce, jcrPath);
                 continue;
             }
             acl.addEntry(newAce.principal, newAce.privileges, newAce.isAllow,
@@ -153,7 +157,7 @@ public class AclUtil {
             changed = true;
         }
         if ( changed ) {
-            session.getAccessControlManager().setPolicy(path, acl);
+            session.getAccessControlManager().setPolicy(jcrPath, acl);
         }
     }
 
@@ -174,17 +178,16 @@ public class AclUtil {
                 throw new AccessControlException("PrincipalAccessControlList doesn't support 'deny' entries.");
             }
             Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
-            for (String path : line.getProperty(PROP_PATHS)) {
-                String effectivePath = (path == null || path.isEmpty() || AclLine.PATH_REPOSITORY.equals(path)) ? null : path;
+            for (String effectivePath : getJcrPaths(session, line.getProperty(PROP_PATHS))) {
                 if (acl == null) {
                     // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with the same definition exists.
                     LOG.info("No PrincipalAccessControlList available for principal {}", principal);
-                    checkState(containsEquivalentEntry(session, path, principal, privileges, true, line.getRestrictions()), "No PrincipalAccessControlList available for principal '" + principal + "'.");
+                    checkState(containsEquivalentEntry(session, effectivePath, principal, privileges, true, line.getRestrictions()), "No PrincipalAccessControlList available for principal '" + principal + "'.");
                 } else {
                     LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
                     boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
                     if (!added) {
-                        LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, path);
+                        LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, effectivePath);
                     } else {
                         modified = true;
                     }
@@ -213,6 +216,39 @@ public class AclUtil {
             }
         }
         return acl;
+    }
+
+    @NotNull
+    private static List<String> getJcrPaths(@NotNull Session session, @NotNull List<String> paths) throws RepositoryException {
+        List<String> jcrPaths = new ArrayList<>(paths.size());
+        for (String path : paths) {
+            if (PATH_REPOSITORY.equals(path) || path == null || path.isEmpty()) {
+                jcrPaths.add(null);
+            } else if (path.startsWith(PATH_HOME)) {
+                int lastHashIndex = path.lastIndexOf(SUBTREE_DELIMINATOR);
+                checkState(lastHashIndex > -1, "Invalid format of home path: # deliminator expected.");
+                String subTreePath = path.substring(lastHashIndex+1);
+                for (String aPath : getAuthorizablePaths(session, path.substring(PATH_HOME.length(), lastHashIndex))) {
+                    jcrPaths.add(aPath + subTreePath);
+                }
+            } else {
+                jcrPaths.add(path);
+            }
+        }
+        return jcrPaths;
+    }
+
+    @NotNull
+    private static Iterable<String> getAuthorizablePaths(@NotNull Session session, @NotNull String ids) throws RepositoryException {
+        List<String> paths = new ArrayList<>();
+        for (String id : Text.explode(ids, ID_DELIMINATOR)) {
+            Authorizable a = UserUtil.getAuthorizable(session, id);
+            if (a == null) {
+                throw new PathNotFoundException("Cannot resolve path of user/group with id '" + id + "'.");
+            }
+            paths.add(a.getPath());
+        }
+        return paths;
     }
 
     private static boolean containsEquivalentEntry(Session session, String absPath, Principal principal, Privilege[] privileges, boolean isAllow, List<RestrictionClause> restrictionList) throws RepositoryException {

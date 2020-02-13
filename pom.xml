@@ -132,7 +132,7 @@
             <artifactId>pax-exam-link-mvn</artifactId>
             <version>4.13.1</version>
             <scope>test</scope>
-        </dependency>        
+        </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.testing.paxexam</artifactId>
@@ -219,7 +219,7 @@
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.repoinit.parser</artifactId>
-            <version>1.3.0</version>
+            <version>1.4.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
