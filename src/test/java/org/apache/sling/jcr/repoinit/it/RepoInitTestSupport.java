@@ -28,6 +28,9 @@ import org.ops4j.pax.exam.options.CompositeOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.ops4j.pax.exam.CoreOptions.keepCaches;
+import static org.ops4j.pax.exam.CoreOptions.systemProperty;
+import static org.ops4j.pax.exam.CoreOptions.when;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 import static org.apache.sling.testing.paxexam.SlingOptions.versionResolver;
 
@@ -52,18 +55,26 @@ public abstract class RepoInitTestSupport extends TestSupport {
 
     protected static final Logger log = LoggerFactory.getLogger(RepoInitTestSupport.class.getName());
 
+    final String repositoriesURL = "https://repo1.maven.org/maven2@id=central";
+
     @Inject
     private SlingRepository repository;
 
     @Configuration
     public Option[] configuration() {
         SlingOptions.versionResolver.setVersionFromProject("org.apache.jackrabbit", "jackrabbit-api");
+        final String localRepo = System.getProperty("maven.repo.local", "");
         final Option[] options = 
         remove(new Option[] {
             vmOption(System.getProperty("pax.vm.options")),
             baseConfiguration(),
             slingQuickstart(),
             testBundle("bundle.filename"),
+            keepCaches(),
+            systemProperty("org.ops4j.pax.url.mvn.repositories").value(repositoriesURL),
+            when(localRepo.length() > 0).useOptions(
+                systemProperty("org.ops4j.pax.url.mvn.localRepository").value(localRepo)
+            ),
             mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.repoinit.parser").versionAsInProject(),
             junitBundles(),
             newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
