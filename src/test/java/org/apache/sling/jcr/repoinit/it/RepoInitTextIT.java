@@ -44,6 +44,8 @@ public class RepoInitTextIT extends RepoInitTestSupport {
 
     private static final String FRED_WILMA = "fredWilmaService";
     private static final String ANOTHER = "anotherService";
+    private static final String ALICE = "alice";
+    private static final String BOB = "bob";
 
     public static final String REPO_INIT_FILE = "/repoinit.txt";
 
@@ -72,11 +74,13 @@ public class RepoInitTextIT extends RepoInitTestSupport {
     }
 
     @Test
-    public void serviceUserCreated() throws Exception {
+    public void serviceUserCreatedWithHomePath() throws Exception {
         new Retry() {
             @Override
             public Void call() throws Exception {
                 assertTrue("Expecting user " + FRED_WILMA, U.userExists(session, FRED_WILMA));
+                final String path = U.getHomePath(session, FRED_WILMA);
+                assertTrue("Expecting path " + path, session.itemExists(path));
                 return null;
             }
         };
@@ -111,5 +115,20 @@ public class RepoInitTextIT extends RepoInitTestSupport {
         final String nodeName = "ns-" + UUID.randomUUID();
         session.getRootNode().addNode(nodeName, "slingtest:unstructured");
         session.save();
+    }
+
+    @Test
+    public void fredWilmaHomeAcl() throws Exception {
+        new Retry() {
+            @Override
+            public Void call() throws Exception {
+                assertTrue("Expecting user " + FRED_WILMA, U.userExists(session, FRED_WILMA));
+                final String path = U.getHomePath(session, FRED_WILMA);
+                assertTrue("Expecting path " + path, session.itemExists(path));
+                assertTrue("Expecting write access for alice", U.canWrite(session, ALICE, path));
+                assertFalse("Expecting no access for bob", U.canRead(session, BOB, path));
+                return null;
+            }
+        };
     }
 }

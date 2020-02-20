@@ -25,6 +25,7 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -66,6 +67,9 @@ public class U {
             serviceSession.save();
         } catch(AccessDeniedException ade) {
             return false;
+        } catch(PathNotFoundException pnf) {
+            // Thrown when access is denied to a user's home node
+            return false;
         } finally {
             serviceSession.logout();
         }
@@ -84,9 +88,18 @@ public class U {
             serviceSession.getItem(path);
         } catch(AccessDeniedException ade) {
             return false;
+        } catch(PathNotFoundException pnf) {
+            // Thrown when access is denied to a user's home node
+            return false;
         } finally {
             serviceSession.logout();
         }
         return true;
+    }
+
+    public static String getHomePath(Session session, String userId)
+    throws UnsupportedRepositoryOperationException, RepositoryException {
+        final Authorizable a = ((JackrabbitSession)session).getUserManager().getAuthorizable(userId);
+        return a.getPath();
     }
 }

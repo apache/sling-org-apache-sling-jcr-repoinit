@@ -63,6 +63,7 @@ public abstract class RepoInitTestSupport extends TestSupport {
     @Configuration
     public Option[] configuration() {
         SlingOptions.versionResolver.setVersionFromProject("org.apache.jackrabbit", "jackrabbit-api");
+        SlingOptions.versionResolver.setVersionFromProject("org.apache.sling", "org.apache.sling.repoinit.parser");
         final String localRepo = System.getProperty("maven.repo.local", "");
         final Option[] options = 
         remove(new Option[] {
@@ -75,7 +76,6 @@ public abstract class RepoInitTestSupport extends TestSupport {
             when(localRepo.length() > 0).useOptions(
                 systemProperty("org.ops4j.pax.url.mvn.localRepository").value(localRepo)
             ),
-            mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.repoinit.parser").versionAsInProject(),
             junitBundles(),
             newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
                 .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
