@@ -47,3 +47,12 @@ register nodetypes
 << <slingtest='http://sling.apache.org/ns/test/repoinit-it/v1.0'>
 << [slingtest:unstructured] > nt:unstructured
 ===>>
+
+# SLING-8757 home() functions
+create user alice
+create user bob
+
+set ACL on home(fredWilmaService)
+  allow jcr:all for alice
+  deny jcr:all for bob
+end
