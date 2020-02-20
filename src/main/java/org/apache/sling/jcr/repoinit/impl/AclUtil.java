@@ -47,7 +47,6 @@ import org.apache.jackrabbit.util.Text;
 import org.apache.sling.repoinit.parser.operations.AclLine;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -169,7 +168,13 @@ public class AclUtil {
     public static void setPrincipalAcl(Session session, String principalName, Collection<AclLine> lines) throws RepositoryException {
         JackrabbitAccessControlManager acMgr = getJACM(session);
         Principal principal = AccessControlUtils.getPrincipal(session, principalName);
-        checkState(principal != null, "Principal not found: " + principalName);
+        if (principal == null) {
+            // due to transient nature of the repo-init the principal lookup may not succeed if completed through query
+            // -> save transitent changes and retry principal lookup
+            session.save();
+            principal = AccessControlUtils.getPrincipal(session, principalName);
+            checkState(principal != null, "Principal not found: " + principalName);
+        }
 
         PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal);
         boolean modified = false;
