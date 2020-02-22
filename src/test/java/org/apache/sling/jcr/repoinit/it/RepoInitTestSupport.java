@@ -16,7 +16,10 @@
  */
 package org.apache.sling.jcr.repoinit.it;
 
-import org.apache.commons.lang3.ArrayUtils;
+import javax.inject.Inject;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
@@ -24,30 +27,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
-import org.ops4j.pax.exam.options.CompositeOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.ops4j.pax.exam.CoreOptions.keepCaches;
-import static org.ops4j.pax.exam.CoreOptions.systemProperty;
-import static org.ops4j.pax.exam.CoreOptions.when;
-import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
+import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
 import static org.apache.sling.testing.paxexam.SlingOptions.versionResolver;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import javax.inject.Inject;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-
 import static org.ops4j.pax.exam.CoreOptions.composite;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
+import static org.ops4j.pax.exam.CoreOptions.options;
 import static org.ops4j.pax.exam.CoreOptions.vmOption;
-import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
+import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
 public abstract class RepoInitTestSupport extends TestSupport {
 
@@ -64,32 +54,28 @@ public abstract class RepoInitTestSupport extends TestSupport {
     public Option[] configuration() {
         SlingOptions.versionResolver.setVersionFromProject("org.apache.jackrabbit", "jackrabbit-api");
         SlingOptions.versionResolver.setVersionFromProject("org.apache.sling", "org.apache.sling.repoinit.parser");
-        final String localRepo = System.getProperty("maven.repo.local", "");
-        final Option[] options = 
-        remove(new Option[] {
-            vmOption(System.getProperty("pax.vm.options")),
-            baseConfiguration(),
-            slingQuickstart(),
-            testBundle("bundle.filename"),
-            keepCaches(),
-            systemProperty("org.ops4j.pax.url.mvn.repositories").value(repositoriesURL),
-            when(localRepo.length() > 0).useOptions(
-                systemProperty("org.ops4j.pax.url.mvn.localRepository").value(localRepo)
-            ),
-            junitBundles(),
-            newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
-                .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
-                .asOption()
-            },
-        // remove our bundle under test to avoid duplication
-        mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.jcr.repoinit").version(versionResolver)
+        return options(
+            composite(
+                super.baseConfiguration(),
+                vmOption(System.getProperty("pax.vm.options")),
+                slingQuickstart(),
+                testBundle("bundle.filename"),
+                mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.repoinit.parser").versionAsInProject(),
+                junitBundles(),
+                newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
+                    .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
+                    .asOption()
+            ).add(
+                additionalOptions()
+            ).remove(
+                // remove our bundle under test to avoid duplication
+                mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.jcr.repoinit").version(versionResolver)
+            )
         );
-        final Option[] allOptions = ArrayUtils.addAll(options, additionalOptions());
-        return allOptions;
     }
 
     protected Option[] additionalOptions() {
-        return new Option[] {};
+        return new Option[]{};
     }
 
     protected Option slingQuickstart() {
@@ -106,46 +92,16 @@ public abstract class RepoInitTestSupport extends TestSupport {
 
     @Before
     public void setupSession() throws Exception {
-        if(session == null) {
+        if (session == null) {
             session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
         }
     }
 
     @After
     public void cleanupSession() {
-        if(session != null) {
+        if (session != null) {
             session.logout();
         }
-    }
-
-    // TODO should come from org.apache.sling.testing.paxexam
-    private static List<Option> expand(final Option[] options) {
-        final List<Option> expanded = new ArrayList<>();
-        if (options != null) {
-            for (final Option option : options) {
-                if (option != null) {
-                    if (option instanceof CompositeOption) {
-                        expanded.addAll(Arrays.asList(((CompositeOption) option).getOptions()));
-                    } else {
-                        expanded.add(option);
-                    }
-                }
-            }
-        }
-        return expanded;
-    }
-
-    // TODO should come from org.apache.sling.testing.paxexam
-    private static Option[] remove(final Option[] options, final Option... removables) {
-        final List<Option> expanded = expand(options);
-        for (final Option removable : removables) {
-            if (removable instanceof CompositeOption) {
-                expanded.removeAll(Arrays.asList(((CompositeOption) removable).getOptions()));
-            } else {
-                expanded.removeAll(Collections.singleton(removable));
-            }
-        }
-        return expanded.toArray(new Option[0]);
     }
 
 }
