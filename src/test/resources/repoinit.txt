@@ -56,3 +56,11 @@ set ACL on home(fredWilmaService)
   allow jcr:all for alice
   deny jcr:all for bob
 end
+
+create group grpA
+add fredWilmaService,alice to group grpA
+
+create group grpB
+add anotherService,bob,grpA to group grpB
+remove bob,grpA from group grpB
+

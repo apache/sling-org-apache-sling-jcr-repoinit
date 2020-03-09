@@ -46,6 +46,8 @@ public class RepoInitTextIT extends RepoInitTestSupport {
     private static final String ANOTHER = "anotherService";
     private static final String ALICE = "alice";
     private static final String BOB = "bob";
+    private static final String GROUP_A = "grpA";
+    private static final String GROUP_B = "grpB";
 
     public static final String REPO_INIT_FILE = "/repoinit.txt";
 
@@ -127,6 +129,21 @@ public class RepoInitTextIT extends RepoInitTestSupport {
                 assertTrue("Expecting path " + path, session.itemExists(path));
                 assertTrue("Expecting write access for alice", U.canWrite(session, ALICE, path));
                 assertFalse("Expecting no access for bob", U.canRead(session, BOB, path));
+                return null;
+            }
+        };
+    }
+
+    @Test
+    public void groupMembership() throws Exception {
+        new Retry() {
+            @Override
+            public Void call() throws Exception {
+                assertTrue("Expecting user " + FRED_WILMA + "to be member of " + GROUP_A, U.isMember(session, FRED_WILMA, GROUP_A));
+                assertTrue("Expecting user " + ALICE + "to be member of " + GROUP_A,U.isMember(session, ALICE, GROUP_A));
+                assertTrue("Expecting user " + ANOTHER + "to be member of " + GROUP_B,U.isMember(session, ANOTHER, GROUP_B));
+                assertFalse("Expecting user " + BOB + "not to be member of " + GROUP_B,U.isMember(session, BOB, GROUP_B));
+                assertFalse("Expecting group " + GROUP_A + "not to be member of " + GROUP_B,U.isMember(session, GROUP_A, GROUP_B));
                 return null;
             }
         };
