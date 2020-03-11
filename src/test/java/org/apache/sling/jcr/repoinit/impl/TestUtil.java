@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -178,6 +179,17 @@ public class TestUtil {
                 }
             }
         }
+    }
+
+    public void assertGroupMembership(String userId, String groupId, boolean expectToBeMember) throws RepositoryException {
+        final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(groupId);
+        final Authorizable member = UserUtil.getUserManager(adminSession).getAuthorizable(userId);
+        boolean isMember = ((Group) a).isMember(member);
+        String message = "Expecting user " + userId;
+        if (!expectToBeMember) {
+            message += " not";
+        }
+        assertEquals(message +  " to be member of " + groupId, expectToBeMember, isMember);
     }
 
     public void parseAndExecute(String input) throws RepositoryException, RepoInitParsingException {
