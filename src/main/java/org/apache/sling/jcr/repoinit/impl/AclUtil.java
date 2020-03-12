@@ -294,32 +294,22 @@ public class AclUtil {
         }
     }
 
-    /** Compare arrays a and b, which do not need to be ordered
-     *  but are expected to be small.
-     *  @param a might be sorted by this method
-     *  @param b might be sorted by this method
-     *  @return true if both arrays contain the same elements,
-     *      in whatever order. Also true if both arrays are null
-     *      or empty.
+    /** Compare value arrays a and b, by set comparison.
+     *  @param a first value array
+     *  @param b second value array
+     *  @return true if both value arrays contain the same elements,
+     *      in whatever order.
      */
-    static boolean compareArrays(Object[] a, Object[] b) {
-        if(a== null && b == null){
-            return true;
-        }
-        if(a== null  || b == null){
+    static boolean compareValues(Value[] a, Value[] b) {
+        if (a == null || b == null) {
             return false;
         }
         if(a.length != b.length){
             return false;
         }
-        Arrays.sort(a);
-        Arrays.sort(b);
-        for(int i=0;i<a.length;i++){
-            if(!a[i].equals(b[i])){
-                return false;
-            }
-        }
-        return true;
+        Set<Value> first = new HashSet<>(Arrays.asList(a));
+        Set<Value> second = new HashSet<>(Arrays.asList(b));
+        return first.equals(second);
     }
 
     /**
@@ -384,7 +374,7 @@ public class AclUtil {
                         continue;
                     }
 
-                    if(!compareArrays(newValues, oldValues)) {
+                    if(!compareValues(newValues, oldValues)) {
                         return false;
                     }
                 }
