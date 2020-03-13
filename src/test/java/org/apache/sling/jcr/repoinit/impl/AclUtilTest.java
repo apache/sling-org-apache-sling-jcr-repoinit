@@ -29,6 +29,9 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -155,33 +158,37 @@ public class AclUtilTest {
         assertIsNotContained(acl, U.username, new String[]{ Privilege.JCR_READ, Privilege.JCR_WRITE }, false);
     }
     
-    private void assertArrayCompare(Object[] a, Object[] b, boolean expected) {
-        final boolean actual = AclUtil.compareArrays(a, b);
+    private void assertArrayCompare(Value[] a, Value[] b, boolean expected) {
+        final boolean actual = AclUtil.compareValues(a, b);
         assertEquals("Expecting compareArrays to return " + expected, actual, expected);
     }
 
     @Test
-    public void compareArraysTest() {
-        final String[] a1 = { "a", "b" };
-        final String[] a2 = { "a", "b" };
-        final String[] a3 = { "b", "c" };
-        final String[] a4 = { "a", "b", "c" };
-        final String[] a5 = { "b", "a" };
-        final String[] a6 = { "b", "a", "c" };
-        final String[] emptyA = {};
-        final String[] emptyB = {};
+    public void compareValuesTest() throws RepositoryException {
+        ValueFactory vf =  U.adminSession.getValueFactory();
+        final Value[] a1 = new Value[] {vf.createValue("jcr:content", PropertyType.NAME), vf.createValue("jcr:data", PropertyType.NAME)};
+        final Value[] a2 = new Value[] {vf.createValue("a", PropertyType.STRING), vf.createValue("b", PropertyType.STRING)};
+        final Value[] a3 = new Value[] {vf.createValue("b", PropertyType.STRING), vf.createValue("c", PropertyType.STRING)};
 
-        assertArrayCompare(null, null, true);
-        assertArrayCompare(null, a1, false);
-        assertArrayCompare(a2, null, false);
-        assertArrayCompare(a1, a2, true);
+        final Value[] a4 = new Value[] {vf.createValue("a", PropertyType.STRING), vf.createValue("b", PropertyType.STRING),  vf.createValue("c", PropertyType.STRING)};
+
+        final Value[] a5 = new Value[] {vf.createValue("b", PropertyType.STRING), vf.createValue("a", PropertyType.STRING)};
+        final Value[] a6 = new Value[] {vf.createValue("b", PropertyType.STRING), vf.createValue("a", PropertyType.STRING), vf.createValue("c", PropertyType.STRING)};
+        final Value[] a7 = new Value[] {vf.createValue("a", PropertyType.STRING), vf.createValue("b", PropertyType.STRING)};
+        final Value[] a8 = new Value[] {vf.createValue("jcr:data", PropertyType.NAME), vf.createValue("jcr:content", PropertyType.NAME)};
+        final Value[] emptyA = {};
+        final Value[] emptyB = {};
+
+        assertArrayCompare(null, a3, false);
         assertArrayCompare(a1, a3, false);
         assertArrayCompare(a3, a1, false);
         assertArrayCompare(a1, a3, false);
         assertArrayCompare(a1, a4, false);
         assertArrayCompare(a4, a4, true);
-        assertArrayCompare(a1, a5, true);
+        assertArrayCompare(a2, a7, true);
+        assertArrayCompare(a5, a7, true);
         assertArrayCompare(a4, a6, true);
+        assertArrayCompare(a1, a8, true);
         assertArrayCompare(emptyA, emptyB, true);
     }
 
