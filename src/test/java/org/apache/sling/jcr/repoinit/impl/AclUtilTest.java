@@ -176,20 +176,29 @@ public class AclUtilTest {
         final Value[] a6 = new Value[] {vf.createValue("b", PropertyType.STRING), vf.createValue("a", PropertyType.STRING), vf.createValue("c", PropertyType.STRING)};
         final Value[] a7 = new Value[] {vf.createValue("a", PropertyType.STRING), vf.createValue("b", PropertyType.STRING)};
         final Value[] a8 = new Value[] {vf.createValue("jcr:data", PropertyType.NAME), vf.createValue("jcr:content", PropertyType.NAME)};
+        final Value[] a9 = new Value[] {vf.createValue("jcr:data", PropertyType.NAME), vf.createValue("jcr:content", PropertyType.STRING)};
         final Value[] emptyA = {};
         final Value[] emptyB = {};
 
         assertArrayCompare(null, a3, false);
+        assertArrayCompare(a3, null, false);
+        assertArrayCompare(null, null, false);
+
+        assertArrayCompare(emptyA, emptyB, true);
+        assertArrayCompare(emptyA, emptyA, true);
+        assertArrayCompare(emptyA, a1, false);
+        assertArrayCompare(a1, emptyA, false);
+
         assertArrayCompare(a1, a3, false);
         assertArrayCompare(a3, a1, false);
-        assertArrayCompare(a1, a3, false);
+        assertArrayCompare(a1, a1, true);
         assertArrayCompare(a1, a4, false);
         assertArrayCompare(a4, a4, true);
         assertArrayCompare(a2, a7, true);
         assertArrayCompare(a5, a7, true);
         assertArrayCompare(a4, a6, true);
         assertArrayCompare(a1, a8, true);
-        assertArrayCompare(emptyA, emptyB, true);
+        assertArrayCompare(a8, a9, false);
     }
 
     /**
