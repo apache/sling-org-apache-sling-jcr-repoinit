@@ -48,6 +48,7 @@ public class RepoInitTextIT extends RepoInitTestSupport {
     private static final String BOB = "bob";
     private static final String GROUP_A = "grpA";
     private static final String GROUP_B = "grpB";
+    private static final String GROUP_C = "grpC";
 
     public static final String REPO_INIT_FILE = "/repoinit.txt";
 
@@ -144,6 +145,9 @@ public class RepoInitTextIT extends RepoInitTestSupport {
                 assertTrue("Expecting user " + ANOTHER + "to be member of " + GROUP_B,U.isMember(session, ANOTHER, GROUP_B));
                 assertFalse("Expecting user " + BOB + "not to be member of " + GROUP_B,U.isMember(session, BOB, GROUP_B));
                 assertFalse("Expecting group " + GROUP_A + "not to be member of " + GROUP_B,U.isMember(session, GROUP_A, GROUP_B));
+                assertTrue("Expecting group " + GROUP_A + "to be member of " + GROUP_C,U.isMember(session, GROUP_A, GROUP_C));
+                assertTrue("Expecting user " + BOB + "to be member of " + GROUP_C,U.isMember(session, BOB, GROUP_C));
+                assertTrue("Expecting group " + GROUP_B + "to be member of " + GROUP_C,U.isMember(session, GROUP_B, GROUP_C));
                 return null;
             }
         };

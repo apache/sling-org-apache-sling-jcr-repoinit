@@ -64,3 +64,5 @@ create group grpB
 add anotherService,bob,grpA to group grpB
 remove bob,grpA from group grpB
 
+create group grpC
+add grpA, bob, grpB to group grpC
