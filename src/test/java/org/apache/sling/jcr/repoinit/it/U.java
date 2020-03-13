@@ -29,6 +29,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 
 /** Test utilities */
@@ -101,5 +102,11 @@ public class U {
     throws UnsupportedRepositoryOperationException, RepositoryException {
         final Authorizable a = ((JackrabbitSession)session).getUserManager().getAuthorizable(userId);
         return a.getPath();
+    }
+
+    public static boolean isMember(Session session, String userId, String groupId) throws  RepositoryException {
+        final Authorizable a = ((JackrabbitSession)session).getUserManager().getAuthorizable(groupId);
+        final Authorizable member = ((JackrabbitSession)session).getUserManager().getAuthorizable(userId);
+        return ((Group) a).isMember(member);
     }
 }
