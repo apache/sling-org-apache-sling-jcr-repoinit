@@ -35,8 +35,8 @@ import org.apache.sling.repoinit.parser.operations.RemoveGroupMembers;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipals;
-import org.apache.sling.repoinit.parser.operations.AddGroupMembers;
-import org.apache.sling.repoinit.parser.operations.RemoveGroupMembers;
+import org.apache.sling.repoinit.parser.operations.SetProperties;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,5 +131,9 @@ class DoNothingVisitor implements OperationVisitor {
 
     @Override
     public void visitRemoveGroupMembers(RemoveGroupMembers rm) {
+    }
+
+    @Override
+    public void visitSetProperties(SetProperties sp) {
     }
 }

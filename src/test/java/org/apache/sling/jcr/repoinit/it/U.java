@@ -17,10 +17,12 @@
 package org.apache.sling.jcr.repoinit.it;
 
 import java.util.UUID;
+import java.util.Arrays;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.LoginException;
 import javax.jcr.Node;
+import javax.jcr.Value;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -108,5 +110,29 @@ public class U {
         final Authorizable a = ((JackrabbitSession)session).getUserManager().getAuthorizable(groupId);
         final Authorizable member = ((JackrabbitSession)session).getUserManager().getAuthorizable(userId);
         return ((Group) a).isMember(member);
+    }
+
+    public static boolean hasProperty(Session session, String nodePath, String propertyName, Value propertyValue) throws  RepositoryException {
+        final Node n = session.getNode(nodePath);
+        if (n != null) {
+            boolean isPropertyPresent = n.hasProperty(propertyName);
+            if (isPropertyPresent) {
+                Value v = n.getProperty(propertyName).getValue();
+                return isPropertyPresent && (v.equals(propertyValue));
+            }
+        }
+        return false;
+    }
+
+    public static boolean hasProperty(Session session, String nodePath, String propertyName, Value[] propertyValues) throws  RepositoryException {
+        final Node n = session.getNode(nodePath);
+        if (n != null) {
+            boolean isPropertyPresent = n.hasProperty(propertyName);
+            if (isPropertyPresent) {
+                Value[] v = n.getProperty(propertyName).getValues();
+                return isPropertyPresent && Arrays.equals(v, propertyValues);
+            }
+        }
+        return false;
     }
 }
