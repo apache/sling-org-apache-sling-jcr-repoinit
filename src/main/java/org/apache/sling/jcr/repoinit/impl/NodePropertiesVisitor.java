@@ -21,6 +21,7 @@ import java.util.Calendar;
 
 import javax.jcr.Session;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Value;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -35,8 +36,9 @@ import org.apache.sling.repoinit.parser.operations.PropertyLine;
 import org.apache.sling.repoinit.parser.operations.SetProperties;
 
 /**
- * OperationVisitor which processes only operations related to setting node properties. Having several such specialized visitors makes it easy to control the
- * execution order.
+ * OperationVisitor which processes only operations related to setting node
+ * properties. Having several such specialized visitors makes it easy to control
+ * the execution order.
  */
 class NodePropertiesVisitor extends DoNothingVisitor {
 
@@ -49,22 +51,37 @@ class NodePropertiesVisitor extends DoNothingVisitor {
         super(s);
     }
 
+    /**
+     * True if the property needs to be set - if false, it is not touched. This
+     * handles the "default" repoinit instruction, which means "do not change the
+     * property if already set"
+     *
+     * @throws RepositoryException
+     * @throws PathNotFoundException
+     */
+    private static boolean needToSetProperty(Node n, PropertyLine line) throws RepositoryException {
+        if(!line.isDefault()) {
+            // It's a "set" line -> overwrite existing value if any
+            return true;
+        }
+
+        // Otherwise set the property only if not set yet
+        final String name = line.getPropertyName();
+        return(!n.hasProperty(name) || n.getProperty(name) == null);
+    }
+
     @Override
     public void visitSetProperties(SetProperties sp) {
-        List<String> nodePaths = sp.getPaths();
-        List<PropertyLine> propertyLines = sp.getPropertyLines();
-        for (String nodePath : nodePaths) {
+        for (String nodePath : sp.getPaths()) {
             try {
                 log.info("Setting properties on nodePath '{}'", nodePath);
                 Node n = session.getNode(nodePath);
-                for (PropertyLine pl : propertyLines) {
-                    String pName = pl.getPropertyName();
-                    PropertyLine.PropertyType pType = pl.getPropertyType();
-                    List<Object> values = pl.getPropertyValues();
-                    boolean setOnlyIfNull = pl.isDefault();
-                    int type = PropertyType.valueFromName(pType.name());
-                    boolean isExistingNonNullProperty = n.hasProperty(pName) && n.getProperty(pName) != null;
-                    if (!setOnlyIfNull || (setOnlyIfNull && !isExistingNonNullProperty)) {
+                for (PropertyLine pl : sp.getPropertyLines()) {
+                    final String pName = pl.getPropertyName();
+                    final PropertyLine.PropertyType pType = pl.getPropertyType();
+                    final List<Object> values = pl.getPropertyValues();
+                    final int type = PropertyType.valueFromName(pType.name());
+                    if (needToSetProperty(n, pl)) {
                         if (values.size() > 1) {
                             Value[] pValues = convertToValues(values);
                             n.setProperty(pName, pValues, type);
@@ -73,7 +90,9 @@ class NodePropertiesVisitor extends DoNothingVisitor {
                             n.setProperty(pName, pValue, type);
                         }
                     } else {
-                        log.info("Property '{}' is already set on path '{}'. Will not overwrite the default", pName, nodePath);
+                        log.info(
+                            "Property '{}' already set on path '{}', existing value will not be overwritten in 'default' mode",
+                            pName, nodePath);
                     }
                 }
             } catch (RepositoryException e) {

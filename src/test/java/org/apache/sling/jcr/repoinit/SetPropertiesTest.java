@@ -31,6 +31,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Value;
 import java.io.IOException;
+import java.util.UUID;
 
 
 /** Test the setting of properties on nodes */
@@ -40,23 +41,26 @@ public class SetPropertiesTest {
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
     
     private TestUtil U;
-    final String path1 = "/one/two/three";
-    final String path2 = "/one/two/four";
+    private ValueFactory vf;
+    private static final String pathPrefix = "/one/two/";
+    private static final String path1 = pathPrefix + UUID.randomUUID();
+    private static final String path2 = pathPrefix + UUID.randomUUID();
+    private static final String path3 = pathPrefix + UUID.randomUUID();
 
     @Before
     public void setup() throws RepositoryException, IOException, RepoInitParsingException {
         U = new TestUtil(context);
+        vf = U.adminSession.getValueFactory();
         RepositoryUtil.registerSlingNodeTypes(U.adminSession);
-        U.parseAndExecute("create path " + path1);
-        U.assertNodeExists(path1);
-        U.parseAndExecute("create path " + path2);
-        U.assertNodeExists(path2);
+        for(String p : new String[] { path1, path2, path3 }) {
+            U.parseAndExecute("create path " + p);
+            U.assertNodeExists(p);
+        }
     }
 
     @Test
     public void setStringPropertyTest() throws Exception {
         U.parseAndExecute("set properties on " + path1 + " \n set sling:ResourceType{String} to /x/y/z \n end");
-        ValueFactory vf = U.adminSession.getValueFactory();
         Value expectedValue = vf.createValue("/x/y/z");
         U.assertSVPropertyExists(path1, "sling:ResourceType", expectedValue);
     }
@@ -74,7 +78,6 @@ public class SetPropertiesTest {
                 + "end"
                 ;
         U.parseAndExecute(setProps);
-        ValueFactory vf = U.adminSession.getValueFactory();
         Value expectedValue1 = vf.createValue("/x/y/z");
         U.assertSVPropertyExists(path2, "sling:ResourceType", expectedValue1);
         Value[] expectedValues2 = new Value[2];
@@ -102,4 +105,27 @@ public class SetPropertiesTest {
         }
     }
 
+    @Test
+    public void setDefaultProperties() throws Exception {
+        final String setPropsA =
+                "set properties on " + path3 + "\n"
+                        + "set one to oneA\n"
+                        + "default two to twoA\n"
+                + "end"
+                ;
+        U.parseAndExecute(setPropsA);
+        U.assertSVPropertyExists(path3, "one", vf.createValue("oneA"));
+        U.assertSVPropertyExists(path3, "two", vf.createValue("twoA"));
+
+        final String setPropsB =
+                "set properties on " + path3 + "\n"
+                        + "set one to oneB\n"
+                        + "default two to twoB\n"
+                + "end"
+                ;
+
+        U.parseAndExecute(setPropsB);
+        U.assertSVPropertyExists(path3, "one", vf.createValue("oneB"));
+        U.assertSVPropertyExists(path3, "two", vf.createValue("twoA"));
+    }
 }

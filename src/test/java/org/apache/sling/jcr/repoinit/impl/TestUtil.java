@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.io.Reader;
@@ -201,7 +202,7 @@ public class TestUtil {
         } else {
             Property p = n.getProperty(propertyName);
             Value actualValue = p.getValue();
-            assertEquals("Value mismatch for property: " + propertyName, actualValue, expectedValue);
+            assertEquals("Value mismatch for property: " + propertyName, expectedValue, actualValue);
         }
     }
 
@@ -212,7 +213,7 @@ public class TestUtil {
         } else {
             Property p = n.getProperty(propertyName);
             Value[] actualValues = p.getValues();
-            assertEquals("Values mismatch for property: " + propertyName, actualValues, expectedValues);
+            assertArrayEquals("Values mismatch for property: " + propertyName, expectedValues, actualValues);
         }
     }
 
