@@ -24,6 +24,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.UUID;
 
+import javax.jcr.PropertyType;
+import javax.jcr.ValueFactory;
+import javax.jcr.Value;
 import javax.inject.Inject;
 
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
@@ -49,6 +52,17 @@ public class RepoInitTextIT extends RepoInitTestSupport {
     private static final String GROUP_A = "grpA";
     private static final String GROUP_B = "grpB";
     private static final String GROUP_C = "grpC";
+    private static final String PROP_A = "pathArray";
+    private static final String PROP_B = "someInteger";
+    private static final String PROP_C = "someFlag";
+    private static final String PROP_D = "someDate";
+    private static final String PROP_E = "customSingleValueStringProp";
+    private static final String PROP_F = "customSingleValueQuotedStringProp";
+    private static final String PROP_G = "stringArray";
+    private static final String PROP_H = "quotedA";
+    private static final String PROP_I = "quotedMix";
+    private static final String PROP_NODE_PATH = "/proptest/X/Y";
+
 
     public static final String REPO_INIT_FILE = "/repoinit.txt";
 
@@ -148,6 +162,51 @@ public class RepoInitTextIT extends RepoInitTestSupport {
                 assertTrue("Expecting group " + GROUP_A + "to be member of " + GROUP_C,U.isMember(session, GROUP_A, GROUP_C));
                 assertTrue("Expecting user " + BOB + "to be member of " + GROUP_C,U.isMember(session, BOB, GROUP_C));
                 assertTrue("Expecting group " + GROUP_B + "to be member of " + GROUP_C,U.isMember(session, GROUP_B, GROUP_C));
+                return null;
+            }
+        };
+    }
+
+    @Test
+    public void setProperties() throws Exception {
+        new Retry() {
+            @Override
+            public Void call() throws Exception {
+                ValueFactory vf = session.getValueFactory();
+                Value[] expectedValues1 = new Value[2];
+                expectedValues1[0] = vf.createValue("/d/e/f/*");
+                expectedValues1[1] = vf.createValue("m/n/*");
+                assertTrue("Expecting array type property " + PROP_A + " to be present ", U.hasProperty(session, PROP_NODE_PATH, PROP_A, expectedValues1));
+
+                Value expectedValue2 = vf.createValue("42", PropertyType.valueFromName("Long"));
+                assertTrue("Expecting Long type default property " + PROP_B + " to be present ", U.hasProperty(session, PROP_NODE_PATH, PROP_B, expectedValue2));
+
+                Value expectedValue3  = vf.createValue("true", PropertyType.valueFromName("Boolean"));
+                assertTrue("Expecting bool type property " + PROP_C + " to be present ", U.hasProperty(session, PROP_NODE_PATH, PROP_C, expectedValue3));
+
+                Value expectedValue4 = vf.createValue("2020-03-19T11:39:33.437+05:30", PropertyType.valueFromName("Date"));
+                assertTrue("Expecting date type property " + PROP_D + " to be present " , U.hasProperty(session, PROP_NODE_PATH, PROP_D, expectedValue4));
+
+                Value expectedValue5 = vf.createValue("test");
+                assertTrue("Expecting string type property " + PROP_E + " to be present " , U.hasProperty(session, PROP_NODE_PATH, PROP_E, expectedValue5));
+
+                Value expectedValue6 = vf.createValue("hello, you!");
+                assertTrue("Expecting quoted string type property " + PROP_F + " to be present " , U.hasProperty(session, PROP_NODE_PATH, PROP_F, expectedValue6));
+
+                Value[] expectedValues7 = new Value[2];
+                expectedValues7[0] = vf.createValue("test1");
+                expectedValues7[1] = vf.createValue("test2");
+                assertTrue("Expecting string array type property " + PROP_G + " to be present " , U.hasProperty(session, PROP_NODE_PATH, PROP_G, expectedValues7));
+
+                Value expectedValue8 = vf.createValue("Here's a \"double quoted string\" with suffix");
+                assertTrue("Expecting quoted string type property " + PROP_H + " to be present " , U.hasProperty(session, PROP_NODE_PATH, PROP_H, expectedValue8));
+
+                Value[] expectedValues9 = new Value[3];
+                expectedValues9[0] = vf.createValue("quoted");
+                expectedValues9[1] = vf.createValue("non-quoted");
+                expectedValues9[2] = vf.createValue("the last \" one");
+                assertTrue("Expecting string array type property " + PROP_I + " to be present " , U.hasProperty(session, PROP_NODE_PATH, PROP_I, expectedValues9));
+
                 return null;
             }
         };

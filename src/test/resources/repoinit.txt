@@ -20,6 +20,9 @@
 # Paths on which ACLs will be set
 create path /acltest/A/B
 
+# Path on which node properties will be set
+create path /proptest/X/Y(nt:unstructured)
+
 # Service users and ACLs for our integration tests
 create service user fredWilmaService
 create service user anotherService
@@ -66,3 +69,16 @@ remove bob,grpA from group grpB
 
 create group grpC
 add grpA, bob, grpB to group grpC
+
+set properties on /proptest/X/Y
+  set pathArray to /d/e/f/*, m/n/*
+  default someInteger{Long} to 42
+  set someFlag{Boolean} to true
+  default someDate{Date} to "2020-03-19T11:39:33.437+05:30"
+  set customSingleValueStringProp to test
+  set customSingleValueQuotedStringProp to "hello, you!"
+  set stringArray to test1, test2
+  default someInteger{Long} to 65
+  set quotedA to "Here's a \"double quoted string\" with suffix"
+  set quotedMix to "quoted", non-quoted, "the last \" one"
+end

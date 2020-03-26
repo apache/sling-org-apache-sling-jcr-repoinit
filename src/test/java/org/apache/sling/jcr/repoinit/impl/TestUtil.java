@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.Value;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
@@ -190,6 +192,28 @@ public class TestUtil {
             message += " not";
         }
         assertEquals(message +  " to be member of " + groupId, expectToBeMember, isMember);
+    }
+
+    public void assertSVPropertyExists(String path, String propertyName, Value expectedValue) throws RepositoryException {
+        final Node n = adminSession.getNode(path);
+        if(!n.hasProperty(propertyName)) {
+            fail("No " + propertyName + " property at " + path);
+        } else {
+            Property p = n.getProperty(propertyName);
+            Value actualValue = p.getValue();
+            assertEquals("Value mismatch for property: " + propertyName, actualValue, expectedValue);
+        }
+    }
+
+    public void assertMVPropertyExists(String path, String propertyName, Value[] expectedValues) throws RepositoryException {
+        final Node n = adminSession.getNode(path);
+        if(!n.hasProperty(propertyName)) {
+            fail("No " + propertyName + " property at " + path);
+        } else {
+            Property p = n.getProperty(propertyName);
+            Value[] actualValues = p.getValues();
+            assertEquals("Values mismatch for property: " + propertyName, actualValues, expectedValues);
+        }
     }
 
     public void parseAndExecute(String input) throws RepositoryException, RepoInitParsingException {
