@@ -185,7 +185,8 @@ public class AclUtil {
             Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
             for (String effectivePath : getJcrPaths(session, line.getProperty(PROP_PATHS))) {
                 if (acl == null) {
-                    // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with the same definition exists.
+                    // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with the same definition exists
+                    // or if there exists no node at the effective path (unable to evaluate path-based entries).
                     LOG.info("No PrincipalAccessControlList available for principal {}", principal);
                     checkState(containsEquivalentEntry(session, effectivePath, principal, privileges, true, line.getRestrictions()), "No PrincipalAccessControlList available for principal '" + principal + "'.");
                 } else {
@@ -257,6 +258,10 @@ public class AclUtil {
     }
 
     private static boolean containsEquivalentEntry(Session session, String absPath, Principal principal, Privilege[] privileges, boolean isAllow, List<RestrictionClause> restrictionList) throws RepositoryException {
+        if (absPath != null && !session.nodeExists(absPath)) {
+            LOG.info("Cannot determine existence of equivalent path-based entry for principal {}. No node at path {} ", principal.getName(), absPath);
+            return true;
+        }
         for (AccessControlPolicy policy : session.getAccessControlManager().getPolicies(absPath)) {
             if (policy instanceof JackrabbitAccessControlList) {
                 LocalRestrictions lr = createLocalRestrictions(restrictionList, ((JackrabbitAccessControlList) policy), session);

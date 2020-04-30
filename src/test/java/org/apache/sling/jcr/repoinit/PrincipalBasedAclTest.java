@@ -588,6 +588,30 @@ public class PrincipalBasedAclTest {
     }
 
     @Test
+    public void  principalAclNotAvailableNonExistingNode() throws Exception {
+        JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) adminSession.getAccessControlManager();
+        try {
+            // create service user outside of supported tree for principal-based access control
+            U.parseAndExecute("create service user otherSystemPrincipal");
+
+            // setting up principal-acl will not succeed (principal not located below supported path)
+            // but since the target node does not exist we cannot verify if an equivalent resource-based ac-setup exists
+            // (AccessControlManager.getPolicies would fail with PathNotFoundException) => relaxed behavior (SLING-9412)
+            String setup = "set principal ACL for otherSystemPrincipal \n"
+                    + "allow jcr:read on /non/existing/path\n"
+                    + "end";
+            U.parseAndExecute(setup);
+
+            Principal principal = adminSession.getUserManager().getAuthorizable("otherSystemPrincipal").getPrincipal();
+            for (AccessControlPolicy policy : acMgr.getPolicies(principal)) {
+                assertFalse(policy instanceof PrincipalAccessControlList);
+            }
+        } finally {
+            U.cleanupServiceUser("otherSystemPrincipal");
+        }
+    }
+
+    @Test
     public void testHomePath() throws Exception {
         UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
         Authorizable a = uMgr.getAuthorizable(U.username);
