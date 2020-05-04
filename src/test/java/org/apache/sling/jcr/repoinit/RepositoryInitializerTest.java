@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.repoinit.impl.JcrRepoInitOpsProcessorImpl;
 import org.apache.sling.jcr.repoinit.impl.RepoinitTextProvider.TextFormat;
@@ -134,12 +135,18 @@ public class RepositoryInitializerTest {
             initializer.processRepository(context.getService(SlingRepository.class));
         } catch(Exception e) {
             if(expectedActivateException != null) {
-                assertEquals(expectedActivateException, e.getClass());
+                assertEquals(
+                    "Expecting a " + expectedActivateException.getName() + " but got " + withStackTrace(e),
+                    expectedActivateException, e.getClass());
             } else {
-                fail("Got unexpected " + e.getClass().getName() + " in activation");
+                fail("Unexpected Exception in activation: " + withStackTrace(e));
             }
         }
 
+    }
+
+    public static String withStackTrace(Throwable t) {
+        return t.toString() + "\n" + ExceptionUtils.getStackTrace(t);
     }
 
     @Test
