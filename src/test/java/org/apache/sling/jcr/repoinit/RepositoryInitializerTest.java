@@ -168,6 +168,6 @@ public class RepositoryInitializerTest {
         w.write(repoInitText);
         w.flush();
         w.close();
-        return "file://" + tmpFile.getAbsolutePath();
+        return tmpFile.toURI().toURL().toString();
     }
 }
