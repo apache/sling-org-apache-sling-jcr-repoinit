@@ -460,12 +460,11 @@ public class PrincipalBasedAclTest {
         assertEquals(2, pacl.size());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void  principalAclNotAvailable() throws Exception {
         try {
             // create service user outside of supported tree for principal-based access control
             U.parseAndExecute("create service user otherSystemPrincipal");
-            // principal-based ac-setup must fail as service user is not located below supported path
             String setup = "set principal ACL for otherSystemPrincipal \n"
                             + "allow jcr:read on " + path + "\n"
                             + "end";
@@ -475,7 +474,7 @@ public class PrincipalBasedAclTest {
         }
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void  principalAclNotAvailableRestrictionMismatch() throws Exception {
         JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) adminSession.getAccessControlManager();
         try {
@@ -490,8 +489,6 @@ public class PrincipalBasedAclTest {
             Principal principal = adminSession.getUserManager().getAuthorizable("otherSystemPrincipal").getPrincipal();
             assertTrue(acMgr.hasPrivileges(path, Collections.singleton(principal), AccessControlUtils.privilegesFromNames(adminSession, Privilege.JCR_READ)));
 
-            // setting up principal-acl will not succeed (principal not located below supported path)
-            // since effective entry doesn't match the restriction -> setup must fail
             setup = "set principal ACL for otherSystemPrincipal \n"
                     + "allow jcr:read on " + path + " restriction(rep:glob,*mismatch)\n"
                     + "end";

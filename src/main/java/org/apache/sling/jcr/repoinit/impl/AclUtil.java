@@ -170,7 +170,7 @@ public class AclUtil {
         Principal principal = AccessControlUtils.getPrincipal(session, principalName);
         if (principal == null) {
             // due to transient nature of the repo-init the principal lookup may not succeed if completed through query
-            // -> save transitent changes and retry principal lookup
+            // -> save transient changes and retry principal lookup
             session.save();
             principal = AccessControlUtils.getPrincipal(session, principalName);
             checkState(principal != null, "Principal not found: " + principalName);
@@ -188,7 +188,10 @@ public class AclUtil {
                     // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with the same definition exists
                     // or if there exists no node at the effective path (unable to evaluate path-based entries).
                     LOG.info("No PrincipalAccessControlList available for principal {}", principal);
-                    checkState(containsEquivalentEntry(session, effectivePath, principal, privileges, true, line.getRestrictions()), "No PrincipalAccessControlList available for principal '" + principal + "'.");
+                    if (!containsEquivalentEntry(session, effectivePath, principal, privileges, true, line.getRestrictions())) {
+                        LOG.warn("No equivalent path-based entry exists for principal {} and effective path {} ", principal.getName(), effectivePath);
+                        return;
+                    }
                 } else {
                     LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
                     boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
