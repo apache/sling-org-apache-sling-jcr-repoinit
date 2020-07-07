@@ -18,37 +18,37 @@
   under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>org.apache.sling</groupId>
-    <artifactId>sling-bundle-parent</artifactId>
-    <version>38</version>
-    <relativePath />
-  </parent>
+    <parent>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>sling-bundle-parent</artifactId>
+        <version>38</version>
+        <relativePath />
+    </parent>
 
-  <artifactId>org.apache.sling.jcr.repoinit</artifactId>
-  <version>1.1.29-SNAPSHOT</version>
-  <name>Apache Sling Repoinit JCR</name>
-  <description>
+    <artifactId>org.apache.sling.jcr.repoinit</artifactId>
+    <version>1.1.29-SNAPSHOT</version>
+    <name>Apache Sling Repoinit JCR</name>
+    <description>
 	  Initializes a JCR repository based on the output
 	  of the RepoInit Language parser.
   </description>
 
-  <properties>
-    <jackrabbit.version>2.18.2</jackrabbit.version>
-    <oak.version>1.16.0</oak.version>
-    <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
-    <!-- To debug the pax process, override this with -D -->
-    <pax.vm.options>-Xmx512M</pax.vm.options>
-  </properties>
+    <properties>
+        <jackrabbit.version>2.18.2</jackrabbit.version>
+        <oak.version>1.16.0</oak.version>
+        <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
+        <!-- To debug the pax process, override this with -D -->
+        <pax.vm.options>-Xmx512M</pax.vm.options>
+    </properties>
 
-  <scm>
-    <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-repoinit.git</connection>
-    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-repoinit.git</developerConnection>
-    <url>https://gitbox.apache.org/repos/asf?p=sling-org-apache-sling-jcr-repoinit.git</url>
-    <tag>org.apache.sling.jcr.repoinit-1.1.24</tag>
-  </scm>
+    <scm>
+        <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-repoinit.git</connection>
+        <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-repoinit.git</developerConnection>
+        <url>https://gitbox.apache.org/repos/asf?p=sling-org-apache-sling-jcr-repoinit.git</url>
+        <tag>org.apache.sling.jcr.repoinit-1.1.24</tag>
+    </scm>
 
     <build>
         <plugins>
@@ -56,7 +56,7 @@
                 <groupId>org.apache.servicemix.tooling</groupId>
                 <artifactId>depends-maven-plugin</artifactId>
             </plugin>
-              <plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
@@ -88,12 +88,12 @@
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <systemProperties>
                         <property>
-                        <name>bundle.filename</name>
-                        <value>${basedir}/target/${project.build.finalName}.jar</value>
+                            <name>bundle.filename</name>
+                            <value>${basedir}/target/${project.build.finalName}.jar</value>
                         </property>
                         <property>
-                        <name>pax.vm.options</name>
-                        <value>${pax.vm.options}</value>
+                            <name>pax.vm.options</name>
+                            <value>${pax.vm.options}</value>
                         </property>
                     </systemProperties>
                 </configuration>
@@ -298,5 +298,30 @@
             <version>2.6</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.webconsole</artifactId>
+            <version>4.2.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.3.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.xss</artifactId>
+            <version>2.2.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.api</artifactId>
+            <version>2.20.0</version>
+            <scope>provided</scope>
+        </dependency>
+
     </dependencies>
 </project>
