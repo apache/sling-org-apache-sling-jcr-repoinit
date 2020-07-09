@@ -139,6 +139,7 @@ public class RepoInitWebConsole extends AbstractWebConsolePlugin {
             try {
                 session = getResourceResolver(request).adaptTo(Session.class);
                 processor.apply(session, operations);
+                session.save();
                 messages.add("EXECUTION SUCCEEDED!");
             } catch (Exception e) {
                 messages.add("EXECUTION FAILED: ");
