@@ -128,7 +128,7 @@ public class RepoInitWebConsole extends AbstractWebConsolePlugin {
             operations = parser.parse(statements);
             messages.add("PARSING SUCCEEDED: ");
             operations.stream().map(Operation::toString).forEach(messages::add);
-        } catch (RepoInitParsingException e) {
+        } catch (Exception e) {
             messages.add("PARSING FAILED: ");
             messages.add(e.toString());
         }
