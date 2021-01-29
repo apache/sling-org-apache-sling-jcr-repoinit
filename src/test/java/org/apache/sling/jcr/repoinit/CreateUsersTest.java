@@ -93,7 +93,7 @@ public class CreateUsersTest {
         final String path = "testusers/folder_for_" + userId;
         U.parseAndExecute("create user " + userId + " with path " + path);
         U.assertUser("after creating user " + userId, userId, true, path);
-        final String forcedPath = "testusers/folder_for_" + userId + "_forec";
+        final String forcedPath = "testusers/folder_for_" + userId + "_forced";
         U.parseAndExecute("create user " + userId + " with forced path " + forcedPath);
         U.assertUser("after creating user " + userId, userId, true, forcedPath);
     }
@@ -104,8 +104,8 @@ public class CreateUsersTest {
         final String path = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId;
         U.parseAndExecute("create user " + userId + " with path " + path);
         U.assertUser("after creating user " + userId, userId, true, path);
-        final String forcedPath = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId;
-        U.parseAndExecute("create user " + userId + " with path " + forcedPath);
+        final String forcedPath = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId + "_forced";
+        U.parseAndExecute("create user " + userId + " with forced path " + forcedPath);
         U.assertUser("after creating user " + userId, userId, true, forcedPath);
     }
 
@@ -115,7 +115,7 @@ public class CreateUsersTest {
         final String path = "testuserwithpassword/folder_for_" + userId;
         U.parseAndExecute("create user " + userId + " with path " + path + " with password asdf");
         U.assertUser("after creating user " + userId, userId, true, path);
-        final String forcedPath = "testuserwithpassword/folder_for_" + userId;
+        final String forcedPath = "testuserwithpassword/folder_for_" + userId + "_forced";
         U.parseAndExecute("create user " + userId + " with forced path " + forcedPath + " with password asdf");
         U.assertUser("after creating user " + userId, userId, true, forcedPath);
     }
