@@ -110,6 +110,14 @@ public class CreateUsersTest {
     }
 
     @Test
+    public void createUserWithForcedPathNoClashTest() throws Exception {
+        final String userId = namePrefix + "_cuwpt";
+        final String forcedPath = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId + "_forced";
+        U.parseAndExecute("create user " + userId + " with forced path " + forcedPath);
+        U.assertUser("after creating user " + userId, userId, true, forcedPath);
+    }
+
+    @Test
     public void createUserWithForcedPathAndPasswordTest() throws Exception {
         final String userId = namePrefix + "_cuwpt";
         final String path = "testuserwithpassword/folder_for_" + userId;

@@ -168,4 +168,13 @@ public class CreateServiceUsersTest {
         U.parseAndExecute("create service user " + userId + " with forced path " + pathForced);
         U.assertServiceUser("after forcing creating user", userId, true, pathForced);
     }
+
+    @Test
+    public void createServiceUserWithForcedPathNoClashTest() throws Exception {
+        final String userId = namePrefix + "_cdst";
+        final String pathForced = "/rep:security/rep:authorizables/rep:users/system/forServiceUser/test2";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create service user " + userId + " with forced path " + pathForced);
+        U.assertServiceUser("after forcing creating user", userId, true, pathForced);
+    }
 }

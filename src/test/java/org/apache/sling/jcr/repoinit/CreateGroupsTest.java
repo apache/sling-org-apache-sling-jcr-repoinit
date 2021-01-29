@@ -99,6 +99,14 @@ public class CreateGroupsTest {
     }
 
     @Test
+    public void createGroupWithForcedPathNoClashTest() throws Exception {
+        final String groupId = namePrefix + "_cgwpt";
+        final String forcedPath = "/rep:security/rep:authorizables/rep:groups/testgroup/folder_for_" + groupId + "_forced";
+        U.parseAndExecute("create group " + groupId + " with forced path " + forcedPath);
+        U.assertGroup("after creating group " + groupId, groupId, true, forcedPath);
+    }
+
+    @Test
     public void createGroupMultipleTimes() throws Exception {
         final String groupname = namePrefix + "_cgm";
         U.assertGroup("before test", groupname, false);
