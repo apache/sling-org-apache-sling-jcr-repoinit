@@ -94,9 +94,9 @@ class UserVisitor extends DoNothingVisitor {
             if (group == null || (g.isForcedPath() && needsRecreate(groupname, group, intermediatePath, "Group"))) {
                 log.info("Creating group {}", groupname);
                 if (intermediatePath == null) {
-                    getUserManager(session).createGroup(groupname);
+                    userManager.createGroup(groupname);
                 } else {
-                    getUserManager(session).createGroup(() -> groupname, intermediatePath);
+                    userManager.createGroup(() -> groupname, intermediatePath);
                 }
             }
         } catch (Exception e) {
