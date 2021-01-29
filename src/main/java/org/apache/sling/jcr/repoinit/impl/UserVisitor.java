@@ -28,6 +28,7 @@ import org.apache.sling.repoinit.parser.operations.DeleteServiceUser;
 import org.apache.sling.repoinit.parser.operations.DeleteUser;
 import org.apache.sling.repoinit.parser.operations.DisableServiceUser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -57,16 +58,10 @@ class UserVisitor extends DoNothingVisitor {
         try {
             UserManager userManager = getUserManager(session);
             User user = userManager.getAuthorizable(username, User.class);
-            if (user == null) {
+            checkUserType(username, user, true);
+            if (user == null || (s.isForcedPath() && needsRecreate(username, user, s.getPath(), "Service user"))) {
                 log.info("Creating service user {}", username);
                 userManager.createSystemUser(username, s.getPath());
-            } else if (user.isSystemUser()) {
-                if (s.isForcedPath() && needsRecreate(username, user, s.getPath(), "Service user")) {
-                    userManager.createSystemUser(username, s.getPath());
-                }
-            } else {
-                final String message = String.format("Existing user %s is not a service user.", username);
-                throw new RuntimeException(message);
             }
         } catch (Exception e) {
             report(e, "Unable to create service user [" + username + "]:" + e);
@@ -123,6 +118,7 @@ class UserVisitor extends DoNothingVisitor {
         try {
             UserManager userManager = getUserManager(session);
             User user = userManager.getAuthorizable(username, User.class);
+            checkUserType(username, user, false);
             if (user == null || (u.isForcedPath() && needsRecreate(username, user, u.getPath(), "User"))) {
                 final String pwd = u.getPassword();
                 if (pwd != null) {
@@ -164,6 +160,13 @@ class UserVisitor extends DoNothingVisitor {
             }
         } catch (Exception e) {
             report(e, "Unable to disable service user [" + username + "]:" + e);
+        }
+    }
+
+    private static void checkUserType(@NotNull String id, @Nullable User user, boolean expectedSystemUser) {
+        if (user != null && user.isSystemUser() != expectedSystemUser) {
+            String msg = (expectedSystemUser) ? "Existing user %s is not a service user." : "Existing user %s is a service user.";
+            throw new RuntimeException(String.format(msg, id));
         }
     }
 
