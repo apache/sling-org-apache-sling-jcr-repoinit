@@ -16,16 +16,25 @@
  */
 package org.apache.sling.jcr.repoinit;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
+import org.apache.sling.jcr.repoinit.impl.UserUtil;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /** Test the creation and delete of service users */
 public class CreateServiceUsersTest {
@@ -35,17 +44,26 @@ public class CreateServiceUsersTest {
     
     private static final Random random = new Random(42);
     private String namePrefix;
+    private String userId;
     private TestUtil U;
+
+    private final List<String> toRemove = new ArrayList();
     
     @Before
     public void setup() throws RepositoryException {
         U = new TestUtil(context);
         namePrefix = "user_" + random.nextInt();
+        userId = namePrefix + "_cdst";
+        toRemove.add(userId);
+    }
+
+    @After
+    public void after() throws RepositoryException {
+        U.cleanup(toRemove);
     }
 
     @Test
     public void createDeleteSingleTest() throws Exception {
-        final String userId = namePrefix + "_cdst";
         U.assertServiceUser("at start of test", userId, false);
         U.parseAndExecute("create service user " + userId);
         U.assertServiceUser("after creating user", userId, true);
@@ -55,7 +73,6 @@ public class CreateServiceUsersTest {
 
     @Test
     public void disableTest() throws Exception {
-        final String userId = namePrefix + "_cdst";
         U.assertServiceUser("at start of test", userId, false);
         U.parseAndExecute("create service user " + userId);
         U.assertServiceUser("after creating user", userId, true);
@@ -67,7 +84,6 @@ public class CreateServiceUsersTest {
 
     @Test
     public void deleteNonExistingUserTest() throws Exception {
-        final String userId = namePrefix + "_cdst";
         U.assertServiceUser("at start of test", userId, false);
         U.parseAndExecute("delete service user " + userId);
         U.assertServiceUser("after deleting user", userId, false);
@@ -75,7 +91,6 @@ public class CreateServiceUsersTest {
 
     @Test
     public void disableNonExistingUserTest() throws Exception {
-        final String userId = namePrefix + "_cdst";
         U.assertServiceUser("at start of test", userId, false);
         U.parseAndExecute("disable service user " + userId + " : \"Test\"");
         U.assertServiceUser("after disable user", userId, false);
@@ -87,13 +102,12 @@ public class CreateServiceUsersTest {
     
     @Test
     public void createUserMultipleTimes() throws Exception {
-        final String username = namePrefix + "_multiple";
-        U.assertServiceUser("before test", username, false);
-        final String input = "create service user " + username;
+        U.assertServiceUser("before test", userId, false);
+        final String input = "create service user " + userId;
         for(int i=0; i < 50; i++) {
             U.parseAndExecute(input);
         }
-        U.assertServiceUser("after creating it multiple times", username, true);
+        U.assertServiceUser("after creating it multiple times", userId, true);
     }
     
     @Test
@@ -126,7 +140,6 @@ public class CreateServiceUsersTest {
 
     @Test
     public void createServiceUserWithRelativePathTest() throws Exception {
-        final String userId = namePrefix + "_cdst";
         // Oak requires system/ prefix for service users
         final String path = "system/forServiceUser/test";
         U.assertServiceUser("at start of test", userId, false);
@@ -135,11 +148,76 @@ public class CreateServiceUsersTest {
     }
 
     @Test
+    public void createServiceUserWithForcedRelativePathTest() throws Exception {
+        // Oak requires system/ prefix for service users
+        final String path = "system/forServiceUser/test";
+        final String pathForced = "system/forServiceUser/test2";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create service user " + userId + " with path " + path);
+        U.assertServiceUser("after creating user", userId, true, path);
+
+        U.parseAndExecute("create service user " + userId + " with forced path " + pathForced);
+        U.assertServiceUser("after forcing creating user", userId, true, pathForced);
+    }
+
+    @Test
     public void createServiceUserWithAbsPathTest() throws Exception {
-        final String userId = namePrefix + "_cdst";
         final String path = "/rep:security/rep:authorizables/rep:users/system/forServiceUser/test";
         U.assertServiceUser("at start of test", userId, false);
         U.parseAndExecute("create service user " + userId + " with path " + path);
         U.assertServiceUser("after creating user", userId, true, path);
+    }
+
+    @Test
+    public void createServiceUserWithForcedAbsPathTest() throws Exception {
+        final String path = "/rep:security/rep:authorizables/rep:users/system/forServiceUser/test1";
+        final String pathForced = "/rep:security/rep:authorizables/rep:users/system/forServiceUser/test2";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create service user " + userId + " with path " + path);
+        U.assertServiceUser("after creating user", userId, true, path);
+        U.parseAndExecute("create service user " + userId + " with forced path " + pathForced);
+        U.assertServiceUser("after forcing creating user", userId, true, pathForced);
+    }
+
+    @Test
+    public void createServiceUserWithForcedPathNoClashTest() throws Exception {
+        final String pathForced = "/rep:security/rep:authorizables/rep:users/system/forServiceUser/test2";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create service user " + userId + " with forced path " + pathForced);
+        U.assertServiceUser("after forcing creating user", userId, true, pathForced);
+    }
+
+    @Test
+    public void createServiceUserGroupExistsTest() throws Exception {
+        UserUtil.getUserManager(U.adminSession).createGroup(userId);
+        U.adminSession.save();
+        // creating service user with repoinit must fail
+        try {
+            U.parseAndExecute("create service user " + userId);
+            fail("Service user creating with conflicting group must fail.");
+        } catch (RuntimeException e) {
+            assertTrue(e.getCause() instanceof AuthorizableTypeException);
+        }
+    }
+
+    @Test
+    public void createServiceUserForcePathGroupExistsTest() throws Exception {
+        UserUtil.getUserManager(U.adminSession).createGroup(userId);
+        U.adminSession.save();
+        // creating service user with repoinit must fail
+        try {
+            U.parseAndExecute("create service user " + userId + " with forced path /rep:security/rep:authorizables/rep:users/system");
+            fail("Service user creating with conflicting group must fail.");
+        } catch (RuntimeException e) {
+            assertTrue(e.getCause() instanceof AuthorizableTypeException);
+        }
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void createServiceUserRegularUserExists() throws Exception {
+        UserUtil.getUserManager(U.adminSession).createUser(userId, null);
+        U.adminSession.save();
+
+        U.parseAndExecute("create service user " + userId + " with forced path system/test");
     }
 }

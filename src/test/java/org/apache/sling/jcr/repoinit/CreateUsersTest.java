@@ -16,16 +16,23 @@
  */
 package org.apache.sling.jcr.repoinit;
 
+import java.util.Collections;
 import java.util.Random;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
+import org.apache.sling.jcr.repoinit.impl.UserUtil;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /** Test the creation and delete of users */
 public class CreateUsersTest {
@@ -35,17 +42,23 @@ public class CreateUsersTest {
 
     private static final Random random = new Random(42);
     private String namePrefix;
+    private String userId;
     private TestUtil U;
 
     @Before
     public void setup() throws RepositoryException {
         U = new TestUtil(context);
         namePrefix = "user_" + random.nextInt();
+        userId = namePrefix + "_testId";
+    }
+
+    @After
+    public void after() throws RepositoryException {
+        U.cleanup(Collections.singletonList(userId));
     }
 
     @Test
     public void createDeleteSingleTest() throws Exception {
-        final String userId = namePrefix + "_cdst";
         U.assertUser("at start of test", userId, false);
         U.parseAndExecute("create user " + userId);
         U.assertUser("after creating user", userId, true);
@@ -55,7 +68,6 @@ public class CreateUsersTest {
 
     @Test
     public void createDeleteSingleWithPasswordTest() throws Exception {
-        final String userId = namePrefix + "_cdstpw";
         U.assertUser("at start of test", userId, false);
         U.parseAndExecute("create user " + userId + " with password mypw");
         U.assertUser("after creating user", userId, true);
@@ -65,7 +77,6 @@ public class CreateUsersTest {
 
     @Test
     public void createUserWithRelativePathTest() throws Exception {
-        final String userId = namePrefix + "_cuwpt";
         final String path = "testusers/folder_for_" + userId;
         U.parseAndExecute("create user " + userId + " with path " + path);
         U.assertUser("after creating user " + userId, userId, true, path);
@@ -73,7 +84,6 @@ public class CreateUsersTest {
 
     @Test
     public void createUserWithAbsolutePathTest() throws Exception {
-        final String userId = namePrefix + "_cuwpt";
         final String path = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId;
         U.parseAndExecute("create user " + userId + " with path " + path);
         U.assertUser("after creating user " + userId, userId, true, path);
@@ -81,10 +91,46 @@ public class CreateUsersTest {
 
     @Test
     public void createUserWithPathAndPasswordTest() throws Exception {
-        final String userId = namePrefix + "_cuwpt";
         final String path = "testuserwithpassword/folder_for_" + userId;
         U.parseAndExecute("create user " + userId + " with path " + path + " with password asdf");
         U.assertUser("after creating user " + userId, userId, true, path);
+    }
+
+    @Test
+    public void createUserWithForcedRelativePathTest() throws Exception {
+        final String path = "testusers/folder_for_" + userId;
+        U.parseAndExecute("create user " + userId + " with path " + path);
+        U.assertUser("after creating user " + userId, userId, true, path);
+        final String forcedPath = "testusers/folder_for_" + userId + "_forced";
+        U.parseAndExecute("create user " + userId + " with forced path " + forcedPath);
+        U.assertUser("after creating user " + userId, userId, true, forcedPath);
+    }
+
+    @Test
+    public void createUserWithForcedAbsolutePathTest() throws Exception {
+        final String path = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId;
+        U.parseAndExecute("create user " + userId + " with path " + path);
+        U.assertUser("after creating user " + userId, userId, true, path);
+        final String forcedPath = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId + "_forced";
+        U.parseAndExecute("create user " + userId + " with forced path " + forcedPath);
+        U.assertUser("after creating user " + userId, userId, true, forcedPath);
+    }
+
+    @Test
+    public void createUserWithForcedPathNoClashTest() throws Exception {
+        final String forcedPath = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId + "_forced";
+        U.parseAndExecute("create user " + userId + " with forced path " + forcedPath);
+        U.assertUser("after creating user " + userId, userId, true, forcedPath);
+    }
+
+    @Test
+    public void createUserWithForcedPathAndPasswordTest() throws Exception {
+        final String path = "testuserwithpassword/folder_for_" + userId;
+        U.parseAndExecute("create user " + userId + " with path " + path + " with password asdf");
+        U.assertUser("after creating user " + userId, userId, true, path);
+        final String forcedPath = "testuserwithpassword/folder_for_" + userId + "_forced";
+        U.parseAndExecute("create user " + userId + " with forced path " + forcedPath + " with password asdf");
+        U.assertUser("after creating user " + userId, userId, true, forcedPath);
     }
 
     private String user(int index) {
@@ -93,13 +139,12 @@ public class CreateUsersTest {
 
     @Test
     public void createUserMultipleTimes() throws Exception {
-        final String username = namePrefix + "_multiple";
-        U.assertUser("before test", username, false);
-        final String input = "create user " + username;
+        U.assertUser("before test", userId, false);
+        final String input = "create user " + userId;
         for(int i=0; i < 50; i++) {
             U.parseAndExecute(input);
         }
-        U.assertUser("after creating it multiple times", username, true);
+        U.assertUser("after creating it multiple times", userId, true);
     }
 
     @Test
@@ -128,5 +173,39 @@ public class CreateUsersTest {
         for(int i=0; i < n; i++) {
             U.assertUser("after deleting users", user(i), false);
         }
+    }
+
+    @Test
+    public void createUserGroupExistsTest() throws Exception {
+        UserUtil.getUserManager(U.adminSession).createGroup(userId);
+        U.adminSession.save();
+        // creating service user with repoinit must fail
+        try {
+            U.parseAndExecute("create user " + userId);
+            fail("User creation with conflicting group must fail.");
+        } catch (RuntimeException e) {
+            assertTrue(e.getCause() instanceof AuthorizableTypeException);
+        }
+    }
+
+    @Test
+    public void createUserForcePathGroupExistsTest() throws Exception {
+        UserUtil.getUserManager(U.adminSession).createGroup(userId);
+        U.adminSession.save();
+        // creating service user with repoinit must fail
+        try {
+            U.parseAndExecute("create user " + userId + " with forced path /rep:security/rep:authorizables/rep:users/intermediate/path");
+            fail("User creation with conflicting group must fail.");
+        } catch (RuntimeException e) {
+            assertTrue(e.getCause() instanceof AuthorizableTypeException);
+        }
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void createUserSystemUserExists() throws Exception {
+        UserUtil.getUserManager(U.adminSession).createSystemUser(userId, null);
+        U.adminSession.save();
+
+        U.parseAndExecute("create user " + userId + " with forced path intermediate/relpath");
     }
 }

@@ -16,11 +16,10 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
-import java.security.Principal;
-
-import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.repoinit.parser.operations.CreateGroup;
 import org.apache.sling.repoinit.parser.operations.CreateServiceUser;
 import org.apache.sling.repoinit.parser.operations.CreateUser;
@@ -28,6 +27,14 @@ import org.apache.sling.repoinit.parser.operations.DeleteGroup;
 import org.apache.sling.repoinit.parser.operations.DeleteServiceUser;
 import org.apache.sling.repoinit.parser.operations.DeleteUser;
 import org.apache.sling.repoinit.parser.operations.DisableServiceUser;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+
+import static org.apache.sling.jcr.repoinit.impl.UserUtil.getPath;
+import static org.apache.sling.jcr.repoinit.impl.UserUtil.getUserManager;
 
 /**
  * OperationVisitor which processes only operations related to service users and
@@ -49,14 +56,12 @@ class UserVisitor extends DoNothingVisitor {
     public void visitCreateServiceUser(CreateServiceUser s) {
         final String username = s.getUsername();
         try {
-            if (!UserUtil.userExists(session, username)) {
+            UserManager userManager = getUserManager(session);
+            User user = userManager.getAuthorizable(username, User.class);
+            checkUserType(username, user, true);
+            if (user == null || (s.isForcedPath() && needsRecreate(username, user, s.getPath(), "Service user"))) {
                 log.info("Creating service user {}", username);
-                UserUtil.createServiceUser(session, username, s.getPath());
-            } else if (UserUtil.isServiceUser(session, username)) {
-                log.info("Service user {} already exists, no changes made.", username);
-            } else {
-                final String message = String.format("Existing user %s is not a service user.", username);
-                throw new RuntimeException(message);
+                userManager.createSystemUser(username, s.getPath());
             }
         } catch (Exception e) {
             report(e, "Unable to create service user [" + username + "]:" + e);
@@ -78,20 +83,16 @@ class UserVisitor extends DoNothingVisitor {
     public void visitCreateGroup(CreateGroup g) {
         final String groupname = g.getGroupname();
         try {
-            Authorizable group = UserUtil.getAuthorizable(session, groupname);
-            if (group == null || !group.isGroup()) {
+            UserManager userManager = getUserManager(session);
+            Group group = userManager.getAuthorizable(groupname, Group.class);
+            String intermediatePath = g.getPath();
+            if (group == null || (g.isForcedPath() && needsRecreate(groupname, group, intermediatePath, "Group"))) {
                 log.info("Creating group {}", groupname);
-                if (g.getPath() == null) {
-                    UserUtil.getUserManager(session).createGroup(groupname);
+                if (intermediatePath == null) {
+                    userManager.createGroup(groupname);
                 } else {
-                    UserUtil.getUserManager(session).createGroup(new Principal() {
-                        public String getName() {
-                            return groupname;
-                        }
-                    }, g.getPath());
+                    userManager.createGroup(() -> groupname, intermediatePath);
                 }
-            } else {
-                log.info("Group {} already exists, no changes made", groupname);
             }
         } catch (Exception e) {
             report(e, "Unable to create group [" + groupname + "]:" + e);
@@ -115,20 +116,20 @@ class UserVisitor extends DoNothingVisitor {
     public void visitCreateUser(CreateUser u) {
         final String username = u.getUsername();
         try {
-            if (!UserUtil.userExists(session, username)) {
+            UserManager userManager = getUserManager(session);
+            User user = userManager.getAuthorizable(username, User.class);
+            checkUserType(username, user, false);
+            if (user == null || (u.isForcedPath() && needsRecreate(username, user, u.getPath(), "User"))) {
                 final String pwd = u.getPassword();
                 if (pwd != null) {
                     // TODO we might revise this warning once we're able
                     // to create users by providing their encoded password
                     // using u.getPasswordEncoding - for now I think only cleartext works
-                    log.warn("Creating user {} with cleartext password - should NOT be used on production systems",
-                            username);
+                    log.warn("Creating user {} with cleartext password - should NOT be used on production systems", username);
                 } else {
                     log.info("Creating user {}", username);
                 }
                 UserUtil.createUser(session, username, pwd, u.getPath());
-            } else {
-                log.info("User {} already exists, no changes made", username);
             }
         } catch (Exception e) {
             report(e, "Unable to create user [" + username + "]:" + e);
@@ -162,4 +163,27 @@ class UserVisitor extends DoNothingVisitor {
         }
     }
 
+    private static void checkUserType(@NotNull String id, @Nullable User user, boolean expectedSystemUser) {
+        if (user != null && user.isSystemUser() != expectedSystemUser) {
+            String msg = (expectedSystemUser) ? "Existing user %s is not a service user." : "Existing user %s is a service user.";
+            throw new RuntimeException(String.format(msg, id));
+        }
+    }
+
+    private boolean needsRecreate(@NotNull String id, @NotNull Authorizable authorizable, @NotNull String intermediatePath, @NotNull String type) throws RepositoryException {
+        String path = getPath(authorizable);
+        if (path != null) {
+            String requiredIntermediate = intermediatePath + "/";
+            if (!path.contains(requiredIntermediate)) {
+                log.info("Recreating {} '{}' with path '{}' to match required intermediate path '{}'", type, id, path, intermediatePath);
+                authorizable.remove();
+                return true;
+            } else {
+                log.info("{} '{}' already exists with required intermediate path '{}', no changes made.", type, id, intermediatePath);
+            }
+        } else {
+            log.error("{} '{}' already exists but path cannot be determined, no changes made.", type, id);
+        }
+        return false;
+    }
 }

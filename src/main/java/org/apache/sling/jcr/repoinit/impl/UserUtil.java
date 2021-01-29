@@ -16,16 +16,18 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
-import java.security.Principal;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import java.security.Principal;
 
 /** Utilities for User management */
 public class UserUtil {
@@ -77,20 +79,13 @@ public class UserUtil {
         return getUserManager(session).getAuthorizable(id);
     }
 
-    /** Create a service user - fails if it already exists */
-    public static void createServiceUser(Session session, String username, String path) throws RepositoryException {
-        getUserManager(session).createSystemUser(username, path);
-    }
-
-    /** True if specified service user exists */
-    public static boolean isServiceUser(Session session, String id) throws RepositoryException {
-        boolean result = false;
-        final Authorizable authorizable = getAuthorizable(session, id);
-        if (authorizable != null && !authorizable.isGroup()) {
-            final User user = (User) authorizable;
-            result = user.isSystemUser();
+    @Nullable
+    public static String getPath(@NotNull Authorizable authorizable) throws RepositoryException {
+        try {
+            return authorizable.getPath();
+        } catch (UnsupportedRepositoryOperationException ex) {
+            return null;
         }
-        return result;
     }
 
     public static boolean deleteAuthorizable(Session session, String id) throws RepositoryException {
@@ -123,22 +118,11 @@ public class UserUtil {
 
     /** Create a user - fails if it already exists */
     public static void createUser(Session session, String username, String password, String path) throws RepositoryException {
-        if(path == null) {
+        if (path == null) {
             getUserManager(session).createUser(username, password);
         } else {
             final Principal p = new SameNamePrincipal(username);
             getUserManager(session).createUser(username, password, p, path);
         }
     }
-
-    /** True if specified user exists */
-    public static boolean userExists(Session session, String id) throws RepositoryException {
-        boolean result = false;
-        final Authorizable authorizable = getAuthorizable(session, id);
-        if (authorizable != null) {
-            result = !authorizable.isGroup();
-        }
-        return result;
-    }
-
 }
