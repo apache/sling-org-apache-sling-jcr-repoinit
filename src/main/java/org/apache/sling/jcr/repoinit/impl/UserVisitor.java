@@ -68,7 +68,7 @@ class UserVisitor extends DoNothingVisitor {
                             if (UserUtil.deleteAuthorizable(session, username)) {
                                 UserUtil.createServiceUser(session, username, s.getPath());
                             } else {
-                                log.info("Group {} already exists and could not be recreated to match path, no changes made.", username);
+                                log.info("Service user {} already exists and could not be recreated to match path, no changes made.", username);
                             }
                         } else {
                             log.info("Service user {} already exists, no changes made.", username);
