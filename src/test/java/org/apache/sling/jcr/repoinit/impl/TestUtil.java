@@ -41,10 +41,12 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.repoinit.parser.impl.RepoInitParserService;
 import org.apache.sling.repoinit.parser.operations.Operation;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
+import org.jetbrains.annotations.NotNull;
 
 /** Test utilities */
 public class TestUtil {
@@ -252,5 +254,18 @@ public class TestUtil {
     public String getTestCND(String nsPrefix, String nsURI) {
         return "<" + nsPrefix + "='" + nsURI + "'>\n"
                 + "[" + nsPrefix + ":foo] > nt:unstructured\n";
+    }
+
+    public void cleanup(@NotNull List<String> idsToRemove) throws RepositoryException {
+        UserManager umgr = UserUtil.getUserManager(adminSession);
+        for (String id : idsToRemove) {
+            Authorizable a = umgr.getAuthorizable(id);
+            if (a != null) {
+                a.remove();
+            }
+        }
+        if (adminSession.hasPendingChanges()) {
+            adminSession.save();
+        }
     }
 }
