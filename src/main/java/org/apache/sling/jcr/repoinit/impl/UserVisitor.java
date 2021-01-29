@@ -17,8 +17,8 @@
 package org.apache.sling.jcr.repoinit.impl;
 
 import java.security.Principal;
-
 import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.sling.repoinit.parser.operations.CreateGroup;
@@ -53,7 +53,32 @@ class UserVisitor extends DoNothingVisitor {
                 log.info("Creating service user {}", username);
                 UserUtil.createServiceUser(session, username, s.getPath());
             } else if (UserUtil.isServiceUser(session, username)) {
-                log.info("Service user {} already exists, no changes made.", username);
+                if (s.isForcedPath()) {
+                    Authorizable authorizable = UserUtil.getAuthorizable(session, username);
+                    String path;
+                    try {
+                        path = authorizable.getPath();
+                    } catch (UnsupportedRepositoryOperationException ex) {
+                        path = null;
+                    }
+                    if (path != null) {
+                        String requiredIntermediate = s.getPath() + "/";
+                        if (!path.contains(requiredIntermediate)) {
+                            log.info("Recreating service user {} to move path from {} to {}", username, path, s.getPath());
+                            if (UserUtil.deleteAuthorizable(session, username)) {
+                                UserUtil.createServiceUser(session, username, s.getPath());
+                            } else {
+                                log.info("Group {} already exists and could not be recreated to match path, no changes made.", username);
+                            }
+                        } else {
+                            log.info("Service user {} already exists, no changes made.", username);
+                        }
+                    } else {
+                        log.error("Service user {} already exists but no path can be determined, no changes made.", username);
+                    }
+                } else {
+                    log.info("Service user {} already exists, no changes made.", username);
+                }
             } else {
                 final String message = String.format("Existing user %s is not a service user.", username);
                 throw new RuntimeException(message);
@@ -91,7 +116,35 @@ class UserVisitor extends DoNothingVisitor {
                     }, g.getPath());
                 }
             } else {
-                log.info("Group {} already exists, no changes made", groupname);
+                if (g.isForcedPath()) {
+                    String path;
+                    try {
+                        path = group.getPath();
+                    } catch (UnsupportedRepositoryOperationException ex) {
+                        path = null;
+                    }
+                    if (path != null) {
+                        String requiredIntermediate = g.getPath() + "/";
+                        if (!path.contains(requiredIntermediate)) {
+                            log.info("Recreating group {} to move path from {} to {}", groupname, path, g.getPath());
+                            if (UserUtil.deleteAuthorizable(session, groupname)) {
+                                UserUtil.getUserManager(session).createGroup(new Principal() {
+                                    public String getName() {
+                                        return groupname;
+                                    }
+                                }, g.getPath());
+                            } else {
+                                log.info("Group {} already exists and could not be recreated to match path, no changes made.", groupname);
+                            }
+                        } else {
+                            log.info("Group {} already exists, no changes made.", groupname);
+                        }
+                    } else {
+                        log.error("Group {} already exists but no path can be determined, no changes made.", groupname);
+                    }
+                } else {
+                    log.info("Group {} already exists, no changes made", groupname);
+                }
             }
         } catch (Exception e) {
             report(e, "Unable to create group [" + groupname + "]:" + e);
@@ -128,7 +181,42 @@ class UserVisitor extends DoNothingVisitor {
                 }
                 UserUtil.createUser(session, username, pwd, u.getPath());
             } else {
-                log.info("User {} already exists, no changes made", username);
+                if (u.isForcedPath()) {
+                    Authorizable authorizable = UserUtil.getAuthorizable(session, username);
+                    String path;
+                    try {
+                        path = authorizable.getPath();
+                    } catch (UnsupportedRepositoryOperationException ex) {
+                        path = null;
+                    }
+                    if (path != null) {
+                        String requiredIntermediate = u.getPath() + "/";
+                        if (!path.contains(requiredIntermediate)) {
+                            log.info("Recreating user {} to move path from {} to {}", username, path, u.getPath());
+                            if (UserUtil.deleteAuthorizable(session, username)) {
+                                final String pwd = u.getPassword();
+                                if (pwd != null) {
+                                    // TODO we might revise this warning once we're able
+                                    // to create users by providing their encoded password
+                                    // using u.getPasswordEncoding - for now I think only cleartext works
+                                    log.warn("Creating user {} with cleartext password - should NOT be used on production systems",
+                                            username);
+                                } else {
+                                    log.info("Creating user {}", username);
+                                }
+                                UserUtil.createUser(session, username, pwd, u.getPath());
+                            } else {
+                                log.info("User {} already exists and could not be recreated to match path, no changes made.", username);
+                            }
+                        } else {
+                            log.info("User {} already exists, no changes made.", username);
+                        }
+                    } else {
+                        log.error("User {} already exists but no path can be determined, no changes made.", username);
+                    }
+                } else {
+                    log.info("User {} already exists, no changes made.", username);
+                }
             }
         } catch (Exception e) {
             report(e, "Unable to create user [" + username + "]:" + e);

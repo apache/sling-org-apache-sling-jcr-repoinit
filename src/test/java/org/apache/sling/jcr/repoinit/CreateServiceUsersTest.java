@@ -135,11 +135,37 @@ public class CreateServiceUsersTest {
     }
 
     @Test
+    public void createServiceUserWithForcedRelativePathTest() throws Exception {
+        final String userId = namePrefix + "_cdst";
+        // Oak requires system/ prefix for service users
+        final String path = "system/forServiceUser/test";
+        final String pathForced = "system/forServiceUser/test2";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create service user " + userId + " with path " + path);
+        U.assertServiceUser("after creating user", userId, true, path);
+
+        U.parseAndExecute("create service user " + userId + " with forced path " + pathForced);
+        U.assertServiceUser("after forcing creating user", userId, true, pathForced);
+    }
+
+    @Test
     public void createServiceUserWithAbsPathTest() throws Exception {
         final String userId = namePrefix + "_cdst";
         final String path = "/rep:security/rep:authorizables/rep:users/system/forServiceUser/test";
         U.assertServiceUser("at start of test", userId, false);
         U.parseAndExecute("create service user " + userId + " with path " + path);
         U.assertServiceUser("after creating user", userId, true, path);
+    }
+
+    @Test
+    public void createServiceUserWithForcedAbsPathTest() throws Exception {
+        final String userId = namePrefix + "_cdst";
+        final String path = "/rep:security/rep:authorizables/rep:users/system/forServiceUser/test1";
+        final String pathForced = "/rep:security/rep:authorizables/rep:users/system/forServiceUser/test2";
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create service user " + userId + " with path " + path);
+        U.assertServiceUser("after creating user", userId, true, path);
+        U.parseAndExecute("create service user " + userId + " with forced path " + pathForced);
+        U.assertServiceUser("after forcing creating user", userId, true, pathForced);
     }
 }
