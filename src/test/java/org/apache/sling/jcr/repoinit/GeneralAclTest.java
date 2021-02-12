@@ -135,7 +135,6 @@ public class GeneralAclTest {
             + "allow jcr:all on /\n"
             + "end"
             ;
-
         U.parseAndExecute(aclSetup);
         try {
             assertFalse(s.itemExists(path));
@@ -342,7 +341,7 @@ public class GeneralAclTest {
     /**
      * Verifies success/failure of adding a properties
      * @param userSession
-     * @param nodeName
+     * @param relativePath
      * @param propertyName
      * @param successExpected
      * @throws RepositoryException

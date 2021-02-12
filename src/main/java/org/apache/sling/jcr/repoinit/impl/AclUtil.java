@@ -47,6 +47,7 @@ import org.apache.jackrabbit.util.Text;
 import org.apache.sling.repoinit.parser.operations.AclLine;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,8 +166,33 @@ public class AclUtil {
         setAcl(session, principals, (String)null, privileges, isAllow, restrictionClauses);
     }
 
+    public static void removeEntries(@NotNull Session session, @NotNull List<String> principals, @NotNull List<String> paths) throws RepositoryException {
+        Set<String> principalNames = new HashSet<>(principals);
+        for (String jcrPath : getJcrPaths(session, paths)) {
+            if (jcrPath != null && !session.nodeExists(jcrPath)) {
+                LOG.info("Cannot remove access control entries on non-existent path {}", jcrPath);
+            } else {
+                JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, jcrPath);
+                if (acl != null) {
+                    boolean modified = false;
+                    for (AccessControlEntry ace : acl.getAccessControlEntries()) {
+                        if (principalNames.contains(ace.getPrincipal().getName())) {
+                            acl.removeAccessControlEntry(ace);
+                            modified = true;
+                        }
+                    }
+                    if (modified) {
+                        session.getAccessControlManager().setPolicy(jcrPath, acl);
+                    }
+                } else {
+                    LOG.info("Cannot remove access control entries for principal(s) {}. No ACL at {}", principalNames, jcrPath);
+                }
+            }
+        }
+    }
+
     public static void setPrincipalAcl(Session session, String principalName, Collection<AclLine> lines) throws RepositoryException {
-        JackrabbitAccessControlManager acMgr = getJACM(session);
+        final JackrabbitAccessControlManager acMgr = getJACM(session);
         Principal principal = AccessControlUtils.getPrincipal(session, principalName);
         if (principal == null) {
             // due to transient nature of the repo-init the principal lookup may not succeed if completed through query
@@ -176,29 +202,35 @@ public class AclUtil {
             checkState(principal != null, "Principal not found: " + principalName);
         }
 
-        PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal);
+        final PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal);
         boolean modified = false;
         for (AclLine line : lines) {
-            if (line.getAction() == AclLine.Action.DENY) {
+            AclLine.Action action = line.getAction();
+            if (action == AclLine.Action.DENY) {
                 throw new AccessControlException("PrincipalAccessControlList doesn't support 'deny' entries.");
-            }
-            Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
-            for (String effectivePath : getJcrPaths(session, line.getProperty(PROP_PATHS))) {
-                if (acl == null) {
-                    // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with the same definition exists
-                    // or if there exists no node at the effective path (unable to evaluate path-based entries).
-                    LOG.info("No PrincipalAccessControlList available for principal {}", principal);
-                    if (!containsEquivalentEntry(session, effectivePath, principal, privileges, true, line.getRestrictions())) {
-                        LOG.warn("No equivalent path-based entry exists for principal {} and effective path {} ", principal.getName(), effectivePath);
-                        return;
-                    }
-                } else {
-                    LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
-                    boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
-                    if (!added) {
-                        LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, effectivePath);
+            } else if (action == AclLine.Action.REMOVE) {
+                throw new RuntimeException(AclLine.Action.REMOVE + " is not supported");
+            } else if (action == AclLine.Action.REMOVE_ALL) {
+                modified = removePrincipalEntries(acl, principalName, getJcrPaths(session, line.getProperty(PROP_PATHS)));
+            } else {
+                final Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
+                for (String effectivePath : getJcrPaths(session, line.getProperty(PROP_PATHS))) {
+                    if (acl == null) {
+                        // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with the same definition exists
+                        // or if there exists no node at the effective path (unable to evaluate path-based entries).
+                        LOG.info("No PrincipalAccessControlList available for principal {}", principal);
+                        if (!containsEquivalentEntry(session, effectivePath, principal, privileges, true, line.getRestrictions())) {
+                            LOG.warn("No equivalent path-based entry exists for principal {} and effective path {} ", principal.getName(), effectivePath);
+                            return;
+                        }
                     } else {
-                        modified = true;
+                        final LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
+                        final boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
+                        if (!added) {
+                            LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, effectivePath);
+                        } else {
+                            modified = true;
+                        }
                     }
                 }
             }
@@ -225,6 +257,24 @@ public class AclUtil {
             }
         }
         return acl;
+    }
+
+    private static boolean removePrincipalEntries(@Nullable PrincipalAccessControlList acl, @NotNull String principalName, @NotNull List<String> paths) throws RepositoryException {
+        boolean modified = false;
+        if (acl == null) {
+            LOG.info("Cannot remove entries for paths(s) {}. No principal-based ACL for {}", paths, principalName);
+        } else {
+            for (AccessControlEntry ace : acl.getAccessControlEntries()) {
+                if (ace instanceof PrincipalAccessControlList.Entry) {
+                    PrincipalAccessControlList.Entry entry = (PrincipalAccessControlList.Entry) ace;
+                    if (paths.contains(entry.getEffectivePath())) {
+                        acl.removeAccessControlEntry(ace);
+                        modified = true;
+                    }
+                }
+            }
+        }
+        return modified;
     }
 
     @NotNull
