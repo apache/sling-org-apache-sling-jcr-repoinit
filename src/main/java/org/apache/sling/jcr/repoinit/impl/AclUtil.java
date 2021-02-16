@@ -211,8 +211,10 @@ public class AclUtil {
             } else if (action == AclLine.Action.REMOVE) {
                 throw new RuntimeException(AclLine.Action.REMOVE + " is not supported");
             } else if (action == AclLine.Action.REMOVE_ALL) {
-                modified = removePrincipalEntries(acl, principalName, getJcrPaths(session, line.getProperty(PROP_PATHS)));
-            } else {
+                if(removePrincipalEntries(acl, principalName, getJcrPaths(session, line.getProperty(PROP_PATHS)))) {
+                    modified = true;
+                }
+            } else if (action == AclLine.Action.ALLOW) {
                 final Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
                 for (String effectivePath : getJcrPaths(session, line.getProperty(PROP_PATHS))) {
                     if (acl == null) {
@@ -233,6 +235,8 @@ public class AclUtil {
                         }
                     }
                 }
+            } else {
+                throw new RuntimeException("Unknown action " + action);
             }
         }
         if (modified) {
