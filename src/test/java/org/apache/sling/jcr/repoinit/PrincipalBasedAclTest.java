@@ -855,6 +855,27 @@ public class PrincipalBasedAclTest {
         U.parseAndExecute(setup);
     }
 
+    @Test
+    public void testRemoveAllPrincipalDuplicated() throws Exception {
+        U.parseAndExecute(""
+            + "set principal ACL for " + U.username + "\n"
+            + "allow jcr:write on "+path+"\n"
+            + "allow jcr:read on "+path+"\n"
+            + "end\n"
+            + "set principal ACL for " + U.username + "\n"
+            // duplicating the remove statement exposes SLING-10145
+            + "remove * on " + path + "\n"
+            + "remove * on " + path + "\n"
+            + "end\n"
+        );
+
+        {
+            PrincipalAccessControlList acl = getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession);
+            assertNotNull(acl);
+            assertEquals(0, acl.size());
+        }
+}
+
     private static Authorizable getServiceUser(@NotNull Session session, @NotNull String uid) throws RepositoryException {
         UserManager uMgr = ((JackrabbitSession) session).getUserManager();
         Authorizable a = uMgr.getAuthorizable(uid);
