@@ -135,4 +135,29 @@ public class U {
         }
         return false;
     }
+
+    public static boolean hasProperty(Authorizable a, String propertyName, Value propertyValue) throws  RepositoryException {
+        if (a != null) {
+            boolean isPropertyPresent = a.hasProperty(propertyName);
+            if (isPropertyPresent) {
+                Value[] values = a.getProperty(propertyName);
+                if (values != null && values.length == 1) {
+                    Value v = values[0];
+                    return v.equals(propertyValue);
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean hasProperty(Authorizable a, String propertyName, Value[] propertyValues) throws  RepositoryException {
+        if (a != null) {
+            boolean isPropertyPresent = a.hasProperty(propertyName);
+            if (isPropertyPresent) {
+                Value[] v = a.getProperty(propertyName);
+                return Arrays.equals(v, propertyValues);
+            }
+        }
+        return false;
+    }
 }

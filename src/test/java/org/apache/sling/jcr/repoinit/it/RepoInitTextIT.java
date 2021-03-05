@@ -24,11 +24,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.UUID;
 
-import javax.jcr.PropertyType;
-import javax.jcr.ValueFactory;
-import javax.jcr.Value;
 import javax.inject.Inject;
+import javax.jcr.PropertyType;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.repoinit.parser.RepoInitParser;
 import org.junit.Before;
@@ -206,6 +209,128 @@ public class RepoInitTextIT extends RepoInitTestSupport {
                 expectedValues9[1] = vf.createValue("non-quoted");
                 expectedValues9[2] = vf.createValue("the last \" one");
                 assertTrue("Expecting string array type property " + PROP_I + " to be present " , U.hasProperty(session, PROP_NODE_PATH, PROP_I, expectedValues9));
+
+                return null;
+            }
+        };
+    }
+
+    @Test
+    public void setAuthorizableProperties() throws Exception {
+        new Retry() {
+            @Override
+            public Void call() throws Exception {
+                if(!(session instanceof JackrabbitSession)) {
+                    throw new IllegalArgumentException("Session is not a JackrabbitSession");
+                }
+                UserManager um = ((JackrabbitSession)session).getUserManager();
+
+                Authorizable [] authorizables = new Authorizable[] {
+                        um.getAuthorizable(ALICE),
+                        um.getAuthorizable(GROUP_A)
+                };
+
+                for (Authorizable authorizable : authorizables) {
+                    assertNotNull("Expected authorizable to not be null", authorizable);
+                    ValueFactory vf = session.getValueFactory();
+                    Value[] expectedValues1 = new Value[2];
+                    expectedValues1[0] = vf.createValue("/d/e/f/*");
+                    expectedValues1[1] = vf.createValue("m/n/*");
+                    assertTrue("Expecting array type property " + PROP_A + " to be present ", U.hasProperty(authorizable, PROP_A, expectedValues1));
+
+                    Value expectedValue2 = vf.createValue("42", PropertyType.valueFromName("Long"));
+                    assertTrue("Expecting Long type default property " + PROP_B + " to be present ", U.hasProperty(authorizable, PROP_B, expectedValue2));
+
+                    Value expectedValue3  = vf.createValue("true", PropertyType.valueFromName("Boolean"));
+                    assertTrue("Expecting bool type property " + PROP_C + " to be present ", U.hasProperty(authorizable, PROP_C, expectedValue3));
+
+                    Value expectedValue4 = vf.createValue("2020-03-19T11:39:33.437+05:30", PropertyType.valueFromName("Date"));
+                    assertTrue("Expecting date type property " + PROP_D + " to be present " , U.hasProperty(authorizable, PROP_D, expectedValue4));
+
+                    Value expectedValue5 = vf.createValue("test");
+                    assertTrue("Expecting string type property " + PROP_E + " to be present " , U.hasProperty(authorizable, PROP_E, expectedValue5));
+
+                    Value expectedValue6 = vf.createValue("hello, you!");
+                    assertTrue("Expecting quoted string type property " + PROP_F + " to be present " , U.hasProperty(authorizable, PROP_F, expectedValue6));
+
+                    Value[] expectedValues7 = new Value[2];
+                    expectedValues7[0] = vf.createValue("test1");
+                    expectedValues7[1] = vf.createValue("test2");
+                    assertTrue("Expecting string array type property " + PROP_G + " to be present " , U.hasProperty(authorizable, PROP_G, expectedValues7));
+
+                    Value expectedValue8 = vf.createValue("Here's a \"double quoted string\" with suffix");
+                    assertTrue("Expecting quoted string type property " + PROP_H + " to be present " , U.hasProperty(authorizable, PROP_H, expectedValue8));
+
+                    Value[] expectedValues9 = new Value[3];
+                    expectedValues9[0] = vf.createValue("quoted");
+                    expectedValues9[1] = vf.createValue("non-quoted");
+                    expectedValues9[2] = vf.createValue("the last \" one");
+                    assertTrue("Expecting string array type property " + PROP_I + " to be present " , U.hasProperty(authorizable, PROP_I, expectedValues9));
+
+                    Value nestedExpectedValue = vf.createValue("42", PropertyType.valueFromName("Long"));
+                    assertTrue("Expecting Long type default property nested/" + PROP_B + " to be present ", U.hasProperty(authorizable, "nested/" +PROP_B, nestedExpectedValue));
+                }
+
+                return null;
+            }
+        };
+    }
+
+    @Test
+    public void setAuthorizableSubTreeProperties() throws Exception {
+        new Retry() {
+            @Override
+            public Void call() throws Exception {
+                if(!(session instanceof JackrabbitSession)) {
+                    throw new IllegalArgumentException("Session is not a JackrabbitSession");
+                }
+                UserManager um = ((JackrabbitSession)session).getUserManager();
+
+                Authorizable [] authorizables = new Authorizable[] {
+                        um.getAuthorizable(BOB),
+                        um.getAuthorizable(GROUP_B)
+                };
+
+                for (Authorizable authorizable : authorizables) {
+                    assertNotNull("Expected authorizable to not be null", authorizable);
+                    ValueFactory vf = session.getValueFactory();
+                    Value[] expectedValues1 = new Value[2];
+                    expectedValues1[0] = vf.createValue("/d/e/f/*");
+                    expectedValues1[1] = vf.createValue("m/n/*");
+                    assertTrue("Expecting array type property nested/" + PROP_A + " to be present ", U.hasProperty(authorizable, "nested/" + PROP_A, expectedValues1));
+
+                    Value expectedValue2 = vf.createValue("42", PropertyType.valueFromName("Long"));
+                    assertTrue("Expecting Long type default property nested/" + PROP_B + " to be present ", U.hasProperty(authorizable, "nested/" + PROP_B, expectedValue2));
+
+                    Value expectedValue3  = vf.createValue("true", PropertyType.valueFromName("Boolean"));
+                    assertTrue("Expecting bool type property nested/" + PROP_C + " to be present ", U.hasProperty(authorizable, "nested/" + PROP_C, expectedValue3));
+
+                    Value expectedValue4 = vf.createValue("2020-03-19T11:39:33.437+05:30", PropertyType.valueFromName("Date"));
+                    assertTrue("Expecting date type property nested/" + PROP_D + " to be present " , U.hasProperty(authorizable, "nested/" + PROP_D, expectedValue4));
+
+                    Value expectedValue5 = vf.createValue("test");
+                    assertTrue("Expecting string type property nested/" + PROP_E + " to be present " , U.hasProperty(authorizable, "nested/" + PROP_E, expectedValue5));
+
+                    Value expectedValue6 = vf.createValue("hello, you!");
+                    assertTrue("Expecting quoted string type property nested/" + PROP_F + " to be present " , U.hasProperty(authorizable, "nested/" + PROP_F, expectedValue6));
+
+                    Value[] expectedValues7 = new Value[2];
+                    expectedValues7[0] = vf.createValue("test1");
+                    expectedValues7[1] = vf.createValue("test2");
+                    assertTrue("Expecting string array type property nested/" + PROP_G + " to be present " , U.hasProperty(authorizable, "nested/" + PROP_G, expectedValues7));
+
+                    Value expectedValue8 = vf.createValue("Here's a \"double quoted string\" with suffix");
+                    assertTrue("Expecting quoted string type property nested/" + PROP_H + " to be present " , U.hasProperty(authorizable, "nested/" + PROP_H, expectedValue8));
+
+                    Value[] expectedValues9 = new Value[3];
+                    expectedValues9[0] = vf.createValue("quoted");
+                    expectedValues9[1] = vf.createValue("non-quoted");
+                    expectedValues9[2] = vf.createValue("the last \" one");
+                    assertTrue("Expecting string array type property nested/" + PROP_I + " to be present " , U.hasProperty(authorizable, "nested/" + PROP_I, expectedValues9));
+
+                    Value nestedExpectedValue = vf.createValue("42", PropertyType.valueFromName("Long"));
+                    assertTrue("Expecting Long type default property nested/nested/" + PROP_B + " to be present ", U.hasProperty(authorizable, "nested/nested/" +PROP_B, nestedExpectedValue));
+                }
 
                 return null;
             }
