@@ -44,6 +44,13 @@ import org.jetbrains.annotations.NotNull;
  * the execution order.
  */
 class NodePropertiesVisitor extends DoNothingVisitor {
+    /**
+     * The repoinit.parser transforms the authorizable(ids)[/relative_path] path
+     * syntax from the original source into ":authorizable:ids#/relative_path" in the 
+     * values provided from {@link SetProperties#getPaths()}
+     * 
+     * These constants are used to unwind those values into the parts for processing
+     */
     private static final String PATH_AUTHORIZABLE = ":authorizable:";
     private static final char ID_DELIMINATOR = ',';
     private static final char SUBTREE_DELIMINATOR = '#';
@@ -132,61 +139,79 @@ class NodePropertiesVisitor extends DoNothingVisitor {
         return authorizables;
     }
 
+    /**
+     * Set properties on a user or group
+     * 
+     * @param nodePath the target path
+     * @param propertyLines the property lines to process to set the properties
+     */
+    private void setAuthorizableProperties(String nodePath, List<PropertyLine> propertyLines) throws RepositoryException {
+        int lastHashIndex = nodePath.lastIndexOf(SUBTREE_DELIMINATOR);
+        if (lastHashIndex == -1) {
+            throw new IllegalStateException("Invalid format of authorizable path: # deliminator expected.");
+        }
+        String ids = nodePath.substring(PATH_AUTHORIZABLE.length(), lastHashIndex);
+        String subTreePath = nodePath.substring(lastHashIndex + 1);
+        for (Authorizable a : getAuthorizables(session, ids)) {
+            log.info("Setting properties on authorizable '{}'", a.getID());
+            for (PropertyLine pl : propertyLines) {
+                final String pName = pl.getPropertyName();
+                final String pRelPath = toRelPath(subTreePath, pName);
+                if (needToSetProperty(a, pRelPath, pl.isDefault())) {
+                    final List<Object> values = pl.getPropertyValues();
+                    if (values.size() > 1) {
+                        Value[] pValues = convertToValues(values);
+                        a.setProperty(pRelPath, pValues);
+                    } else {
+                        Value pValue = convertToValue(values.get(0));
+                        a.setProperty(pRelPath, pValue);
+                    }
+                } else {
+                    log.info("Property '{}' already set on authorizable '{}', existing value will not be overwritten in 'default' mode",
+                        pRelPath, a.getID());
+                }
+            }
+        }
+    }
+
+    /**
+     * Set properties on a JCR node
+     * 
+     * @param nodePath the target path
+     * @param propertyLines the property lines to process to set the properties
+     */
+    private void setNodeProperties(String nodePath, List<PropertyLine> propertyLines) throws RepositoryException {
+        log.info("Setting properties on nodePath '{}'", nodePath);
+        Node n = session.getNode(nodePath);
+        for (PropertyLine pl : propertyLines) {
+            final String pName = pl.getPropertyName();
+            if (needToSetProperty(n, pl)) {
+                final PropertyLine.PropertyType pType = pl.getPropertyType();
+                final int type = PropertyType.valueFromName(pType.name());
+                final List<Object> values = pl.getPropertyValues();
+                if (values.size() > 1) {
+                    Value[] pValues = convertToValues(values);
+                    n.setProperty(pName, pValues, type);
+                } else {
+                    Value pValue = convertToValue(values.get(0));
+                    n.setProperty(pName, pValue, type);
+                }
+            } else {
+                log.info("Property '{}' already set on path '{}', existing value will not be overwritten in 'default' mode",
+                    pName, nodePath);
+            }
+        }
+    }
+
     @Override
     public void visitSetProperties(SetProperties sp) {
         for (String nodePath : sp.getPaths()) {
             try {
                 if (nodePath.startsWith(PATH_AUTHORIZABLE)) {
                     // special case for setting properties on authorizable
-                    int lastHashIndex = nodePath.lastIndexOf(SUBTREE_DELIMINATOR);
-                    if (lastHashIndex == -1) {
-                        throw new IllegalStateException("Invalid format of authorizable path: # deliminator expected.");
-                    }
-                    String ids = nodePath.substring(PATH_AUTHORIZABLE.length(), lastHashIndex);
-                    String subTreePath = nodePath.substring(lastHashIndex + 1);
-                    for (Authorizable a : getAuthorizables(session, ids)) {
-                        log.info("Setting properties on authorizable '{}'", a.getID());
-                        for (PropertyLine pl : sp.getPropertyLines()) {
-                            final String pName = pl.getPropertyName();
-                            final String pRelPath = toRelPath(subTreePath, pName);
-                            final List<Object> values = pl.getPropertyValues();
-                            if (needToSetProperty(a, pRelPath, pl.isDefault())) {
-                                if (values.size() > 1) {
-                                    Value[] pValues = convertToValues(values);
-                                    a.setProperty(pRelPath, pValues);
-                                } else {
-                                    Value pValue = convertToValue(values.get(0));
-                                    a.setProperty(pRelPath, pValue);
-                                }
-                            } else {
-                                log.info(
-                                    "Property '{}' already set on authorizable '{}', existing value will not be overwritten in 'default' mode",
-                                    pRelPath, a.getID());
-                            }
-                        }
-                    }
+                    setAuthorizableProperties(nodePath, sp.getPropertyLines());
                 } else {
-                    log.info("Setting properties on nodePath '{}'", nodePath);
-                    Node n = session.getNode(nodePath);
-                    for (PropertyLine pl : sp.getPropertyLines()) {
-                        final String pName = pl.getPropertyName();
-                        final PropertyLine.PropertyType pType = pl.getPropertyType();
-                        final List<Object> values = pl.getPropertyValues();
-                        final int type = PropertyType.valueFromName(pType.name());
-                        if (needToSetProperty(n, pl)) {
-                            if (values.size() > 1) {
-                                Value[] pValues = convertToValues(values);
-                                n.setProperty(pName, pValues, type);
-                            } else {
-                                Value pValue = convertToValue(values.get(0));
-                                n.setProperty(pName, pValue, type);
-                            }
-                        } else {
-                            log.info(
-                                "Property '{}' already set on path '{}', existing value will not be overwritten in 'default' mode",
-                                pName, nodePath);
-                        }
-                    }
+                    setNodeProperties(nodePath, sp.getPropertyLines());
                 }
             } catch (RepositoryException e) {
                 report(e, "Unable to set properties on path [" + nodePath + "]:" + e);
