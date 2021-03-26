@@ -82,3 +82,33 @@ set properties on /proptest/X/Y
   set quotedA to "Here's a \"double quoted string\" with suffix"
   set quotedMix to "quoted", non-quoted, "the last \" one"
 end
+
+# SLING-10192 set properties on user or group profile
+set properties on authorizable(alice),authorizable(grpA)
+  set pathArray to /d/e/f/*, m/n/*
+  default someInteger{Long} to 42
+  set someFlag{Boolean} to true
+  default someDate{Date} to "2020-03-19T11:39:33.437+05:30"
+  set customSingleValueStringProp to test
+  set customSingleValueQuotedStringProp to "hello, you!"
+  set stringArray to test1, test2
+  default someInteger{Long} to 65
+  set quotedA to "Here's a \"double quoted string\" with suffix"
+  set quotedMix to "quoted", non-quoted, "the last \" one"
+  set nested/someInteger{Long} to 42
+end
+
+# SLING-10192 set properties on a subtree of the user or group profile
+set properties on authorizable(bob)/nested,authorizable(grpB)/nested
+  set pathArray to /d/e/f/*, m/n/*
+  default someInteger{Long} to 42
+  set someFlag{Boolean} to true
+  default someDate{Date} to "2020-03-19T11:39:33.437+05:30"
+  set customSingleValueStringProp to test
+  set customSingleValueQuotedStringProp to "hello, you!"
+  set stringArray to test1, test2
+  default someInteger{Long} to 65
+  set quotedA to "Here's a \"double quoted string\" with suffix"
+  set quotedMix to "quoted", non-quoted, "the last \" one"
+  set nested/someInteger{Long} to 42
+end

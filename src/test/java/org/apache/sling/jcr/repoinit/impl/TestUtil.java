@@ -197,6 +197,32 @@ public class TestUtil {
         assertEquals(message +  " to be member of " + groupId, expectToBeMember, isMember);
     }
 
+    public void assertAuthorizableSVPropertyExists(String id, String propertyName, Value expectedValue) throws RepositoryException {
+        final Authorizable a = UserUtil.getAuthorizable(adminSession, id);
+        assertNotNull("failed to get authorizable for " + id, a);
+        if (!a.hasProperty(propertyName)) {
+            fail("No " + propertyName + " property for " + a.getID());
+        } else {
+            Value[] property = a.getProperty(propertyName);
+            assertNotNull("Expected non-null value for property: " + propertyName, property);
+            assertEquals("Expected one value for property: " + propertyName, 1, property.length);
+            Value actualValue = property[0];
+            assertEquals("Value mismatch for property: " + propertyName, expectedValue, actualValue);
+        }
+    }
+
+    public void assertAuthorizableMVPropertyExists(String id, String propertyName, Value[] expectedValues) throws RepositoryException {
+        final Authorizable a = UserUtil.getAuthorizable(adminSession, id);
+        assertNotNull("failed to get authorizable for " + id, a);
+        if (!a.hasProperty(propertyName)) {
+            fail("No " + propertyName + " property for " + a.getID());
+        } else {
+            Value[] actualValues = a.getProperty(propertyName);
+            assertNotNull("Expected non-null value for property: " + propertyName, actualValues);
+            assertArrayEquals("Values mismatch for property: " + propertyName, expectedValues, actualValues);
+        }
+    }
+
     public void assertSVPropertyExists(String path, String propertyName, Value expectedValue) throws RepositoryException {
         final Node n = adminSession.getNode(path);
         if(!n.hasProperty(propertyName)) {

@@ -128,4 +128,173 @@ public class SetPropertiesTest {
         U.assertSVPropertyExists(path3, "one", vf.createValue("oneB"));
         U.assertSVPropertyExists(path3, "two", vf.createValue("twoA"));
     }
+
+    @Test
+    public void setUserProperties() throws Exception {
+        String userid = "user" + UUID.randomUUID();
+
+        U.assertUser("before creating user", userid, false);
+        U.parseAndExecute("create user " + userid);
+        U.assertUser("after creating user", userid, true);
+
+        assertAuthorizableProperties(userid);
+        assertAuthorizablePropertiesAgain(userid);
+    }
+
+    @Test
+    public void setSubTreeUserProperties() throws Exception {
+        String userid = "user" + UUID.randomUUID();
+
+        U.assertUser("before creating user", userid, false);
+        U.parseAndExecute("create user " + userid);
+        U.assertUser("after creating user", userid, true);
+
+        assertAuthorizableSubTreeProperties(userid);
+        assertAuthorizableSubTreePropertiesAgain(userid);
+    }
+
+    @Test
+    public void setGroupProperties() throws Exception {
+        String groupid = "group" + UUID.randomUUID();
+
+        U.assertGroup("before creating group", groupid, false);
+        U.parseAndExecute("create group " + groupid);
+        U.assertGroup("after creating group", groupid, true);
+
+        assertAuthorizableProperties(groupid);
+        assertAuthorizablePropertiesAgain(groupid);
+    }
+
+    @Test
+    public void setSubTreeGroupProperties() throws Exception {
+        String groupid = "group" + UUID.randomUUID();
+
+        U.assertGroup("before creating group", groupid, false);
+        U.parseAndExecute("create group " + groupid);
+        U.assertGroup("after creating group", groupid, true);
+
+        assertAuthorizableSubTreeProperties(groupid);
+        assertAuthorizableSubTreePropertiesAgain(groupid);
+    }
+
+    /**
+     * Set properties on an authorizable and then verify that the values were set
+     */
+    protected void assertAuthorizableProperties(String id) throws RepositoryException, RepoInitParsingException {
+        final String setPropsA =
+                "set properties on authorizable(" +id + ")\n"
+                        + "set one to oneA\n"
+                        + "default two to twoA\n"
+                        + "set nested/one to oneA\n"
+                        + "default nested/two to twoA\n"
+                        + "set three to threeA, \"threeB\", threeC\n"
+                        + "default four to fourA, \"fourB\"\n"
+                        + "set nested/three to threeA, \"threeB\", threeC\n"
+                        + "default nested/four to fourA, \"fourB\"\n"
+                + "end";
+
+        U.parseAndExecute(setPropsA);
+
+        U.assertAuthorizableSVPropertyExists(id, "one", vf.createValue("oneA"));
+        U.assertAuthorizableSVPropertyExists(id, "nested/one", vf.createValue("oneA"));
+        U.assertAuthorizableSVPropertyExists(id, "two", vf.createValue("twoA"));
+        U.assertAuthorizableSVPropertyExists(id, "nested/two", vf.createValue("twoA"));
+        U.assertAuthorizableMVPropertyExists(id, "three", new Value[] {
+                vf.createValue("threeA"),
+                vf.createValue("threeB"),
+                vf.createValue("threeC")
+                });
+        U.assertAuthorizableMVPropertyExists(id, "nested/three", new Value[] {
+                vf.createValue("threeA"),
+                vf.createValue("threeB"),
+                vf.createValue("threeC")
+                });
+        U.assertAuthorizableMVPropertyExists(id, "four", new Value[] {
+                vf.createValue("fourA"),
+                vf.createValue("fourB")
+                });
+        U.assertAuthorizableMVPropertyExists(id, "nested/four", new Value[] {
+                vf.createValue("fourA"),
+                vf.createValue("fourB")
+                });
+    }
+
+    /**
+     * Change values for existing properties on an authorizable and then verify that the values were set
+     * or not as appropriate
+     */
+    protected void assertAuthorizablePropertiesAgain(String id) throws RepositoryException, RepoInitParsingException {
+        final String setPropsA =
+                "set properties on authorizable(" + id + ")\n"
+                        + "set one to changed_oneA\n"
+                        + "default two to changed_twoA\n"
+                        + "set nested/one to changed_oneA\n"
+                        + "default nested/two to changed_twoA\n"
+                        + "set three to changed_threeA, \"changed_threeB\", changed_threeC\n"
+                        + "default four to changed_fourA, \"changed_fourB\"\n"
+                        + "set nested/three to changed_threeA, \"changed_threeB\", changed_threeC\n"
+                        + "default nested/four to changed_fourA, \"changed_fourB\"\n"
+                + "end";
+
+        U.parseAndExecute(setPropsA);
+
+        U.assertAuthorizableSVPropertyExists(id, "one", vf.createValue("changed_oneA"));
+        U.assertAuthorizableSVPropertyExists(id, "nested/one", vf.createValue("changed_oneA"));
+        U.assertAuthorizableSVPropertyExists(id, "two", vf.createValue("twoA"));
+        U.assertAuthorizableSVPropertyExists(id, "nested/two", vf.createValue("twoA"));
+        U.assertAuthorizableMVPropertyExists(id, "three", new Value[] {
+                vf.createValue("changed_threeA"),
+                vf.createValue("changed_threeB"),
+                vf.createValue("changed_threeC")
+                });
+        U.assertAuthorizableMVPropertyExists(id, "nested/three", new Value[] {
+                vf.createValue("changed_threeA"),
+                vf.createValue("changed_threeB"),
+                vf.createValue("changed_threeC")
+                });
+        U.assertAuthorizableMVPropertyExists(id, "four", new Value[] {
+                vf.createValue("fourA"),
+                vf.createValue("fourB")
+                });
+        U.assertAuthorizableMVPropertyExists(id, "nested/four", new Value[] {
+                vf.createValue("fourA"),
+                vf.createValue("fourB")
+                });
+    }
+
+    /**
+     * Set properties on a subtree of an authorizable and then verify that the values were set
+     */
+    protected void assertAuthorizableSubTreeProperties(String id)
+            throws RepositoryException, RepoInitParsingException {
+        final String setPropsA =
+                "set properties on authorizable(" + id + ")/nested\n"
+                        + "set one to oneA\n"
+                        + "default two to twoA\n"
+                + "end";
+
+        U.parseAndExecute(setPropsA);
+
+        U.assertAuthorizableSVPropertyExists(id, "nested/one", vf.createValue("oneA"));
+        U.assertAuthorizableSVPropertyExists(id, "nested/two", vf.createValue("twoA"));
+    }
+
+    /**
+     * Change values for existing properties on a subtree of an authorizable and then verify 
+     * that the values were set or not as appropriate
+     */
+    protected void assertAuthorizableSubTreePropertiesAgain(String id)
+            throws RepositoryException, RepoInitParsingException {
+        final String setPropsA =
+                "set properties on authorizable(" + id + ")/nested\n"
+                        + "set one to changed_oneA\n"
+                        + "default two to changed_twoA\n"
+                + "end";
+
+        U.parseAndExecute(setPropsA);
+
+        U.assertAuthorizableSVPropertyExists(id, "nested/one", vf.createValue("changed_oneA"));
+        U.assertAuthorizableSVPropertyExists(id, "nested/two", vf.createValue("twoA"));
+    }
+
 }
