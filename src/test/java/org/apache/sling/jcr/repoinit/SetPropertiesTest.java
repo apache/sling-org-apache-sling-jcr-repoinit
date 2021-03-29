@@ -30,6 +30,9 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Value;
+
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.UUID;
 
@@ -177,6 +180,41 @@ public class SetPropertiesTest {
         assertAuthorizableSubTreePropertiesAgain(groupid);
     }
 
+    @Test
+    public void unknownAuthorizable() throws Exception {
+        final String setProps =
+            "set properties on authorizable(nonExistingUser)\n"
+            + "set one to oneA\n"
+            + "end"
+        ;
+        try {
+            U.parseAndExecute(setProps);
+            fail("Expecting execution to fail");
+        } catch(RuntimeException asExpected) {
+            // all good
+        }
+    }
+
+    @Test
+    public void typoInFunctionName() throws Exception {
+        String userid = "user" + UUID.randomUUID();
+        U.parseAndExecute("create user " + userid);
+
+        // The parser accepts any function name in paths,
+        // make sure we fail in the right way
+        final String setProps =
+            "set properties on UNauthorizable(" + userid + ")\n"
+            + "set one to oneA\n"
+            + "end"
+        ;
+        try {
+            U.parseAndExecute(setProps);
+            fail("Expecting execution to fail");
+        } catch(RuntimeException asExpected) {
+            // all good
+        }
+    }
+
     /**
      * Set properties on an authorizable and then verify that the values were set
      */
@@ -184,6 +222,7 @@ public class SetPropertiesTest {
         final String setPropsA =
                 "set properties on authorizable(" +id + ")\n"
                         + "set one to oneA\n"
+                        + "set dbl{Double} to 3.14\n"
                         + "default two to twoA\n"
                         + "set nested/one to oneA\n"
                         + "default nested/two to twoA\n"
@@ -196,6 +235,7 @@ public class SetPropertiesTest {
         U.parseAndExecute(setPropsA);
 
         U.assertAuthorizableSVPropertyExists(id, "one", vf.createValue("oneA"));
+        U.assertAuthorizableSVPropertyExists(id, "dbl", vf.createValue(3.14));
         U.assertAuthorizableSVPropertyExists(id, "nested/one", vf.createValue("oneA"));
         U.assertAuthorizableSVPropertyExists(id, "two", vf.createValue("twoA"));
         U.assertAuthorizableSVPropertyExists(id, "nested/two", vf.createValue("twoA"));
