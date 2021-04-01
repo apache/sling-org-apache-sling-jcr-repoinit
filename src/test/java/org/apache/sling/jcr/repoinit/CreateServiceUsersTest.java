@@ -43,6 +43,7 @@ public class CreateServiceUsersTest {
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
     
     private static final Random random = new Random(42);
+
     private String namePrefix;
     private String userId;
     private TestUtil U;
@@ -77,9 +78,11 @@ public class CreateServiceUsersTest {
         U.parseAndExecute("create service user " + userId);
         U.assertServiceUser("after creating user", userId, true);
         U.assertEnabledUser("after creating user", userId);
-        U.parseAndExecute("disable service user " + userId + " : \"Test\"");
+
+        final String disabledReason = "disabled-" + random.nextInt();
+        U.parseAndExecute("disable service user " + userId + " : \"" + disabledReason + "\"");
         U.assertServiceUser("after disable user", userId, true);
-        U.assertDisabledUser("after disable user", userId);
+        U.assertDisabledUser("after disable user", userId, disabledReason);
     }
 
     @Test

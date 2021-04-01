@@ -152,8 +152,8 @@ class UserVisitor extends DoNothingVisitor {
     @Override
     public void visitDisableServiceUser(DisableServiceUser dsu) {
         final String username = dsu.getUsername();
-        final String reason = dsu.getParametersDescription();
-        log.info("Disabling service user {} reason {}", new String[] { username, reason });
+        final String reason = dsu.getReason();
+        log.info("Disabling service user {} reason {}", username, reason );
         try {
             if (!UserUtil.disableUser(session, username, reason)) {
                 log.debug("Service user {} doesn't exist - assuming disable to be a noop.", username);

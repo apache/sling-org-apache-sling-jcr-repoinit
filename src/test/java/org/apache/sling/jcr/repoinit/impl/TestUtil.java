@@ -141,9 +141,11 @@ public class TestUtil {
         assertFalse(info + ", expecting Principal to not be disabled: " + id, ((User) a).isDisabled());
     }
 
-    public void assertDisabledUser(String info, String id) throws RepositoryException {
+    public void assertDisabledUser(String info, String id, String disabledReason) throws RepositoryException {
         final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(id);
-        assertTrue(info + ", expecting Principal to be disabled: " + id, ((User) a).isDisabled());
+        final User user = (User)a;
+        assertTrue(info + ", expecting Principal to be disabled: " + id, user.isDisabled());
+        assertEquals("Expecting disabledReason==" + disabledReason, disabledReason, user.getDisabledReason());
     }
 
     public void assertNodeExists(String path) throws RepositoryException {
