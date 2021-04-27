@@ -23,7 +23,6 @@ import java.util.Random;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
-import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.jcr.repoinit.impl.UserUtil;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
@@ -86,6 +85,41 @@ public class CreateServiceUsersTest {
     }
 
     @Test
+    public void disableRegularUserTest() throws Exception {
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create user " + userId);
+        U.assertEnabledUser("after creating user", userId);
+
+        final String disabledReason = "disabled-" + random.nextInt();
+        U.parseAndExecute("disable user " + userId + " : \"" + disabledReason + "\"");
+        U.assertDisabledUser("after disable user", userId, disabledReason);
+    }
+
+    @Test
+    public void disableDoesntCheckUserTypeOnServiceUserTest() throws Exception {
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create service user " + userId);
+        U.assertServiceUser("after creating user", userId, true);
+        U.assertEnabledUser("after creating user", userId);
+
+        final String disabledReason = "disabled-" + random.nextInt();
+        U.parseAndExecute("disable user " + userId + " : \"" + disabledReason + "\"");
+        U.assertServiceUser("after creating user", userId, true);
+        U.assertDisabledUser("after disable user", userId, disabledReason);
+    }
+
+    @Test
+    public void disableDoesntCheckUserTypeOnRegularUserTest() throws Exception {
+        U.assertServiceUser("at start of test", userId, false);
+        U.parseAndExecute("create user " + userId);
+        U.assertEnabledUser("after creating user", userId);
+
+        final String disabledReason = "disabled-" + random.nextInt();
+        U.parseAndExecute("disable service user " + userId + " : \"" + disabledReason + "\"");
+        U.assertDisabledUser("after disable user", userId, disabledReason);
+    }
+
+    @Test
     public void deleteNonExistingUserTest() throws Exception {
         U.assertServiceUser("at start of test", userId, false);
         U.parseAndExecute("delete service user " + userId);
@@ -96,7 +130,9 @@ public class CreateServiceUsersTest {
     public void disableNonExistingUserTest() throws Exception {
         U.assertServiceUser("at start of test", userId, false);
         U.parseAndExecute("disable service user " + userId + " : \"Test\"");
-        U.assertServiceUser("after disable user", userId, false);
+        U.assertServiceUser("after disable service user", userId, false);
+        U.parseAndExecute("disable user " + userId + " : \"Test\"");
+        U.assertServiceUser("after disable regular user", userId, false);
     }
     
     private String user(int index) {
