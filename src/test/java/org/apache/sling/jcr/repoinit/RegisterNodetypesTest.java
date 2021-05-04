@@ -38,6 +38,7 @@ public class RegisterNodetypesTest {
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
     
     private TestUtil U;
+    private NamespaceRegistry nsReg;
     
     private static final String TEST_ID = UUID.randomUUID().toString();
     private static final String NS_PREFIX = RegisterNodetypesTest.class.getSimpleName();
@@ -48,16 +49,31 @@ public class RegisterNodetypesTest {
         U = new TestUtil(context);
         U.parseAndExecute("register namespace (" + NS_PREFIX + ") " + NS_URI);
         U.parseAndExecute(U.getTestCndStatement(NS_PREFIX, NS_URI));
+        nsReg = U.getAdminSession().getWorkspace().getNamespaceRegistry();
     }
 
     @Test
     public void NSregistered() throws Exception {
-        final NamespaceRegistry ns = U.getAdminSession().getWorkspace().getNamespaceRegistry();
-        assertEquals(NS_URI, ns.getURI(NS_PREFIX));
+        assertEquals(NS_URI, nsReg.getURI(NS_PREFIX));
     }
     
     @Test
     public void fooNodetypeRegistered() throws Exception {
         U.getAdminSession().getRootNode().addNode("test_" + TEST_ID, NS_PREFIX + ":foo");
+    }
+
+    @Test
+    public void SLING_10349() throws Exception {
+        final String script =
+            "register namespace ( yyy ) http://yyy.com/jcr/nt/1.0\n"
+            + "register nodetypes\n"
+            + "<<===\n"
+            + "<< <yyy='http://yyy.com/jcr/nt/1.0'>\n"
+            + "<< [yyy:Foobar] > nt:unstructured\n"
+            + "===>>\n"
+        ;
+        U.parseAndExecute(script);
+        assertEquals("Expecting yyy namespace to be registered", "http://yyy.com/jcr/nt/1.0", nsReg.getURI("yyy"));
+        U.getAdminSession().getRootNode().addNode("yyyTest_" + TEST_ID, "yyy:Foobar");
     }
  }
