@@ -175,7 +175,7 @@ public class AclUtil {
      * @param principalName
      * @throws RepositoryException
      */
-    public static void removeAcl(@NotNull Session session, @NotNull final String principalName) throws RepositoryException {
+    public static void removePolicy(@NotNull Session session, @NotNull final String principalName) throws RepositoryException {
         Principal principal = AccessControlUtils.getPrincipal(session, principalName);
         if (principal == null) {
             LOG.info("Principal {} does not exist.", principalName);
@@ -201,7 +201,7 @@ public class AclUtil {
      * @param paths
      * @throws RepositoryException
      */
-    public static void removeAcl(@NotNull Session session, @NotNull List<String> paths) throws RepositoryException {
+    public static void removePolicies(@NotNull Session session, @NotNull List<String> paths) throws RepositoryException {
         for (String jcrPath : getJcrPaths(session, paths)) {
             LOG.info("Removing access control policy on {}", jcrPath);
             JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, jcrPath);
@@ -298,7 +298,7 @@ public class AclUtil {
      * @param principalName
      * @throws RepositoryException
      */
-    public static void removePrincipalAcl(@NotNull Session session, @NotNull String principalName) throws RepositoryException {
+    public static void removePrincipalPolicy(@NotNull Session session, @NotNull String principalName) throws RepositoryException {
         Principal principal = AccessControlUtils.getPrincipal(session, principalName);
         if (principal == null) {
             LOG.info("Cannot remove principal-based ACL. Principal {} does not exist.", principalName);

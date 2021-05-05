@@ -53,7 +53,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 @RunWith(Parameterized.class)
-public class RemoveAclTest {
+public class DeleteAclTest {
     
     @Parameterized.Parameters(name = "ImportBehavior={0}")
     public static Collection<Object[]> parameters() {
@@ -73,7 +73,7 @@ public class RemoveAclTest {
     private TestUtil U;
     private String userA;
 
-    public RemoveAclTest(String name) {
+    public DeleteAclTest(String name) {
         this.importBehaviorName = name;
     }
     
@@ -124,21 +124,21 @@ public class RemoveAclTest {
     }
 
     @Test
-    public void testRemoveAcl() throws Exception {
-        U.parseAndExecute("remove ACL on /content, :repository\n");
+    public void testDeleteAcl() throws Exception {
+        U.parseAndExecute("delete ACL on /content, :repository\n");
 
         assertArrayEquals(new AccessControlPolicy[0], acMgr.getPolicies("/content"));
         assertArrayEquals(new AccessControlPolicy[0], acMgr.getPolicies((String) null));
     }
 
     @Test(expected = RuntimeException.class)
-    public void testRemoveAclNonExistingPath() throws Exception {
-        U.parseAndExecute("remove ACL on /nonExisting\n");
+    public void testDeleteAclNonExistingPath() throws Exception {
+        U.parseAndExecute("delete ACL on /nonExisting\n");
     }
 
     @Test
-    public void testRemoveAclByPrincipal() throws Exception {
-        U.parseAndExecute("remove ACL for "+userA+"\n");
+    public void testDeleteAclByPrincipal() throws Exception {
+        U.parseAndExecute("delete ACL for "+userA+"\n");
 
         // removing resource-based ac setup by principal must leave entries for other principals intact
         for (String path : new String[] {"/content", "/var"}) {
@@ -150,25 +150,25 @@ public class RemoveAclTest {
     }
     
     @Test
-    public void testRemoveAclByNonExistingPrincipal() throws Exception {
+    public void testDeleteAclByNonExistingPrincipal() throws Exception {
         Principal p = new PrincipalImpl("non-existing-service-user");
         assertEquals(0,  acMgr.getPolicies(p).length);
         
         // execution for non-existing principal must not fail
-        U.parseAndExecute("remove ACL for non-existing-service-user\n");
+        U.parseAndExecute("delete ACL for non-existing-service-user\n");
         
         assertEquals(0,  acMgr.getPolicies(p).length);
     }
 
     @Test
-    public void testRemoveUserAndAcl() throws Exception {
+    public void testDeletesUserAndAcl() throws Exception {
         Principal p = new PrincipalImpl(userA);
         assertEquals(1, acMgr.getPolicies(p).length);
         
         U.parseAndExecute("delete service user "+userA+"\n");
         assertEquals(1, acMgr.getPolicies(p).length);
 
-        U.parseAndExecute("remove ACL for "+userA+"\n");
+        U.parseAndExecute("delete ACL for "+userA+"\n");
         assertEquals(0, acMgr.getPolicies(p).length);
     }
 }

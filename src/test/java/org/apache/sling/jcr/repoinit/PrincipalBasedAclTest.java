@@ -893,47 +893,47 @@ public class PrincipalBasedAclTest {
     }
 
     @Test
-    public void testAddAndRemoveAcl() throws Exception {
+    public void testAddAndDeleteAcl() throws Exception {
         U.parseAndExecute(""
                 + "set principal ACL for " + U.username + "\n"
                 + "allow jcr:write on "+path+"\n"
                 + "end\n"
-                + "remove principal ACL for " + U.username + "\n"
+                + "delete principal ACL for " + U.username + "\n"
         );
 
         assertNull(getAcl(getPrincipal(U.username), U.adminSession));
     }
 
     @Test
-    public void testRemoveAcl() throws Exception {
+    public void testDeleteAcl() throws Exception {
         PrincipalAccessControlList acl = getApplicableAcl(getPrincipal(U.username), U.adminSession);
         acl.addEntry("/content", AccessControlUtils.privilegesFromNames(U.adminSession, Privilege.JCR_READ));
         U.adminSession.getAccessControlManager().setPolicy(acl.getPath(), acl);
         U.adminSession.save();
 
         assertNotNull(getAcl(getPrincipal(U.username), U.adminSession));
-        U.parseAndExecute("remove principal ACL for " + U.username + "\n");
+        U.parseAndExecute("delete principal ACL for " + U.username + "\n");
         assertNull(getAcl(getPrincipal(U.username), U.adminSession));
     }
 
     @Test
-    public void testRemoveNonExistingAcl() throws Exception {
+    public void testDeleteNonExistingAcl() throws Exception {
         assertNull(getAcl(getPrincipal(U.username), U.adminSession));
         // removing non-existing policy must not fail
-        U.parseAndExecute("remove principal ACL for " + U.username + "\n");
+        U.parseAndExecute("delete principal ACL for " + U.username + "\n");
         assertNull(getAcl(getPrincipal(U.username), U.adminSession));
     }
 
     @Test
-    public void testRemoveAclNonExistingPrincipal() throws Exception {
+    public void testDeleteAclNonExistingPrincipal() throws Exception {
         assertNull(getAcl(getPrincipal(U.username), U.adminSession));
         // removing policy for non-existing principal must not fail
-        U.parseAndExecute("remove principal ACL for non-existing-service-user\n");
+        U.parseAndExecute("delete principal ACL for non-existing-service-user\n");
         assertNull(getAcl(getPrincipal(U.username), U.adminSession));
     }
 
     @Test
-    public void testRemoveResourceBasedAclByPrincipal() throws Exception {
+    public void testDeleteResourceBasedAclByPrincipal() throws Exception {
         U.parseAndExecute(""
                 + "create path (nt:unstructured) /var\n"
                 + "set ACL for " + U.username + "\n"
@@ -945,7 +945,7 @@ public class PrincipalBasedAclTest {
 
         assertEquals(1, acMgr.getPolicies("/var").length);
 
-        U.parseAndExecute("remove ACL for "+U.username+"\n");
+        U.parseAndExecute("delete ACL for "+U.username+"\n");
         // resource-based acl at /var must be removed as it only contains a single entry for U.userName
         assertEquals(0, acMgr.getPolicies("/var").length);
 
