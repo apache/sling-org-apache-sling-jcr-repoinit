@@ -1,2 +1,2 @@
 Provide-Capability: osgi.implementation;osgi.implementation="org.apache.sling.jcr.repoinit";version:Version="8.1"
-Require-Capability: org.apache.sling.repoinit.language;filter:="(version>=8.3)"
+Require-Capability: org.apache.sling.repoinit.language;filter:="(version>=8.4)"
