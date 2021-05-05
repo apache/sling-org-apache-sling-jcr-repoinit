@@ -24,11 +24,15 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.jcr.Node;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.sling.repoinit.parser.operations.AclLine;
 import org.apache.sling.repoinit.parser.operations.CreatePath;
 import org.apache.sling.repoinit.parser.operations.PathSegmentDefinition;
+import org.apache.sling.repoinit.parser.operations.RemoveAclPaths;
+import org.apache.sling.repoinit.parser.operations.RemoveAclPrincipalBased;
+import org.apache.sling.repoinit.parser.operations.RemoveAclPrincipals;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
@@ -152,6 +156,39 @@ class AclVisitor extends DoNothingVisitor {
             session.save();
         } catch(Exception e) {
             throw new RuntimeException("Session.save failed: "+ e, e);
+        }
+    }
+    
+    @Override
+    public void visitRemoveAclPrincipals(RemoveAclPrincipals s) {
+        for (String principalName : s.getPrincipals()) {
+            try {
+                log.info("Removing access control policy for {}", principalName);
+                AclUtil.removeAcl(session, principalName);
+            } catch (RepositoryException e) {
+                throw new RuntimeException("Failed to remove ACL ("+e.getMessage()+")");
+            }
+        }
+    }
+
+    @Override
+    public void visitRemoveAclPaths(RemoveAclPaths s) {
+        try {
+            AclUtil.removeAcl(session, s.getPaths());
+        } catch (RepositoryException e) {
+            throw new RuntimeException("Failed to remove ACL ("+e.getMessage()+")");
+        }
+    }
+
+    @Override
+    public void visitRemoveAclPrincipalBased(RemoveAclPrincipalBased s) {
+        for (String principalName : s.getPrincipals()) {
+            try {
+                log.info("Removing principal-based access control policy for {}", principalName);
+                AclUtil.removePrincipalAcl(session, principalName);
+            } catch (RepositoryException e) {
+                throw new RuntimeException("Failed to remove principal-based ACL ("+e.getMessage()+")");
+            }
         }
     }
 }
