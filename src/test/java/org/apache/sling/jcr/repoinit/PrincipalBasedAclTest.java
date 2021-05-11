@@ -83,6 +83,7 @@ public class PrincipalBasedAclTest {
 
     private Repository repository;
     private JackrabbitSession adminSession;
+    private JackrabbitAccessControlManager acMgr;
 
     private TestUtil U;
 
@@ -99,6 +100,7 @@ public class PrincipalBasedAclTest {
 
         String uid = sp.getParameters(UserConfiguration.NAME).getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
         adminSession = (JackrabbitSession) repository.login(new SimpleCredentials(uid, uid.toCharArray()), null);
+        acMgr = AclUtil.getJACM(adminSession);
         U = new TestUtil(adminSession);
 
         Node tmp = adminSession.getRootNode().addNode("tmp_" + U.id);
@@ -178,6 +180,20 @@ public class PrincipalBasedAclTest {
 
     private static void assertRegex(String regex, String shouldMatch) {
         assertTrue("Expecting '" +  shouldMatch + "'' to match " + regex, shouldMatch.matches(regex));
+    }
+
+    private Authorizable getServiceUser(@NotNull String uid) throws RepositoryException {
+        UserManager uMgr = adminSession.getUserManager();
+        Authorizable a = uMgr.getAuthorizable(uid);
+        if (a != null) {
+            return a;
+        } else {
+            throw new RepositoryException("Expected service user " + uid + " to exist.");
+        }
+    }
+    
+    private Principal getPrincipal(@NotNull String serviceUserId) throws RepositoryException {
+        return getServiceUser(serviceUserId).getPrincipal();
     }
 
     @Test
@@ -595,7 +611,7 @@ public class PrincipalBasedAclTest {
                     + "end";
             U.parseAndExecute(setup);
 
-            Principal principal = adminSession.getUserManager().getAuthorizable("otherSystemPrincipal").getPrincipal();
+            Principal principal = getPrincipal("otherSystemPrincipal");
             for (AccessControlPolicy policy : acMgr.getPolicies(principal)) {
                 assertFalse(policy instanceof PrincipalAccessControlList);
             }
@@ -606,7 +622,7 @@ public class PrincipalBasedAclTest {
 
     @Test
     public void testHomePath() throws Exception {
-        Authorizable su = getServiceUser(U.adminSession, U.username);
+        Authorizable su = getServiceUser(U.username);
         Principal principal = su.getPrincipal();
 
         assertNull(getAcl(principal, U.adminSession));
@@ -728,7 +744,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        assertNull(getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession));
+        assertNull(getAcl(getPrincipal(U.username), U.adminSession));
     }
 
     @Test(expected = RuntimeException.class)
@@ -752,7 +768,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        PrincipalAccessControlList acl = getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession);
+        PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
         assertNotNull(acl);
         assertTrue(acl.isEmpty());
     }
@@ -765,7 +781,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        PrincipalAccessControlList acl = getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession);
+        PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
         assertNotNull(acl);
         assertEquals(2, acl.size());
 
@@ -774,7 +790,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        acl = getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession);
+        acl = getAcl(getPrincipal(U.username), U.adminSession);
         assertNotNull(acl);
         assertEquals(1, acl.size());
     }
@@ -787,7 +803,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        PrincipalAccessControlList acl = getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession);
+        PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
         assertNotNull(acl);
         assertEquals(2, acl.size());
 
@@ -796,7 +812,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        acl = getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession);
+        acl = getAcl(getPrincipal(U.username), U.adminSession);
         assertNotNull(acl);
         assertEquals(1, acl.size());
     }
@@ -809,7 +825,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        PrincipalAccessControlList acl = getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession);
+        PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
         assertNotNull(acl);
         assertEquals(2, acl.size());
 
@@ -818,7 +834,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        acl = getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession);
+        acl = getAcl(getPrincipal(U.username), U.adminSession);
         assertNotNull(acl);
         assertTrue(acl.isEmpty());
     }
@@ -836,7 +852,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        PrincipalAccessControlList acl = getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession);
+        PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
         assertNotNull(acl);
         assertEquals(2, acl.size());
     }
@@ -870,20 +886,84 @@ public class PrincipalBasedAclTest {
         );
 
         {
-            PrincipalAccessControlList acl = getAcl(getServiceUser(U.adminSession, U.username).getPrincipal(), U.adminSession);
+            PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
             assertNotNull(acl);
             assertEquals(0, acl.size());
         }
-}
+    }
 
-    private static Authorizable getServiceUser(@NotNull Session session, @NotNull String uid) throws RepositoryException {
-        UserManager uMgr = ((JackrabbitSession) session).getUserManager();
-        Authorizable a = uMgr.getAuthorizable(uid);
-        if (a != null) {
-            return a;
-        } else {
-            throw new RepositoryException("Expected service user " + uid + " to exist.");
+    @Test
+    public void testAddAndDeleteAcl() throws Exception {
+        U.parseAndExecute(""
+                + "set principal ACL for " + U.username + "\n"
+                + "allow jcr:write on "+path+"\n"
+                + "end\n"
+                + "delete principal ACL for " + U.username + "\n"
+        );
+
+        assertNull(getAcl(getPrincipal(U.username), U.adminSession));
+    }
+
+    @Test
+    public void testDeleteAcl() throws Exception {
+        PrincipalAccessControlList acl = getApplicableAcl(getPrincipal(U.username), U.adminSession);
+        acl.addEntry("/content", AccessControlUtils.privilegesFromNames(U.adminSession, Privilege.JCR_READ));
+        U.adminSession.getAccessControlManager().setPolicy(acl.getPath(), acl);
+        U.adminSession.save();
+
+        assertNotNull(getAcl(getPrincipal(U.username), U.adminSession));
+        U.parseAndExecute("delete principal ACL for " + U.username + "\n");
+        assertNull(getAcl(getPrincipal(U.username), U.adminSession));
+    }
+
+    @Test
+    public void testDeleteNonExistingAcl() throws Exception {
+        assertNull(getAcl(getPrincipal(U.username), U.adminSession));
+        // removing non-existing policy must not fail
+        U.parseAndExecute("delete principal ACL for " + U.username + "\n");
+        assertNull(getAcl(getPrincipal(U.username), U.adminSession));
+    }
+
+    @Test
+    public void testDeleteAclNonExistingPrincipal() throws Exception {
+        assertNull(getAcl(getPrincipal(U.username), U.adminSession));
+        // removing policy for non-existing principal must not fail
+        U.parseAndExecute("delete principal ACL for non-existing-service-user\n");
+        assertNull(getAcl(getPrincipal(U.username), U.adminSession));
+    }
+
+    @Test
+    public void testDeleteResourceBasedAclByPrincipal() throws Exception {
+        U.parseAndExecute(""
+                + "create path (nt:unstructured) /var\n"
+                + "set ACL for " + U.username + "\n"
+                + "allow jcr:read on /var\n"
+                + "end\n"
+                + "set principal ACL for " + U.username + "\n"
+                + "allow jcr:read on /var\n"
+                + "end\n");
+
+        assertEquals(1, acMgr.getPolicies("/var").length);
+
+        U.parseAndExecute("delete ACL for "+U.username+"\n");
+        // resource-based acl at /var must be removed as it only contains a single entry for U.userName
+        assertEquals(0, acMgr.getPolicies("/var").length);
+
+        // removing resource-based ac-setup by principal must not delete any principal-based ac setup.
+        Principal p = getPrincipal(U.username);
+        AccessControlPolicy[] policies = acMgr.getPolicies(p);
+        assertEquals(1, policies.length);
+        assertTrue(policies[0] instanceof PrincipalAccessControlList);
+    }
+
+    @Nullable
+    private static PrincipalAccessControlList getApplicableAcl(@NotNull Principal principal, @NotNull Session session) throws RepositoryException {
+        for (AccessControlPolicy policy : AclUtil.getJACM(session).getApplicablePolicies(principal)) {
+            if (policy instanceof PrincipalAccessControlList) {
+                return (PrincipalAccessControlList) policy;
+            }
         }
+        return null;
     }
 
     @Nullable

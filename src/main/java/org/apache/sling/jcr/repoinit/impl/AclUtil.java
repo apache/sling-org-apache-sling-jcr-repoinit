@@ -40,9 +40,11 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.util.Text;
 import org.apache.sling.repoinit.parser.operations.AclLine;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
@@ -166,6 +168,51 @@ public class AclUtil {
         setAcl(session, principals, (String)null, privileges, isAllow, restrictionClauses);
     }
 
+    /**
+     * Remove resource-based access control setup for the principal with the given name.
+     * 
+     * @param session
+     * @param principalName
+     * @throws RepositoryException
+     */
+    public static void removePolicy(@NotNull Session session, @NotNull final String principalName) throws RepositoryException {
+        Principal principal = AccessControlUtils.getPrincipal(session, principalName);
+        if (principal == null) {
+            LOG.info("Principal {} does not exist.", principalName);
+            // using PrincipalImpl will prevent 'removePolicy' from failing with AccessControlException
+            // in case import-behavior is configured to be ABORT.
+            principal = new PrincipalImpl(principalName);
+        }
+        
+        JackrabbitAccessControlManager acMgr = getJACM(session);
+        for (JackrabbitAccessControlPolicy policy : acMgr.getPolicies(principal)) {
+            // make sure not to remove the principal-based access control list but instead only drop
+            // resource-based access control content for the given principal
+            if (policy instanceof JackrabbitAccessControlList && !(policy instanceof PrincipalAccessControlList)) {
+                acMgr.removePolicy(policy.getPath(), policy);
+            }
+        }
+    }
+
+    /**
+     * Remove resource-based access control setup defined for the specified paths.
+     * 
+     * @param session
+     * @param paths
+     * @throws RepositoryException
+     */
+    public static void removePolicies(@NotNull Session session, @NotNull List<String> paths) throws RepositoryException {
+        for (String jcrPath : getJcrPaths(session, paths)) {
+            LOG.info("Removing access control policy on {}", jcrPath);
+            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, jcrPath);
+            if (acl == null) {
+                LOG.info("No ACL to remove at path {}", jcrPath);
+            } else {
+                session.getAccessControlManager().removePolicy(jcrPath, acl);
+            }
+        }
+    }
+    
     public static void removeEntries(@NotNull Session session, @NotNull List<String> principals, @NotNull List<String> paths) throws RepositoryException {
         Set<String> principalNames = new HashSet<>(principals);
         for (String jcrPath : getJcrPaths(session, paths)) {
@@ -202,7 +249,7 @@ public class AclUtil {
             checkState(principal != null, "Principal not found: " + principalName);
         }
 
-        final PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal);
+        final PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal, true);
         boolean modified = false;
         for (AclLine line : lines) {
             AclLine.Action action = line.getAction();
@@ -244,16 +291,41 @@ public class AclUtil {
         }
     }
 
-    private static PrincipalAccessControlList getPrincipalAccessControlList(JackrabbitAccessControlManager acMgr, Principal principal) throws RepositoryException {
+    /**
+     * Remove principal-based access control setup for the principal with the given name. 
+     *
+     * @param session
+     * @param principalName
+     * @throws RepositoryException
+     */
+    public static void removePrincipalPolicy(@NotNull Session session, @NotNull String principalName) throws RepositoryException {
+        Principal principal = AccessControlUtils.getPrincipal(session, principalName);
+        if (principal == null) {
+            LOG.info("Cannot remove principal-based ACL. Principal {} does not exist.", principalName);
+            return;
+        }
+
+        JackrabbitAccessControlManager acMgr = getJACM(session);
+        PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal, false);
+        if (acl == null) {
+            LOG.info("Cannot remove principal-based ACL for principal {}. No such policy exists.", principalName);
+        } else {
+            acMgr.removePolicy(acl.getPath(), acl);
+        }
+    }
+
+    @Nullable
+    private static PrincipalAccessControlList getPrincipalAccessControlList(@NotNull JackrabbitAccessControlManager acMgr, 
+                                                                            @NotNull Principal principal, boolean includeApplicable) throws RepositoryException {
         PrincipalAccessControlList acl = null;
-        for (AccessControlPolicy policy : acMgr.getPolicies(principal)) {
+        for (JackrabbitAccessControlPolicy policy : acMgr.getPolicies(principal)) {
             if (policy instanceof PrincipalAccessControlList) {
                 acl = (PrincipalAccessControlList) policy;
                 break;
             }
         }
-        if (acl == null) {
-            for (AccessControlPolicy policy : acMgr.getApplicablePolicies(principal)) {
+        if (acl == null && includeApplicable) {
+            for (JackrabbitAccessControlPolicy policy : acMgr.getApplicablePolicies(principal)) {
                 if (policy instanceof PrincipalAccessControlList) {
                     acl = (PrincipalAccessControlList) policy;
                     break;
