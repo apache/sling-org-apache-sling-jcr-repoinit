@@ -16,8 +16,9 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
+import java.util.function.BooleanSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,22 +51,23 @@ public class RetryableOperation {
      * @param logMessage the log message
      * @return true if the supplier was eventually successful, false if it failed despite all retries
      */
-    public boolean apply(Supplier<Boolean> operation, String logMessage) {
+    public boolean apply(BooleanSupplier operation, String logMessage) {
 
         boolean successful = false;
-        successful = operation.get();
+        successful = operation.getAsBoolean();
         while (! successful && retryCount < maxRetries) {
             retryCount++;
-            LOG.info("%s (retry %d/%d)", logMessage, retryCount, maxRetries);
+            LOG.info("{} (retry {}/{})", logMessage, retryCount, maxRetries);
             delay(retryCount);
-            successful = operation.get();
+            successful = operation.getAsBoolean();
         }
         return successful;
     }
 
     private void delay(int retryCount) {
 
-        int j = (int) (Math.random() * (jitter));
+        Random r = new Random();
+        int j = r.nextInt(jitter);
         int delayInMilis = (backoffBase * retryCount) + j;
         try {
             TimeUnit.MILLISECONDS.sleep(delayInMilis);
@@ -87,7 +89,7 @@ public class RetryableOperation {
          * @param msec backoff time in miliseconds
          * @return the builder
          */
-        Builder withBackoffBase(int msec) {
+        Builder withBackoffBaseMsec(int msec) {
             exponentialBackoff = msec;
             return this;
         }
@@ -107,7 +109,7 @@ public class RetryableOperation {
          * @param msec the jitter in miliseconds
          * @return the builder
          */
-        Builder withJitter(int msec) {
+        Builder withJitterMsec(int msec) {
             this.jitter = msec;
             return this;
         }

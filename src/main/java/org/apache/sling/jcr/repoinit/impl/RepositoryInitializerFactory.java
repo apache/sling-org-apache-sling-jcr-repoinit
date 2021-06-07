@@ -20,16 +20,8 @@ import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.jcr.AccessDeniedException;
-import javax.jcr.InvalidItemStateException;
-import javax.jcr.ItemExistsException;
-import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.version.VersionException;
 
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.api.SlingRepositoryInitializer;
@@ -150,9 +142,9 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
      * @param logMessage the messages to print when retry
      * @throws Exception if the application fails despite the retry
      */
-    private void applyOperations(Session session, List<Operation> ops, String logMessage) throws Exception {
+    private void applyOperations(Session session, List<Operation> ops, String logMessage) throws RepositoryException {
 
-        RetryableOperation retry = new RetryableOperation.Builder().withBackoffBase(1000).withMaxRetries(3).build();
+        RetryableOperation retry = new RetryableOperation.Builder().withBackoffBaseMsec(1000).withMaxRetries(3).build();
         boolean successful = retry.apply(() -> {
             try {
                 processor.apply(session, ops);

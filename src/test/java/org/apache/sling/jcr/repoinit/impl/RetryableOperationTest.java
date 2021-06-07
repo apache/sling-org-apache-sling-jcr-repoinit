@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import org.junit.Test;
@@ -33,11 +34,11 @@ public class RetryableOperationTest {
     public void testWithoutRetry() {
 
         RetryableOperation ro = new RetryableOperation.Builder().build();
-        Supplier<Boolean> op = () -> {
+        BooleanSupplier op = () -> {
             return true;
         };
         boolean successful = ro.apply(op, "log");
-        assertEquals(ro.retryCount,0);
+        assertEquals(0,ro.retryCount);
         assertTrue(successful);
     }
 
@@ -47,10 +48,10 @@ public class RetryableOperationTest {
         // bypass the effective final feature
         AtomicInteger retries = new AtomicInteger(0);
         RetryableOperation ro = new RetryableOperation.Builder()
-                .withBackoffBase(10)
+                .withBackoffBaseMsec(10)
                 .withMaxRetries(3)
                 .build();
-        Supplier<Boolean> op = () -> {
+        BooleanSupplier op = () -> {
             // 1 regular execution + 2 retries
             if (retries.getAndAdd(1) == 2) {
                 return true;
@@ -68,10 +69,10 @@ public class RetryableOperationTest {
 
         AtomicInteger retries = new AtomicInteger(0);
         RetryableOperation ro = new RetryableOperation.Builder()
-                .withBackoffBase(10)
+                .withBackoffBaseMsec(10)
                 .withMaxRetries(3)
                 .build();
-        Supplier<Boolean> op = () -> {
+        BooleanSupplier op = () -> {
             // 1 regular execution + 4 retries
             if (retries.getAndAdd(1) == 4) {
                 return true;
