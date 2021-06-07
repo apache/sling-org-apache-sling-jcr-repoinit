@@ -20,7 +20,16 @@ import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.jcr.AccessDeniedException;
+import javax.jcr.InvalidItemStateException;
+import javax.jcr.ItemExistsException;
+import javax.jcr.ReferentialIntegrityException;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.lock.LockException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.version.VersionException;
 
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.api.SlingRepositoryInitializer;
@@ -111,9 +120,9 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                         }
                         final String repoinitText = p.getRepoinitText("raw:" + reference);
                         final List<Operation> ops = parser.parse(new StringReader(repoinitText));
-                        log.info("Executing {} repoinit operations", ops.size());
-                        processor.apply(s, ops);
-                        s.save();
+                        String msg = String.format("Executing %s repoinit operations", ops.size());
+                        log.info(msg);
+                        applyOperations(s,ops,msg);
                     }
                 }
                 if ( config.scripts() != null ) {
@@ -122,9 +131,9 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                             continue;
                         }
                         final List<Operation> ops = parser.parse(new StringReader(script));
-                        log.info("Executing {} repoinit operations", ops.size());
-                        processor.apply(s, ops);
-                        s.save();
+                        String msg = String.format("Executing %s repoinit operations", ops.size());
+                        log.info(msg);
+                        applyOperations(s,ops,msg);
                     }
                 }
             } finally {
@@ -132,4 +141,37 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
             }
         }
     }
+
+
+    /**
+     * Apply the operations within a session, support retries
+     * @param session the JCR session to use
+     * @param ops the list of operations
+     * @param logMessage the messages to print when retry
+     * @throws Exception if the application fails despite the retry
+     */
+    private void applyOperations(Session session, List<Operation> ops, String logMessage) throws Exception {
+
+        RetryableOperation retry = new RetryableOperation.Builder().withBackoffBase(1000).withMaxRetries(3).build();
+        boolean successful = retry.apply(() -> {
+            try {
+                processor.apply(session, ops);
+                session.save();
+                return true;
+            } catch (RepositoryException e) {
+                log.error("(temporarily) failed to apply repoinit operations",e);
+                try {
+                    session.refresh(false); // discard all pending changes
+                } catch (RepositoryException e1) {
+                    // ignore
+                }
+                return false;
+            }
+        }, logMessage);
+        if (!successful) {
+            throw new RepositoryException("Eventually failed to apply repoinit statements, please check previous log messages");
+        }
+    }
+
+
 }
