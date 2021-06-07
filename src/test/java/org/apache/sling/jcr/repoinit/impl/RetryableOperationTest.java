@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 
 import org.junit.Test;
 
