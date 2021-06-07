@@ -16,6 +16,7 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
@@ -35,6 +36,7 @@ public class RetryableOperation {
     int maxRetries;
     int jitter;
 
+    Random random = new Random();
     int retryCount = 0;
 
     RetryableOperation(int backoff, int maxRetries, int jitter) {
@@ -54,7 +56,7 @@ public class RetryableOperation {
 
         boolean successful = false;
         successful = operation.getAsBoolean();
-        while (! successful && retryCount < maxRetries) {
+        while (!successful && retryCount < maxRetries) {
             retryCount++;
             LOG.info("{} (retry {}/{})", logMessage, retryCount, maxRetries);
             delay(retryCount);
@@ -66,7 +68,7 @@ public class RetryableOperation {
     private void delay(int retryCount) {
 
         @SuppressWarnings("java:S2119") // we don't do crypto stuff here
-        int j = (int) (Math.random() * jitter);
+        int j = random.nextInt(jitter);
         int delayInMilis = (backoffBase * retryCount) + j;
         try {
             TimeUnit.MILLISECONDS.sleep(delayInMilis);
