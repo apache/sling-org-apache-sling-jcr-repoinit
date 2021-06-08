@@ -19,6 +19,7 @@ package org.apache.sling.jcr.repoinit;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -33,6 +34,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /** Test the creation of paths with specific node types */
 public class CreatePathsTest {
@@ -143,11 +145,19 @@ public class CreatePathsTest {
 
     @Test
     public void createPathWherePropertyExists() throws Exception {
-        final Node folder = U.adminSession.getRootNode().addNode("cpwpe", "nt:unstructured");
-        folder.setProperty("nodeOrProperty", "someValue");
+        final String testName = "cpwpe";
+        final String propName= "nodeOrProperty";
+        final Node folder = U.adminSession.getRootNode().addNode(testName, "nt:unstructured");
+        folder.setProperty(propName, "someValue");
         folder.getSession().save();
-        final String fullPath = "/cpwpe/nodeOrProperty";
-        U.parseAndExecute("create path " + fullPath);
+        final String fullPath = "/" + testName + "/" + propName;
         assertTrue(U.adminSession.propertyExists(fullPath));
+        try {
+            U.parseAndExecute("create path " + fullPath);
+            fail("Expecting a RuntimeException");
+        } catch(RuntimeException rex) {
+            final String expected = "a property exists";
+            assertTrue(rex.getMessage().contains(expected));
+        }
     }
 }

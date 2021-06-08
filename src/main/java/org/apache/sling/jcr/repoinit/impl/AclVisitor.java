@@ -142,7 +142,9 @@ class AclVisitor extends DoNothingVisitor {
         for (PathSegmentDefinition psd : cp.getDefinitions()) {
             final String fullPath = parentPath + "/" + psd.getSegment();
             try {
-                if (session.itemExists(fullPath)) {
+                if (session.propertyExists(fullPath)) {
+                    throw new RuntimeException("Error creating Node at " + fullPath + ": a property exists with the same path");
+                } else if (session.itemExists(fullPath)) {
                     log.info("Path already exists, nothing to do (and not checking its primary type for now): {}", fullPath);
                 } else {
                     final Node parent = parentPath.equals("") ? session.getRootNode() : session.getNode(parentPath);
