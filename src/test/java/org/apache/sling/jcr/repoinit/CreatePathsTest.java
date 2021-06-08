@@ -32,6 +32,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /** Test the creation of paths with specific node types */
 public class CreatePathsTest {
@@ -138,5 +139,15 @@ public class CreatePathsTest {
 
         Node subFolder2 = subFolder.getNode("subfolder2");
         assertEquals("sling:Folder", subFolder2.getPrimaryNodeType().getName());
+    }
+
+    @Test
+    public void createPathWherePropertyExists() throws Exception {
+        final Node folder = U.adminSession.getRootNode().addNode("cpwpe", "nt:unstructured");
+        folder.setProperty("nodeOrProperty", "someValue");
+        folder.getSession().save();
+        final String fullPath = "/cpwpe/nodeOrProperty";
+        U.parseAndExecute("create path " + fullPath);
+        assertTrue(U.adminSession.propertyExists(fullPath));
     }
 }
