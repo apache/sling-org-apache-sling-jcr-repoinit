@@ -55,7 +55,7 @@ public class RetryableOperation {
     public RetryableOperationResult apply(Supplier<RetryableOperationResult> operation, String logMessage) {
 
         RetryableOperationResult result = operation.get();
-        while (!result.isSuccessful() && retryCount < maxRetries) {
+        while (!result.isSuccessful() && result.shouldRetry && retryCount < maxRetries) {
             retryCount++;
             LOG.info("{} (retry {}/{})", logMessage, retryCount, maxRetries);
             delay(retryCount);
@@ -83,15 +83,28 @@ public class RetryableOperation {
     public static class RetryableOperationResult {
 
         boolean successful;
+        boolean shouldRetry;
         Exception failureTrace;
 
-        RetryableOperationResult (boolean successful, Exception trace) {
+        /**
+         * simple constructor. If <code>succesful</code> is set to to true, all other
+         * values are ignored and the operation is considered to be successful.
+         * @param successful true if the operation was successful
+         * @param shouldRetry true if it makes sense to retry the operation
+         * @param trace the exception trace (if any)
+         */
+        RetryableOperationResult (boolean successful, boolean shouldRetry, Exception trace) {
             this.successful = successful;
+            this.shouldRetry = shouldRetry;
             this.failureTrace = trace;
         }
 
         public boolean isSuccessful() {
             return successful;
+        }
+
+        public boolean shouldRetry() {
+            return shouldRetry;
         }
 
         public Exception getFailureTrace() {

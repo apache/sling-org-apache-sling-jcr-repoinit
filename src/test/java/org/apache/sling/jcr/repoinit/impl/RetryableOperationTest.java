@@ -34,7 +34,7 @@ public class RetryableOperationTest {
 
         RetryableOperation ro = new RetryableOperation.Builder().build();
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
-            return new RetryableOperation.RetryableOperationResult(true,null);
+            return new RetryableOperation.RetryableOperationResult(true,false,null);
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
         assertEquals(0,ro.retryCount);
@@ -53,9 +53,9 @@ public class RetryableOperationTest {
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // 1 regular execution + 2 retries
             if (retries.getAndAdd(1) == 2) {
-                return new RetryableOperation.RetryableOperationResult(true,null);
+                return new RetryableOperation.RetryableOperationResult(true,false,null);
             } else {
-                return new RetryableOperation.RetryableOperationResult(false,new RuntimeException());
+                return new RetryableOperation.RetryableOperationResult(false,true,new RuntimeException());
             }
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
@@ -74,13 +74,29 @@ public class RetryableOperationTest {
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // 1 regular execution + 4 retries
             if (retries.getAndAdd(1) == 4) {
-                return new RetryableOperation.RetryableOperationResult(true,null);
+                return new RetryableOperation.RetryableOperationResult(true,false,null);
             } else {
-                return new RetryableOperation.RetryableOperationResult(false,new RuntimeException());
+                return new RetryableOperation.RetryableOperationResult(false,true, new RuntimeException());
             }
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
         assertEquals(3,ro.retryCount); //only 3 retries and then stopped
+        assertFalse(result.isSuccessful());
+    }
+
+    @Test
+    public void testWithPermanentFailure() {
+
+        RetryableOperation ro = new RetryableOperation.Builder()
+                .withBackoffBaseMsec(10)
+                .withMaxRetries(3)
+                .build();
+        Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
+            // indicate a permanent failure, where it doesn't make sense to retry
+            return new RetryableOperation.RetryableOperationResult(false,false, new RuntimeException());
+        };
+        RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
+        assertEquals(0,ro.retryCount); // no retry
         assertFalse(result.isSuccessful());
     }
 

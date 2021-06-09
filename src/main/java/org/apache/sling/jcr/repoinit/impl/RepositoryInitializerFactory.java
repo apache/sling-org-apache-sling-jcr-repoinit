@@ -20,6 +20,7 @@ import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
@@ -149,15 +150,24 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
             try {
                 processor.apply(session, ops);
                 session.save();
-                return new RetryableOperation.RetryableOperationResult(true,null);
-            } catch (RepositoryException e) {
-                log.debug("(temporarily) failed to apply repoinit operations",e);
+                return new RetryableOperation.RetryableOperationResult(true,false,null);
+            } catch (InvalidItemStateException ise) {
+                // a retry makes sense, because this exception might be caused by an concurrent operation
+                log.debug("(temporarily) failed to apply repoinit operations",ise);
                 try {
                     session.refresh(false); // discard all pending changes
                 } catch (RepositoryException e1) {
                     // ignore
                 }
-                return new RetryableOperation.RetryableOperationResult(false,e);
+                return new RetryableOperation.RetryableOperationResult(false,true,ise);
+            } catch (RepositoryException re) {
+                // a permanent error, retry is not useful
+                try {
+                    session.refresh(false); // discard all pending changes
+                } catch (RepositoryException e1) {
+                    // ignore
+                }
+                return new RetryableOperation.RetryableOperationResult(false,false,re);
             }
         }, logMessage);
         if (!result.isSuccessful()) {
