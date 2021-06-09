@@ -55,7 +55,7 @@ public class RetryableOperation {
     public RetryableOperationResult apply(Supplier<RetryableOperationResult> operation, String logMessage) {
 
         RetryableOperationResult result = operation.get();
-        while (!result.isSuccessful() && result.shouldRetry && retryCount < maxRetries) {
+        while (!result.isSuccessful() && result.shouldRetry() && retryCount < maxRetries) {
             retryCount++;
             LOG.info("{} (retry {}/{})", logMessage, retryCount, maxRetries);
             delay(retryCount);

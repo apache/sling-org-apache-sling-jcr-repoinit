@@ -18,6 +18,7 @@ package org.apache.sling.jcr.repoinit.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -70,6 +71,7 @@ public class RetryableOperationTest {
         RetryableOperation ro = new RetryableOperation.Builder()
                 .withBackoffBaseMsec(10)
                 .withMaxRetries(3)
+                .withJitterMsec(10)
                 .build();
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // 1 regular execution + 4 retries
@@ -82,6 +84,7 @@ public class RetryableOperationTest {
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
         assertEquals(3,ro.retryCount); //only 3 retries and then stopped
         assertFalse(result.isSuccessful());
+        assertNotNull(result.getFailureTrace());
     }
 
     @Test
