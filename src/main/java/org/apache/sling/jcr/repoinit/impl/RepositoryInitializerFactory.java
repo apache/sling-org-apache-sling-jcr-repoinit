@@ -145,23 +145,25 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     private void applyOperations(Session session, List<Operation> ops, String logMessage) throws RepositoryException {
 
         RetryableOperation retry = new RetryableOperation.Builder().withBackoffBaseMsec(1000).withMaxRetries(3).build();
-        boolean successful = retry.apply(() -> {
+        RetryableOperation.RetryableOperationResult result = retry.apply(() -> {
             try {
                 processor.apply(session, ops);
                 session.save();
-                return true;
+                return new RetryableOperation.RetryableOperationResult(true,null);
             } catch (RepositoryException e) {
-                log.error("(temporarily) failed to apply repoinit operations",e);
+                log.debug("(temporarily) failed to apply repoinit operations",e);
                 try {
                     session.refresh(false); // discard all pending changes
                 } catch (RepositoryException e1) {
                     // ignore
                 }
-                return false;
+                return new RetryableOperation.RetryableOperationResult(false,e);
             }
         }, logMessage);
-        if (!successful) {
-            throw new RepositoryException("Eventually failed to apply repoinit statements, please check previous log messages");
+        if (!result.isSuccessful()) {
+            String msg = String.format("Applying repoinit operation failed despited retry; set loglevel to DEBUG to see all exceptions. "
+                    + "Last exception message was: %s", result.getFailureTrace().getMessage());
+            throw new RepositoryException(msg, result.getFailureTrace());
         }
     }
 

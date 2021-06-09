@@ -18,7 +18,7 @@ package org.apache.sling.jcr.repoinit.impl;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,17 +52,16 @@ public class RetryableOperation {
      * @param logMessage the log message
      * @return true if the supplier was eventually successful, false if it failed despite all retries
      */
-    public boolean apply(BooleanSupplier operation, String logMessage) {
+    public RetryableOperationResult apply(Supplier<RetryableOperationResult> operation, String logMessage) {
 
-        boolean successful = false;
-        successful = operation.getAsBoolean();
-        while (!successful && retryCount < maxRetries) {
+        RetryableOperationResult result = operation.get();
+        while (!result.isSuccessful() && retryCount < maxRetries) {
             retryCount++;
             LOG.info("{} (retry {}/{})", logMessage, retryCount, maxRetries);
             delay(retryCount);
-            successful = operation.getAsBoolean();
+            result = operation.get();
         }
-        return successful;
+        return result;
     }
 
     private void delay(int retryCount) {
@@ -78,6 +77,27 @@ public class RetryableOperation {
     }
 
 
+    /**
+     * A simple wrapper for the results
+     */
+    public static class RetryableOperationResult {
+
+        boolean successful;
+        Exception failureTrace;
+
+        RetryableOperationResult (boolean successful, Exception trace) {
+            this.successful = successful;
+            this.failureTrace = trace;
+        }
+
+        public boolean isSuccessful() {
+            return successful;
+        }
+
+        public Exception getFailureTrace() {
+            return failureTrace;
+        }
+    }
 
     public static class Builder {
 

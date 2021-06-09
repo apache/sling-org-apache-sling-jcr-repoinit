@@ -21,7 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import org.junit.Test;
 
@@ -33,12 +33,12 @@ public class RetryableOperationTest {
     public void testWithoutRetry() {
 
         RetryableOperation ro = new RetryableOperation.Builder().build();
-        BooleanSupplier op = () -> {
-            return true;
+        Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
+            return new RetryableOperation.RetryableOperationResult(true,null);
         };
-        boolean successful = ro.apply(op, "log");
+        RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
         assertEquals(0,ro.retryCount);
-        assertTrue(successful);
+        assertTrue(result.isSuccessful());
     }
 
     @Test
@@ -50,17 +50,17 @@ public class RetryableOperationTest {
                 .withBackoffBaseMsec(10)
                 .withMaxRetries(3)
                 .build();
-        BooleanSupplier op = () -> {
+        Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // 1 regular execution + 2 retries
             if (retries.getAndAdd(1) == 2) {
-                return true;
+                return new RetryableOperation.RetryableOperationResult(true,null);
             } else {
-                return false;
+                return new RetryableOperation.RetryableOperationResult(false,new RuntimeException());
             }
         };
-        boolean successful = ro.apply(op, "log");
+        RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
         assertEquals(2,ro.retryCount);
-        assertTrue(successful);
+        assertTrue(result.isSuccessful());
     }
 
     @Test
@@ -71,17 +71,17 @@ public class RetryableOperationTest {
                 .withBackoffBaseMsec(10)
                 .withMaxRetries(3)
                 .build();
-        BooleanSupplier op = () -> {
+        Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // 1 regular execution + 4 retries
             if (retries.getAndAdd(1) == 4) {
-                return true;
+                return new RetryableOperation.RetryableOperationResult(true,null);
             } else {
-                return false;
+                return new RetryableOperation.RetryableOperationResult(false,new RuntimeException());
             }
         };
-        boolean successful = ro.apply(op, "log");
+        RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
         assertEquals(3,ro.retryCount); //only 3 retries and then stopped
-        assertFalse(successful);
+        assertFalse(result.isSuccessful());
     }
 
 }
