@@ -20,6 +20,8 @@ import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.jcr.InvalidItemStateException;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.sling.jcr.api.SlingRepository;
@@ -111,9 +113,9 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                         }
                         final String repoinitText = p.getRepoinitText("raw:" + reference);
                         final List<Operation> ops = parser.parse(new StringReader(repoinitText));
-                        log.info("Executing {} repoinit operations", ops.size());
-                        processor.apply(s, ops);
-                        s.save();
+                        String msg = String.format("Executing %s repoinit operations", ops.size());
+                        log.info(msg);
+                        applyOperations(s,ops,msg);
                     }
                 }
                 if ( config.scripts() != null ) {
@@ -122,9 +124,9 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                             continue;
                         }
                         final List<Operation> ops = parser.parse(new StringReader(script));
-                        log.info("Executing {} repoinit operations", ops.size());
-                        processor.apply(s, ops);
-                        s.save();
+                        String msg = String.format("Executing %s repoinit operations", ops.size());
+                        log.info(msg);
+                        applyOperations(s,ops,msg);
                     }
                 }
             } finally {
@@ -132,4 +134,48 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
             }
         }
     }
+
+
+    /**
+     * Apply the operations within a session, support retries
+     * @param session the JCR session to use
+     * @param ops the list of operations
+     * @param logMessage the messages to print when retry
+     * @throws Exception if the application fails despite the retry
+     */
+    private void applyOperations(Session session, List<Operation> ops, String logMessage) throws RepositoryException {
+
+        RetryableOperation retry = new RetryableOperation.Builder().withBackoffBaseMsec(1000).withMaxRetries(3).build();
+        RetryableOperation.RetryableOperationResult result = retry.apply(() -> {
+            try {
+                processor.apply(session, ops);
+                session.save();
+                return new RetryableOperation.RetryableOperationResult(true,false,null);
+            } catch (InvalidItemStateException ise) {
+                // a retry makes sense, because this exception might be caused by an concurrent operation
+                log.debug("(temporarily) failed to apply repoinit operations",ise);
+                try {
+                    session.refresh(false); // discard all pending changes
+                } catch (RepositoryException e1) {
+                    // ignore
+                }
+                return new RetryableOperation.RetryableOperationResult(false,true,ise);
+            } catch (RepositoryException re) {
+                // a permanent error, retry is not useful
+                try {
+                    session.refresh(false); // discard all pending changes
+                } catch (RepositoryException e1) {
+                    // ignore
+                }
+                return new RetryableOperation.RetryableOperationResult(false,false,re);
+            }
+        }, logMessage);
+        if (!result.isSuccessful()) {
+            String msg = String.format("Applying repoinit operation failed despited retry; set loglevel to DEBUG to see all exceptions. "
+                    + "Last exception message was: %s", result.getFailureTrace().getMessage());
+            throw new RepositoryException(msg, result.getFailureTrace());
+        }
+    }
+
+
 }
