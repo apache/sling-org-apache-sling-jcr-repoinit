@@ -19,7 +19,6 @@ package org.apache.sling.jcr.repoinit;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.UUID;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
