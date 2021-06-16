@@ -42,6 +42,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -250,6 +251,14 @@ public class AclUtil {
         }
 
         final PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal, true);
+        if (acl == null) {
+            String principalDescription = principal.getName();
+            // try to get path of principal in case it is backed by a JCR user/group
+            if (principal instanceof ItemBasedPrincipal) {
+                principalDescription += " (" + ((ItemBasedPrincipal) principal).getPath() + ")";
+            }
+            throw new IllegalStateException("No PrincipalAccessControlList available for principal '" + principalDescription + "'.");
+        }
         boolean modified = false;
         for (AclLine line : lines) {
             AclLine.Action action = line.getAction();
@@ -264,22 +273,12 @@ public class AclUtil {
             } else if (action == AclLine.Action.ALLOW) {
                 final Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
                 for (String effectivePath : getJcrPaths(session, line.getProperty(PROP_PATHS))) {
-                    if (acl == null) {
-                        // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with the same definition exists
-                        // or if there exists no node at the effective path (unable to evaluate path-based entries).
-                        LOG.info("No PrincipalAccessControlList available for principal {}", principal);
-                        if (!containsEquivalentEntry(session, effectivePath, principal, privileges, true, line.getRestrictions())) {
-                            LOG.warn("No equivalent path-based entry exists for principal {} and effective path {} ", principal.getName(), effectivePath);
-                            return;
-                        }
+                    final LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
+                    final boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
+                    if (!added) {
+                        LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, effectivePath);
                     } else {
-                        final LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
-                        final boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
-                        if (!added) {
-                            LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, effectivePath);
-                        } else {
-                            modified = true;
-                        }
+                        modified = true;
                     }
                 }
             } else {
@@ -314,6 +313,13 @@ public class AclUtil {
         }
     }
 
+    /*
+    * @param acMgr the access control manager
+    * @param principal the principal
+    * @param includeApplicable include applicable policies?
+    * @return the first available {@link PrincipalAccessControlList} bound to the given principal or {@code null} of <a href="https://jackrabbit.apache.org/oak/docs/security/authorization/principalbased.html">principal-based authorization</a> is not enabled for the given principal
+    * @throws RepositoryException
+    */
     @Nullable
     private static PrincipalAccessControlList getPrincipalAccessControlList(@NotNull JackrabbitAccessControlManager acMgr, 
                                                                             @NotNull Principal principal, boolean includeApplicable) throws RepositoryException {
@@ -384,24 +390,6 @@ public class AclUtil {
             paths.add(a.getPath());
         }
         return paths;
-    }
-
-    private static boolean containsEquivalentEntry(Session session, String absPath, Principal principal, Privilege[] privileges, boolean isAllow, List<RestrictionClause> restrictionList) throws RepositoryException {
-        if (absPath != null && !session.nodeExists(absPath)) {
-            LOG.info("Cannot determine existence of equivalent path-based entry for principal {}. No node at path {} ", principal.getName(), absPath);
-            return true;
-        }
-        for (AccessControlPolicy policy : session.getAccessControlManager().getPolicies(absPath)) {
-            if (policy instanceof JackrabbitAccessControlList) {
-                LocalRestrictions lr = createLocalRestrictions(restrictionList, ((JackrabbitAccessControlList) policy), session);
-                LocalAccessControlEntry newEntry = new LocalAccessControlEntry(principal, privileges, isAllow, lr);
-                if (contains(((JackrabbitAccessControlList) policy).getAccessControlEntries(), newEntry)) {
-                    LOG.info("Equivalent path-based entry exists for principal {} and effective path {} ", newEntry.principal.getName(), absPath);
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     // visible for testing
