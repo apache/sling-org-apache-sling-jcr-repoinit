@@ -27,6 +27,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import javax.jcr.Node;
@@ -57,7 +58,7 @@ public class TestUtil {
     public final String username;
 
     public TestUtil(SlingContext ctx) {
-        adminSession = ctx.resourceResolver().adaptTo(Session.class);
+        adminSession = Objects.requireNonNull(ctx.resourceResolver().adaptTo(Session.class));
         id = UUID.randomUUID().toString();
         username = "user_" + id;
     }
