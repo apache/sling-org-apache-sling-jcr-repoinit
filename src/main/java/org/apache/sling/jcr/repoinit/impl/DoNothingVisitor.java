@@ -25,6 +25,7 @@ import org.apache.sling.repoinit.parser.operations.CreateServiceUser;
 import org.apache.sling.repoinit.parser.operations.CreateUser;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipals;
 import org.apache.sling.repoinit.parser.operations.DeleteGroup;
+import org.apache.sling.repoinit.parser.operations.DeletePath;
 import org.apache.sling.repoinit.parser.operations.DeleteServiceUser;
 import org.apache.sling.repoinit.parser.operations.DeleteUser;
 import org.apache.sling.repoinit.parser.operations.DisableServiceUser;
@@ -113,6 +114,10 @@ class DoNothingVisitor implements OperationVisitor {
 
     @Override
     public void visitCreatePath(CreatePath cp) {
+    }
+
+    @Override
+    public void visitDeletePath(DeletePath dp) {
     }
 
     @Override
