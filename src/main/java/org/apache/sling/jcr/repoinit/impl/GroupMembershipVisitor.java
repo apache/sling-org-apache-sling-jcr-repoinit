@@ -49,7 +49,7 @@ class GroupMembershipVisitor extends DoNothingVisitor {
         try {
             group = UserUtil.getAuthorizable(session, groupname);
             if (group == null || !group.isGroup()) {
-                throw new RuntimeException(groupname + " is not a group");
+                report(groupname + " is not a group");
             }
             ((Group) group).addMembers(members.toArray(new String[0]));
         } catch (RepositoryException e) {
@@ -66,7 +66,7 @@ class GroupMembershipVisitor extends DoNothingVisitor {
         try {
             group = UserUtil.getAuthorizable(session, groupname);
             if (group == null || !group.isGroup()) {
-                throw new RuntimeException(groupname + " is not a group");
+                report(groupname + " is not a group");
             }
             ((Group) group).removeMembers(members.toArray(new String[0]));
         } catch (RepositoryException e) {

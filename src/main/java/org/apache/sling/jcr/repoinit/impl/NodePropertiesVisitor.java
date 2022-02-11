@@ -241,7 +241,7 @@ class NodePropertiesVisitor extends DoNothingVisitor {
         } else if (value instanceof Calendar) {
             convertedValue = new DateValue((Calendar) value);
         } else {
-            throw new RuntimeException("Unable to convert " + value + " to jcr Value");
+            report("Unable to convert " + value + " to jcr Value");
         }
         return convertedValue;
     }

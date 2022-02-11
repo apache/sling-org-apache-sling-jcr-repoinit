@@ -163,10 +163,10 @@ class UserVisitor extends DoNothingVisitor {
         }
     }
 
-    private static void checkUserType(@NotNull String id, @Nullable User user, boolean expectedSystemUser) {
+    private void checkUserType(@NotNull String id, @Nullable User user, boolean expectedSystemUser) {
         if (user != null && user.isSystemUser() != expectedSystemUser) {
             String msg = (expectedSystemUser) ? "Existing user %s is not a service user." : "Existing user %s is a service user.";
-            throw new RuntimeException(String.format(msg, id));
+            report(String.format(msg, id));
         }
     }
 

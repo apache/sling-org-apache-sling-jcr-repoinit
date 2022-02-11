@@ -143,7 +143,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
      * @param logMessage the messages to print when retry
      * @throws Exception if the application fails despite the retry
      */
-    private void applyOperations(Session session, List<Operation> ops, String logMessage) throws RepositoryException {
+    protected void applyOperations(Session session, List<Operation> ops, String logMessage) throws RepositoryException {
 
         RetryableOperation retry = new RetryableOperation.Builder().withBackoffBaseMsec(1000).withMaxRetries(3).build();
         RetryableOperation.RetryableOperationResult result = retry.apply(() -> {
@@ -168,6 +168,14 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                     // ignore
                 }
                 return new RetryableOperation.RetryableOperationResult(false,false,re);
+            } catch (RepoInitException rie) {
+                // treat them as permanent exceptions, where retry is not useful
+                try {
+                    session.refresh(false); // discard all pending changes
+                } catch (RepositoryException re) {
+                    // ignore
+                }
+                return new RetryableOperation.RetryableOperationResult(false,false,rie);
             }
         }, logMessage);
         if (!result.isSuccessful()) {

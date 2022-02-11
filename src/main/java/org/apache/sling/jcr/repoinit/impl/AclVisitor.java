@@ -72,7 +72,7 @@ class AclVisitor extends DoNothingVisitor {
     private void setAcl(AclLine line, Session s, List<String> principals, List<String> paths, List<String> privileges, AclLine.Action action) {
         try {
             if (action == AclLine.Action.REMOVE) {
-                throw new RuntimeException("remove not supported");
+                report("remove not supported");
             } else if (action == AclLine.Action.REMOVE_ALL) {
                 AclUtil.removeEntries(s, principals, paths);
             } else {
@@ -82,14 +82,14 @@ class AclVisitor extends DoNothingVisitor {
                 AclUtil.setAcl(s, principals, paths, privileges, isAllow, restrictions);
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to set ACL (" + e.toString() + ") " + line, e);
+            report(e,"Failed to set ACL (" + e.toString() + ") " + line);
         }
     }
 
     private void setRepositoryAcl(AclLine line, Session s, List<String> principals, List<String> privileges, AclLine.Action action) {
         try {
             if (action == AclLine.Action.REMOVE) {
-                throw new RuntimeException("remove not supported");
+                report("remove not supported");
             } else if (action == AclLine.Action.REMOVE_ALL) {
                 AclUtil.removeEntries(s, principals, Collections.singletonList(null));
             } else {
@@ -99,7 +99,7 @@ class AclVisitor extends DoNothingVisitor {
                 AclUtil.setRepositoryAcl(s, principals, privileges, isAllow, restrictions);
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to set repository level ACL (" + e.toString() + ") " + line, e);
+            report(e, "Failed to set repository level ACL (" + e.toString() + ") " + line);
         }
     }
 
@@ -131,7 +131,7 @@ class AclVisitor extends DoNothingVisitor {
                 log.info("Adding principal-based access control entry for {}", principalName);
                 AclUtil.setPrincipalAcl(session, principalName, s.getLines());
             } catch (Exception e) {
-                throw new RuntimeException("Failed to set principal-based ACL (" + e.getMessage() + ")", e);
+                report(e, "Failed to set principal-based ACL (" + e.getMessage() + ")");
             }
         }
     }
@@ -157,14 +157,14 @@ class AclVisitor extends DoNothingVisitor {
                     }
                 }
             } catch (Exception e) {
-                throw new RuntimeException("CreatePath execution failed at " + psd + ": " + e, e);
+                report(e, "CreatePath execution failed at " + psd + ": " + e);
             }
             parentPath += "/" + psd.getSegment();
         }
         try {
             session.save();
         } catch (Exception e) {
-            throw new RuntimeException("Session.save failed: " + e, e);
+            report(e, "Session.save failed: " + e);
         }
     }
     
@@ -191,7 +191,7 @@ class AclVisitor extends DoNothingVisitor {
                 log.info("Removing access control policy for {}", principalName);
                 AclUtil.removePolicy(session, principalName);
             } catch (RepositoryException e) {
-                throw new RuntimeException("Failed to remove ACL (" + e.getMessage() + ")");
+                report(e, "Failed to remove ACL (" + e.getMessage() + ")");
             }
         }
     }
@@ -201,7 +201,7 @@ class AclVisitor extends DoNothingVisitor {
         try {
             AclUtil.removePolicies(session, s.getPaths());
         } catch (RepositoryException e) {
-            throw new RuntimeException("Failed to remove ACL (" + e.getMessage() + ")");
+            report(e, "Failed to remove ACL (" + e.getMessage() + ")");
         }
     }
 
@@ -212,7 +212,7 @@ class AclVisitor extends DoNothingVisitor {
                 log.info("Removing principal-based access control policy for {}", principalName);
                 AclUtil.removePrincipalPolicy(session, principalName);
             } catch (RepositoryException e) {
-                throw new RuntimeException("Failed to remove principal-based ACL (" + e.getMessage() + ")");
+                report(e, "Failed to remove principal-based ACL (" + e.getMessage() + ")");
             }
         }
     }
