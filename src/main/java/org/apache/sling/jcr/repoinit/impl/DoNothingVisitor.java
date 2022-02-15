@@ -60,7 +60,11 @@ class DoNothingVisitor implements OperationVisitor {
     }
     
     protected void report(Exception e, String message) {
-        throw new RuntimeException(message, e);
+        throw new RepoInitException(message, e);
+    }
+    
+    protected void report(String message) {
+        throw new RepoInitException(message);
     }
     
     protected static String excerpt(String s, int maxLength) {

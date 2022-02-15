@@ -143,7 +143,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
      * @param logMessage the messages to print when retry
      * @throws Exception if the application fails despite the retry
      */
-    private void applyOperations(Session session, List<Operation> ops, String logMessage) throws RepositoryException {
+    protected void applyOperations(Session session, List<Operation> ops, String logMessage) throws RepositoryException {
 
         RetryableOperation retry = new RetryableOperation.Builder().withBackoffBaseMsec(1000).withMaxRetries(3).build();
         RetryableOperation.RetryableOperationResult result = retry.apply(() -> {
@@ -160,18 +160,18 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                     // ignore
                 }
                 return new RetryableOperation.RetryableOperationResult(false,true,ise);
-            } catch (RepositoryException re) {
+            } catch (RepositoryException|RepoInitException ex) {
                 // a permanent error, retry is not useful
                 try {
                     session.refresh(false); // discard all pending changes
                 } catch (RepositoryException e1) {
                     // ignore
                 }
-                return new RetryableOperation.RetryableOperationResult(false,false,re);
+                return new RetryableOperation.RetryableOperationResult(false,false,ex);
             }
         }, logMessage);
         if (!result.isSuccessful()) {
-            String msg = String.format("Applying repoinit operation failed despited retry; set loglevel to DEBUG to see all exceptions. "
+            String msg = String.format("Applying repoinit operation failed despite retry; set loglevel to DEBUG to see all exceptions. "
                     + "Last exception message was: %s", result.getFailureTrace().getMessage());
             throw new RepositoryException(msg, result.getFailureTrace());
         }
