@@ -50,8 +50,9 @@ class GroupMembershipVisitor extends DoNothingVisitor {
             group = UserUtil.getAuthorizable(session, groupname);
             if (group == null || !group.isGroup()) {
                 report(groupname + " is not a group");
+            } else {
+                ((Group) group).addMembers(members.toArray(new String[0]));
             }
-            ((Group) group).addMembers(members.toArray(new String[0]));
         } catch (RepositoryException e) {
             report(e, "Unable to add members to group [" + groupname + "]:" + e);
         }
@@ -67,8 +68,9 @@ class GroupMembershipVisitor extends DoNothingVisitor {
             group = UserUtil.getAuthorizable(session, groupname);
             if (group == null || !group.isGroup()) {
                 report(groupname + " is not a group");
+            } else {
+                ((Group) group).removeMembers(members.toArray(new String[0]));
             }
-            ((Group) group).removeMembers(members.toArray(new String[0]));
         } catch (RepositoryException e) {
             report(e, "Unable to remove members from group [" + groupname + "]:" + e);
         }
