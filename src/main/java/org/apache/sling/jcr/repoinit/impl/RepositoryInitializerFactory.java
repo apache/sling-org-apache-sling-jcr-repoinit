@@ -160,26 +160,18 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                     // ignore
                 }
                 return new RetryableOperation.RetryableOperationResult(false,true,ise);
-            } catch (RepositoryException re) {
+            } catch (RepositoryException|RepoInitException ex) {
                 // a permanent error, retry is not useful
                 try {
                     session.refresh(false); // discard all pending changes
                 } catch (RepositoryException e1) {
                     // ignore
                 }
-                return new RetryableOperation.RetryableOperationResult(false,false,re);
-            } catch (RepoInitException rie) {
-                // treat them as permanent exceptions, where retry is not useful
-                try {
-                    session.refresh(false); // discard all pending changes
-                } catch (RepositoryException re) {
-                    // ignore
-                }
-                return new RetryableOperation.RetryableOperationResult(false,false,rie);
+                return new RetryableOperation.RetryableOperationResult(false,false,ex);
             }
         }, logMessage);
         if (!result.isSuccessful()) {
-            String msg = String.format("Applying repoinit operation failed despited retry; set loglevel to DEBUG to see all exceptions. "
+            String msg = String.format("Applying repoinit operation failed despite retry; set loglevel to DEBUG to see all exceptions. "
                     + "Last exception message was: %s", result.getFailureTrace().getMessage());
             throw new RepositoryException(msg, result.getFailureTrace());
         }
