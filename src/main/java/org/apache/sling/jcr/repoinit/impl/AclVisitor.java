@@ -72,11 +72,11 @@ class AclVisitor extends DoNothingVisitor {
     private void setAcl(AclLine line, Session s, List<String> principals, List<String> paths, List<String> privileges, AclLine.Action action) {
         try {
             if (action == AclLine.Action.REMOVE) {
-                report("remove not supported");
+                AclUtil.removeEntries(s, principals, paths, privileges, line.isAllow(), line.getRestrictions());
             } else if (action == AclLine.Action.REMOVE_ALL) {
                 AclUtil.removeEntries(s, principals, paths);
             } else {
-                final boolean isAllow = line.getAction().equals(AclLine.Action.ALLOW);
+                final boolean isAllow = line.isAllow();
                 log.info("Adding ACL '{}' entry '{}' for {} on {}", isAllow ? "allow" : "deny", privileges, principals, paths);
                 List<RestrictionClause> restrictions = line.getRestrictions();
                 AclUtil.setAcl(s, principals, paths, privileges, isAllow, restrictions);
@@ -89,11 +89,11 @@ class AclVisitor extends DoNothingVisitor {
     private void setRepositoryAcl(AclLine line, Session s, List<String> principals, List<String> privileges, AclLine.Action action) {
         try {
             if (action == AclLine.Action.REMOVE) {
-                report("remove not supported");
+                AclUtil.removeEntries(s, principals, Collections.singletonList(null), privileges, line.isAllow(), line.getRestrictions());
             } else if (action == AclLine.Action.REMOVE_ALL) {
                 AclUtil.removeEntries(s, principals, Collections.singletonList(null));
             } else {
-                final boolean isAllow = line.getAction().equals(AclLine.Action.ALLOW);
+                final boolean isAllow = line.isAllow();
                 log.info("Adding repository level ACL '{}' entry '{}' for {}", isAllow ? "allow" : "deny", privileges, principals);
                 List<RestrictionClause> restrictions = line.getRestrictions();
                 AclUtil.setRepositoryAcl(s, principals, privileges, isAllow, restrictions);

@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.sling.jcr.repoinit.impl.AclUtil;
+import org.apache.sling.jcr.repoinit.impl.RepoInitException;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.repoinit.parser.operations.AclLine;
@@ -71,7 +72,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class PrincipalBasedAclTest {
 
@@ -181,6 +181,14 @@ public class PrincipalBasedAclTest {
     private static void assertRegex(String regex, String shouldMatch) {
         assertTrue("Expecting '" +  shouldMatch + "'' to match " + regex, shouldMatch.matches(regex));
     }
+    
+    @NotNull
+    private static PrincipalAccessControlList assertPolicy(@NotNull Principal principal, @NotNull Session session,  int expectedSize) throws RepositoryException {
+        PrincipalAccessControlList acl = getAcl(principal, session);
+        assertNotNull(acl);
+        assertEquals(expectedSize, acl.size());
+        return acl;
+    }
 
     private Authorizable getServiceUser(@NotNull String uid) throws RepositoryException {
         UserManager uMgr = adminSession.getUserManager();
@@ -251,7 +259,7 @@ public class PrincipalBasedAclTest {
         assertPermission(testSession, path + "/newchild", permissions, true);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = RepoInitException.class)
     public void invalidPrivilege() throws Exception {
         String setup =
                 "set principal ACL for " + U.username + "\n"
@@ -260,7 +268,7 @@ public class PrincipalBasedAclTest {
         U.parseAndExecute(setup);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = RepoInitException.class)
     public void denyEntry() throws Exception  {
         String setup =
                 "set principal ACL for " + U.username + "\n"
@@ -357,7 +365,7 @@ public class PrincipalBasedAclTest {
         assertPermission(testSession, propPath, Session.ACTION_READ, false);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = RepoInitException.class)
     public void unsupportedRestriction() throws Exception {
         String setup =
                 "set principal ACL for " + U.username + "\n"
@@ -665,55 +673,64 @@ public class PrincipalBasedAclTest {
         }
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testRemoveNoExistingPolicy() throws Exception {
         String setup = "set principal ACL for " + U.username + "\n"
-                + "remove jcr:read on " + path + "\n"
+                + "remove allow jcr:read on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);
     }
 
     @Test
     public void testRemoveMatchingEntry() throws Exception {
+        Principal principal = getPrincipal(U.username);
         String setup = "set principal ACL for " + U.username + "\n"
                 + "allow jcr:write on "+path+"\n"
                 + "end";
         U.parseAndExecute(setup);
+        assertPolicy(principal, U.adminSession, 1);
 
+        // privilege mismatch
         setup = "set principal ACL for " + U.username + "\n"
-                + "remove jcr:write on " + path + "\n"
+                + "remove allow jcr:read,jcr:write on " + path + "\n"
                 + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(principal, U.adminSession, 1);
 
-        try {
-            U.parseAndExecute(setup);
-            fail("Expecting REMOVE to fail");
-        } catch(RuntimeException rex) {
-            assertRegex(REMOVE_NOT_SUPPORTED_REGEX, rex.getMessage());
-        }
+        // path mismatch
+        setup = "set principal ACL for " + U.username + "\n"
+                + "remove allow jcr:write on " + path + "/mismatch\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(principal, U.adminSession, 1);
+
+        // restriction mismatch
+        setup = "set principal ACL for " + U.username + "\n"
+                + "remove allow jcr:write on " + path + " restriction(rep:glob, /*/jcr:content/*)\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(principal, U.adminSession, 1);
     }
 
     @Test
     public void testRemoveNoMatchingEntry() throws Exception {
+        Principal principal = getPrincipal(U.username);
         String setup = "set principal ACL for " + U.username + "\n"
                 + "allow jcr:write on "+path+"\n"
                 + "end";
         U.parseAndExecute(setup);
+        assertPolicy(principal, U.adminSession, 1);
 
         setup = "set principal ACL for " + U.username + "\n"
-                + "remove jcr:read on " + path + "\n"
+                + "remove allow jcr:read on " + path + "\n"
                 + "end";
-        try {
-            U.parseAndExecute(setup);
-            fail("Expecting REMOVE to fail");
-        } catch(RuntimeException rex) {
-            assertRegex(REMOVE_NOT_SUPPORTED_REGEX, rex.getMessage());
-        }      
+        assertPolicy(principal, U.adminSession, 1);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = RepoInitException.class)
     public void testRemoveNonExistingPrincipal() throws Exception {
         String setup = "set principal ACL for nonExistingPrincipal\n"
-                + "remove jcr:write on " + path + "\n"
+                + "remove deny jcr:write on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);
     }
@@ -725,16 +742,16 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
         U.parseAndExecute("create service user otherSystemPrincipal");
+        assertPolicy(getPrincipal(U.username), U.adminSession, 1);
 
-        try {
-            setup = "set principal ACL for otherSystemPrincipal\n"
-            + "remove jcr:write on " + path + "\n"
-            + "end";
-            U.parseAndExecute(setup);
-            fail("Expecting REMOVE to fail");
-        } catch(RuntimeException rex) {
-            assertRegex(REMOVE_NOT_SUPPORTED_REGEX, rex.getMessage());
-        }
+        setup = "set principal ACL for otherSystemPrincipal\n"
+                + "remove allow jcr:write on " + path + "\n"
+                + "end";
+        U.parseAndExecute(setup);
+
+        // ace must not have been removed
+        assertPolicy(getPrincipal(U.username), U.adminSession, 1);
+        assertNull(getAcl(getPrincipal("otherSystemPrincipal"), U.adminSession));
     }
 
     @Test
@@ -744,10 +761,11 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
+        // removal must be ignored and no policy must be created
         assertNull(getAcl(getPrincipal(U.username), U.adminSession));
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = RepoInitException.class)
     public void testAllRemoveNonExistingPrincipal() throws Exception {
         String setup = "set principal ACL for nonExistingPrincipal\n"
                 + "remove * on " + path + "\n"
@@ -768,9 +786,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
-        assertNotNull(acl);
-        assertTrue(acl.isEmpty());
+        assertPolicy(getPrincipal(U.username), U.adminSession, 0);
     }
 
     @Test
@@ -781,18 +797,14 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
-        assertNotNull(acl);
-        assertEquals(2, acl.size());
+        assertPolicy(getPrincipal(U.username), U.adminSession, 2);
 
         setup = "set principal ACL for " + U.username + "\n"
                 + "remove * on :repository\n"
                 + "end";
         U.parseAndExecute(setup);
 
-        acl = getAcl(getPrincipal(U.username), U.adminSession);
-        assertNotNull(acl);
-        assertEquals(1, acl.size());
+        assertPolicy(getPrincipal(U.username), U.adminSession, 1);
     }
 
     @Test
@@ -803,18 +815,14 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
-        assertNotNull(acl);
-        assertEquals(2, acl.size());
+        assertPolicy(getPrincipal(U.username), U.adminSession, 2);
 
         setup = "set principal ACL for " + U.username + "\n"
                 + "remove * on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);
 
-        acl = getAcl(getPrincipal(U.username), U.adminSession);
-        assertNotNull(acl);
-        assertEquals(1, acl.size());
+        assertPolicy(getPrincipal(U.username), U.adminSession, 1);
     }
 
     @Test
@@ -825,18 +833,14 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
-        assertNotNull(acl);
-        assertEquals(2, acl.size());
+        assertPolicy(getPrincipal(U.username), U.adminSession, 2);
 
         setup = "set principal ACL for " + U.username + "\n"
                 + "remove * on " + path + ", home("+U.username+")\n"
                 + "end";
         U.parseAndExecute(setup);
 
-        acl = getAcl(getPrincipal(U.username), U.adminSession);
-        assertNotNull(acl);
-        assertTrue(acl.isEmpty());
+        assertPolicy(getPrincipal(U.username), U.adminSession, 0);
     }
 
     @Test
@@ -852,9 +856,7 @@ public class PrincipalBasedAclTest {
                 + "end";
         U.parseAndExecute(setup);
 
-        PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
-        assertNotNull(acl);
-        assertEquals(2, acl.size());
+        assertPolicy(getPrincipal(U.username), U.adminSession, 2);
     }
 
     @Test
@@ -885,11 +887,7 @@ public class PrincipalBasedAclTest {
             + "end\n"
         );
 
-        {
-            PrincipalAccessControlList acl = getAcl(getPrincipal(U.username), U.adminSession);
-            assertNotNull(acl);
-            assertEquals(0, acl.size());
-        }
+        assertPolicy(getPrincipal(U.username), U.adminSession, 0);
     }
 
     @Test

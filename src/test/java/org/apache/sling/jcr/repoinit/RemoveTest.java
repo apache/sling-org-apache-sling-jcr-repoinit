@@ -76,7 +76,7 @@ public class RemoveTest {
                 + "end\n"
                 + "\n"
                 + "set ACL for " + groupPrincipalName + "\n"
-                + "allow jcr:read on "+path+"\n"
+                + "allow jcr:read on "+path+" restriction(rep:glob,/*/foo/*)\n"
                 + "allow jcr:namespaceManagement on :repository\n"
                 + "allow jcr:read on home(" + U.username + ")\n"
                 + "end";
@@ -147,27 +147,86 @@ public class RemoveTest {
         assertPolicy(userHomePath, U.adminSession, 2);
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testRemoveByPath() throws RepoInitParsingException, RepositoryException {
+        // non-matching ACE (path-mismatch) -> not removed (and no exception)
         String setup = "set ACL for " + U.username + "\n"
-                + "remove jcr:read on "+path+"\n"
+                + "remove deny jcr:read on /\n"
                 + "end";
         U.parseAndExecute(setup);
+        assertPolicy(path, U.adminSession, 2);
+
+        // non-matching ACE (privilege-mismatch) -> not removed (and no exception)
+        setup = "set ACL for " + U.username + "\n"
+                + "remove deny jcr:read,jcr:write on "+path+"\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(path, U.adminSession, 2);
+
+        // matching ACE -> removed
+        setup = "set ACL for " + U.username + "\n"
+                + "remove deny jcr:read on "+path+"\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(path, U.adminSession, 1);
     }
 
-    @Test(expected = RuntimeException.class)
-    public void testRemoveByPath2() throws RepoInitParsingException, RepositoryException {
+    @Test
+    public void testRemoveByRepository() throws RepoInitParsingException, RepositoryException {
+        // non-matching ACE (allow mismatch) -> not removed (and no exception)
+        String setup = "set repository ACL for " + groupPrincipalName + "\n"
+                + "remove deny jcr:namespaceManagement\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(null, U.adminSession, 2);
+
+        // matching ACE -> removed
+        setup = "set repository ACL for " + groupPrincipalName + "\n"
+                + "remove allow jcr:namespaceManagement\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(null, U.adminSession, 1);
+    }
+
+    @Test
+    public void testRemoveByPrincipalRepositoryPath() throws RepoInitParsingException, RepositoryException {
+        // non-matching ACE (privilege mismatch) -> not removed (and no exception)
         String setup = "set ACL for " + groupPrincipalName + "\n"
-                + "remove jcr:versionManagement on :repository\n"
+                + "remove allow jcr:versionManagement on :repository\n"
                 + "end";
         U.parseAndExecute(setup);
+        assertPolicy(null, U.adminSession, 2);
+
+        // matching ACE -> removed
+        setup = "set ACL for " + groupPrincipalName + "\n"
+                + "remove allow jcr:namespaceManagement on :repository\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(null, U.adminSession, 1);
     }
 
-    @Test(expected = RuntimeException.class)
-    public void testRemoveByPrincipal() throws RepoInitParsingException, RepositoryException {
+    @Test
+    public void testRemoveByHomePath() throws RepoInitParsingException, RepositoryException {
+        // no-matching ACE (restriction mismatch) -> not removed
         String setup = "set ACL on home("+U.username+")\n"
-                + "remove jcr:all for "+U.username+"\n" +
+                + "remove allow jcr:read for "+U.username+" restriction(rep:itemNames, prop1)\n" +
                 "end";
         U.parseAndExecute(setup);
+        assertPolicy(userHomePath, U.adminSession, 2);
+        
+        setup = "set ACL on home("+U.username+")\n"
+                + "remove allow jcr:read for "+U.username+"\n" +
+                "end";
+        U.parseAndExecute(setup);
+        assertPolicy(userHomePath, U.adminSession, 1);
+    }
+    
+    @Test
+    public void testRemoveEntryWithRestriction() throws Exception {
+        String setup = "set ACL for " + groupPrincipalName + "\n"
+                + "remove allow jcr:read on "+path+" restriction(rep:glob, /*/foo/*)\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(path, U.adminSession, 1);
     }
 }
