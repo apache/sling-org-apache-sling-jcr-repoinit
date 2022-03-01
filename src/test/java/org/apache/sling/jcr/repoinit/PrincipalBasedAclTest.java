@@ -72,6 +72,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class PrincipalBasedAclTest {
 
@@ -674,9 +675,28 @@ public class PrincipalBasedAclTest {
     }
 
     @Test
-    public void testRemoveNoExistingPolicy() throws Exception {
+    public void testRemoveAction() throws Exception {
         String setup = "set principal ACL for " + U.username + "\n"
-                + "remove allow jcr:read on " + path + "\n"
+                + "allow jcr:write on "+path+"\n"
+                + "end";
+        U.parseAndExecute(setup);
+
+        setup = "set principal ACL for " + U.username + "\n"
+                + "remove jcr:write on " + path + "\n"
+                + "end";
+
+        try {
+            U.parseAndExecute(setup);
+            fail("Expecting REMOVE to fail");
+        } catch(RuntimeException rex) {
+            assertRegex(REMOVE_NOT_SUPPORTED_REGEX, rex.getMessage());
+        }
+    }
+
+    @Test
+    public void testRemoveNoExistingPolicy() throws Exception {
+        String setup = "remove principal ACL for " + U.username + "\n"
+                + "allow jcr:read on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);
     }
@@ -691,22 +711,22 @@ public class PrincipalBasedAclTest {
         assertPolicy(principal, U.adminSession, 1);
 
         // privilege mismatch
-        setup = "set principal ACL for " + U.username + "\n"
-                + "remove allow jcr:read,jcr:write on " + path + "\n"
+        setup = "remove principal ACL for " + U.username + "\n"
+                + "allow jcr:read,jcr:write on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);
         assertPolicy(principal, U.adminSession, 1);
 
         // path mismatch
-        setup = "set principal ACL for " + U.username + "\n"
-                + "remove allow jcr:write on " + path + "/mismatch\n"
+        setup = "remove principal ACL for " + U.username + "\n"
+                + "allow jcr:write on " + path + "/mismatch\n"
                 + "end";
         U.parseAndExecute(setup);
         assertPolicy(principal, U.adminSession, 1);
 
         // restriction mismatch
-        setup = "set principal ACL for " + U.username + "\n"
-                + "remove allow jcr:write on " + path + " restriction(rep:glob, /*/jcr:content/*)\n"
+        setup = "remove principal ACL for " + U.username + "\n"
+                + "allow jcr:write on " + path + " restriction(rep:glob, /*/jcr:content/*)\n"
                 + "end";
         U.parseAndExecute(setup);
         assertPolicy(principal, U.adminSession, 1);
@@ -721,16 +741,16 @@ public class PrincipalBasedAclTest {
         U.parseAndExecute(setup);
         assertPolicy(principal, U.adminSession, 1);
 
-        setup = "set principal ACL for " + U.username + "\n"
-                + "remove allow jcr:read on " + path + "\n"
+        setup = "remove principal ACL for " + U.username + "\n"
+                + "allow jcr:read on " + path + "\n"
                 + "end";
         assertPolicy(principal, U.adminSession, 1);
     }
 
     @Test(expected = RepoInitException.class)
     public void testRemoveNonExistingPrincipal() throws Exception {
-        String setup = "set principal ACL for nonExistingPrincipal\n"
-                + "remove deny jcr:write on " + path + "\n"
+        String setup = "remove principal ACL for nonExistingPrincipal\n"
+                + "deny jcr:write on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);
     }
@@ -744,8 +764,8 @@ public class PrincipalBasedAclTest {
         U.parseAndExecute("create service user otherSystemPrincipal");
         assertPolicy(getPrincipal(U.username), U.adminSession, 1);
 
-        setup = "set principal ACL for otherSystemPrincipal\n"
-                + "remove allow jcr:write on " + path + "\n"
+        setup = "remove principal ACL for otherSystemPrincipal\n"
+                + "allow jcr:write on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);
 

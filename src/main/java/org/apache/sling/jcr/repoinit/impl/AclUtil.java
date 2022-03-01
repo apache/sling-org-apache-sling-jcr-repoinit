@@ -289,27 +289,11 @@ public class AclUtil {
         boolean modified = false;
         for (AclLine line : lines) {
             AclLine.Action action = line.getAction();
-            if (!line.isAllow()) {
-                throw new AccessControlException("PrincipalAccessControlList doesn't support 'deny' entries.");
-            } 
-            
             List<String> jcrPaths = getJcrPaths(session, line.getProperty(PROP_PATHS));
-            if (action == AclLine.Action.REMOVE) {
-                LocalRestrictions restr = createLocalRestrictions(line.getRestrictions(), acl, session);
-                List<String> privNames = line.getProperty(PROP_PRIVILEGES);
-                Privilege[] privs = AccessControlUtils.privilegesFromNames(session, privNames.toArray(new String[0]));
-                Predicate<PrincipalAccessControlList.Entry> predicate = entry -> {
-                    if (!jcrPaths.contains(entry.getEffectivePath())) {
-                        return false;
-                    }
-                    LocalAccessControlEntry lace = new LocalAccessControlEntry(entry.getPrincipal(), privs, line.isAllow(), restr);
-                    return lace.isEqual(entry);
-                };
-                if (removePrincipalEntries(acl, principalName, predicate)) {
-                    modified = true;
-                } else {
-                    LOG.info("No matching access control entry found to remove for principal {} at {}. Expected entry with isAllow={}, privileges={}, restrictions={}", principalName, jcrPaths, line.isAllow(), privNames, line.getRestrictions());
-                }
+            if (action == AclLine.Action.DENY) {
+                throw new AccessControlException("PrincipalAccessControlList doesn't support 'deny' entries.");
+            } else if (action == AclLine.Action.REMOVE) {
+                throw new RuntimeException(AclLine.Action.REMOVE + " is not supported. Use 'remove principal acl' instead.");
             } else if (action == AclLine.Action.REMOVE_ALL) {
                 if (removePrincipalEntries(acl, principalName, entry -> jcrPaths.contains(entry.getEffectivePath()))) {
                     modified = true;
@@ -337,6 +321,42 @@ public class AclUtil {
                 }
             } else {
                 throw new RuntimeException("Unknown action " + action);
+            }
+        }
+        if (modified) {
+            acMgr.setPolicy(acl.getPath(), acl);
+        }
+    }
+
+    public static void removePrincipalEntries(Session session, String principalName, Collection<AclLine> lines) throws RepositoryException {
+        final JackrabbitAccessControlManager acMgr = getJACM(session);
+        Principal principal = AccessControlUtils.getPrincipal(session, principalName);
+        if (principal == null) {
+            // due to transient nature of the repo-init the principal lookup may not succeed if completed through query
+            // -> save transient changes and retry principal lookup
+            session.save();
+            principal = AccessControlUtils.getPrincipal(session, principalName);
+            checkState(principal != null, "Principal not found: " + principalName);
+        }
+
+        final PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal, true);
+        boolean modified = false;
+        for (AclLine line : lines) {
+            List<String> jcrPaths = getJcrPaths(session, line.getProperty(PROP_PATHS));
+            LocalRestrictions restr = createLocalRestrictions(line.getRestrictions(), acl, session);
+            List<String> privNames = line.getProperty(PROP_PRIVILEGES);
+            Privilege[] privs = AccessControlUtils.privilegesFromNames(session, privNames.toArray(new String[0]));
+            Predicate<PrincipalAccessControlList.Entry> predicate = entry -> {
+                if (!jcrPaths.contains(entry.getEffectivePath())) {
+                    return false;
+                }
+                LocalAccessControlEntry lace = new LocalAccessControlEntry(entry.getPrincipal(), privs, line.getAction()== AclLine.Action.ALLOW, restr);
+                return lace.isEqual(entry);
+            };
+            if (removePrincipalEntries(acl, principalName, predicate)) {
+                modified = true;
+            } else {
+                LOG.info("No matching access control entry found to remove for principal {} at {}. Expected entry with isAllow={}, privileges={}, restrictions={}", principalName, jcrPaths, line.getAction(), privNames, line.getRestrictions());
             }
         }
         if (modified) {
