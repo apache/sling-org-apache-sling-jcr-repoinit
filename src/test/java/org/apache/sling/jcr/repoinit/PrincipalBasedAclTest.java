@@ -695,7 +695,7 @@ public class PrincipalBasedAclTest {
 
     @Test
     public void testRemoveNoExistingPolicy() throws Exception {
-        String setup = "remove principal ACL for " + U.username + "\n"
+        String setup = "remove principal ACE for " + U.username + "\n"
                 + "allow jcr:read on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);
@@ -711,21 +711,21 @@ public class PrincipalBasedAclTest {
         assertPolicy(principal, U.adminSession, 1);
 
         // privilege mismatch
-        setup = "remove principal ACL for " + U.username + "\n"
+        setup = "remove principal ACE for " + U.username + "\n"
                 + "allow jcr:read,jcr:write on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);
         assertPolicy(principal, U.adminSession, 1);
 
         // path mismatch
-        setup = "remove principal ACL for " + U.username + "\n"
+        setup = "remove principal ACE for " + U.username + "\n"
                 + "allow jcr:write on " + path + "/mismatch\n"
                 + "end";
         U.parseAndExecute(setup);
         assertPolicy(principal, U.adminSession, 1);
 
         // restriction mismatch
-        setup = "remove principal ACL for " + U.username + "\n"
+        setup = "remove principal ACE for " + U.username + "\n"
                 + "allow jcr:write on " + path + " restriction(rep:glob, /*/jcr:content/*)\n"
                 + "end";
         U.parseAndExecute(setup);
@@ -741,7 +741,7 @@ public class PrincipalBasedAclTest {
         U.parseAndExecute(setup);
         assertPolicy(principal, U.adminSession, 1);
 
-        setup = "remove principal ACL for " + U.username + "\n"
+        setup = "remove principal ACE for " + U.username + "\n"
                 + "allow jcr:read on " + path + "\n"
                 + "end";
         assertPolicy(principal, U.adminSession, 1);
@@ -749,7 +749,7 @@ public class PrincipalBasedAclTest {
 
     @Test(expected = RepoInitException.class)
     public void testRemoveNonExistingPrincipal() throws Exception {
-        String setup = "remove principal ACL for nonExistingPrincipal\n"
+        String setup = "remove principal ACE for nonExistingPrincipal\n"
                 + "deny jcr:write on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);
@@ -764,7 +764,7 @@ public class PrincipalBasedAclTest {
         U.parseAndExecute("create service user otherSystemPrincipal");
         assertPolicy(getPrincipal(U.username), U.adminSession, 1);
 
-        setup = "remove principal ACL for otherSystemPrincipal\n"
+        setup = "remove principal ACE for otherSystemPrincipal\n"
                 + "allow jcr:write on " + path + "\n"
                 + "end";
         U.parseAndExecute(setup);

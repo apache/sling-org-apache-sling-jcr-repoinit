@@ -34,9 +34,9 @@ import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipals;
 import org.apache.sling.repoinit.parser.operations.PathSegmentDefinition;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPaths;
-import org.apache.sling.repoinit.parser.operations.RemoveAclPaths;
-import org.apache.sling.repoinit.parser.operations.RemoveAclPrincipalBased;
-import org.apache.sling.repoinit.parser.operations.RemoveAclPrincipals;
+import org.apache.sling.repoinit.parser.operations.RemoveAcePaths;
+import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipalBased;
+import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipals;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
@@ -140,7 +140,7 @@ class AclVisitor extends DoNothingVisitor {
     }
 
     @Override
-    public void visitRemoveAclPrincipal(RemoveAclPrincipals s) {
+    public void visitRemoveAcePrincipal(RemoveAcePrincipals s) {
         final List<String> principals = s.getPrincipals();
         for (AclLine line : s.getLines()) {
             final List<String> paths = line.getProperty(PROP_PATHS);
@@ -153,7 +153,7 @@ class AclVisitor extends DoNothingVisitor {
     }
 
     @Override
-    public void visitRemoveAclPaths(RemoveAclPaths s) {
+    public void visitRemoveAcePaths(RemoveAcePaths s) {
         final List<String> paths = s.getPaths();
         for (AclLine line : s.getLines()) {
             try {
@@ -165,7 +165,7 @@ class AclVisitor extends DoNothingVisitor {
     }
 
     @Override
-    public void visitRemoveAclPrincipalBased(RemoveAclPrincipalBased s) {
+    public void visitRemoveAcePrincipalBased(RemoveAcePrincipalBased s) {
         for (String principalName : s.getPrincipals()) {
             try {
                 log.info("Removing principal-based access control entries for {}", principalName);

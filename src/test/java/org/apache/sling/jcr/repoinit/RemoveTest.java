@@ -174,21 +174,21 @@ public class RemoveTest {
     @Test
     public void testRemoveByPath() throws RepoInitParsingException, RepositoryException {
         // non-matching ACE (path-mismatch) -> not removed (and no exception)
-        String setup = "remove ACL for " + U.username + "\n"
+        String setup = "remove ACE for " + U.username + "\n"
                 + "deny jcr:read on /\n"
                 + "end";
         U.parseAndExecute(setup);
         assertPolicy(path, U.adminSession, 2);
 
         // non-matching ACE (privilege-mismatch) -> not removed (and no exception)
-        setup = "remove ACL for " + U.username + "\n"
+        setup = "remove ACE for " + U.username + "\n"
                 + "deny jcr:read,jcr:write on "+path+"\n"
                 + "end";
         U.parseAndExecute(setup);
         assertPolicy(path, U.adminSession, 2);
 
         // matching ACE -> removed
-        setup = "remove ACL for " + U.username + "\n"
+        setup = "remove ACE for " + U.username + "\n"
                 + "deny jcr:read on "+path+"\n"
                 + "end";
         U.parseAndExecute(setup);
@@ -198,14 +198,14 @@ public class RemoveTest {
     @Test
     public void testRemoveByRepository() throws RepoInitParsingException, RepositoryException {
         // non-matching ACE (allow mismatch) -> not removed (and no exception)
-        String setup = "remove ACL for " + groupPrincipalName + "\n"
+        String setup = "remove ACE for " + groupPrincipalName + "\n"
                 + "deny jcr:namespaceManagement on :repository\n"
                 + "end";
         U.parseAndExecute(setup);
         assertPolicy(null, U.adminSession, 2);
 
         // matching ACE -> removed
-        setup = "remove ACL for " + groupPrincipalName + "\n"
+        setup = "remove ACE for " + groupPrincipalName + "\n"
                 + "allow jcr:namespaceManagement on :repository\n"
                 + "end";
         U.parseAndExecute(setup);
@@ -215,14 +215,14 @@ public class RemoveTest {
     @Test
     public void testRemoveByPrincipalRepositoryPath() throws RepoInitParsingException, RepositoryException {
         // non-matching ACE (privilege mismatch) -> not removed (and no exception)
-        String setup = "remove ACL for " + groupPrincipalName + "\n"
+        String setup = "remove ACE for " + groupPrincipalName + "\n"
                 + "allow jcr:versionManagement on :repository\n"
                 + "end";
         U.parseAndExecute(setup);
         assertPolicy(null, U.adminSession, 2);
 
         // matching ACE -> removed
-        setup = "remove ACL for " + groupPrincipalName + "\n"
+        setup = "remove ACE for " + groupPrincipalName + "\n"
                 + "allow jcr:namespaceManagement on :repository\n"
                 + "end";
         U.parseAndExecute(setup);
@@ -232,13 +232,13 @@ public class RemoveTest {
     @Test
     public void testRemoveByHomePath() throws RepoInitParsingException, RepositoryException {
         // no-matching ACE (restriction mismatch) -> not removed
-        String setup = "remove ACL on home("+U.username+")\n"
+        String setup = "remove ACE on home("+U.username+")\n"
                 + "allow jcr:read for "+U.username+" restriction(rep:itemNames, prop1)\n" +
                 "end";
         U.parseAndExecute(setup);
         assertPolicy(userHomePath, U.adminSession, 2);
         
-        setup = "remove ACL on home("+U.username+")\n"
+        setup = "remove ACE on home("+U.username+")\n"
                 + "allow jcr:read for "+U.username+"\n" +
                 "end";
         U.parseAndExecute(setup);
@@ -247,7 +247,7 @@ public class RemoveTest {
     
     @Test
     public void testRemoveEntryWithRestriction() throws Exception {
-        String setup = "remove ACL for " + groupPrincipalName + "\n"
+        String setup = "remove ACE for " + groupPrincipalName + "\n"
                 + "allow jcr:read on "+path+" restriction(rep:glob, /*/foo/*)\n"
                 + "end";
         U.parseAndExecute(setup);
