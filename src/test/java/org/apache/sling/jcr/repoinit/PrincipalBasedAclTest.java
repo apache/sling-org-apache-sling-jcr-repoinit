@@ -710,7 +710,30 @@ public class PrincipalBasedAclTest {
         U.parseAndExecute(setup);
         assertPolicy(principal, U.adminSession, 1);
 
+        setup = "remove principal ACE for " + U.username + "\n"
+                + "allow jcr:write on " + path + "\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(principal, U.adminSession, 0);
+    }
+
+    @Test
+    public void testRemoveNoMatchingEntry() throws Exception {
+        Principal principal = getPrincipal(U.username);
+        String setup = "set principal ACL for " + U.username + "\n"
+                + "allow jcr:write on "+path+"\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(principal, U.adminSession, 1);
+
         // privilege mismatch
+        setup = "remove principal ACE for " + U.username + "\n"
+                + "allow jcr:read on " + path + "\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(principal, U.adminSession, 1);
+
+        // privilege mismatch 2
         setup = "remove principal ACE for " + U.username + "\n"
                 + "allow jcr:read,jcr:write on " + path + "\n"
                 + "end";
@@ -729,21 +752,6 @@ public class PrincipalBasedAclTest {
                 + "allow jcr:write on " + path + " restriction(rep:glob, /*/jcr:content/*)\n"
                 + "end";
         U.parseAndExecute(setup);
-        assertPolicy(principal, U.adminSession, 1);
-    }
-
-    @Test
-    public void testRemoveNoMatchingEntry() throws Exception {
-        Principal principal = getPrincipal(U.username);
-        String setup = "set principal ACL for " + U.username + "\n"
-                + "allow jcr:write on "+path+"\n"
-                + "end";
-        U.parseAndExecute(setup);
-        assertPolicy(principal, U.adminSession, 1);
-
-        setup = "remove principal ACE for " + U.username + "\n"
-                + "allow jcr:read on " + path + "\n"
-                + "end";
         assertPolicy(principal, U.adminSession, 1);
     }
 
