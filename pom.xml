@@ -225,7 +225,7 @@
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.repoinit.parser</artifactId>
-            <version>1.6.11-SNAPSHOT</version>
+            <version>1.6.13-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

@@ -76,7 +76,7 @@ public class RemoveTest {
                 + "end\n"
                 + "\n"
                 + "set ACL for " + groupPrincipalName + "\n"
-                + "allow jcr:read on "+path+"\n"
+                + "allow jcr:read on "+path+" restriction(rep:glob,/*/foo/*)\n"
                 + "allow jcr:namespaceManagement on :repository\n"
                 + "allow jcr:read on home(" + U.username + ")\n"
                 + "end";
@@ -148,7 +148,7 @@ public class RemoveTest {
     }
 
     @Test(expected = RuntimeException.class)
-    public void testRemoveByPath() throws RepoInitParsingException, RepositoryException {
+    public void testRemoveActionByPath() throws RepoInitParsingException, RepositoryException {
         String setup = "set ACL for " + U.username + "\n"
                 + "remove jcr:read on "+path+"\n"
                 + "end";
@@ -164,10 +164,93 @@ public class RemoveTest {
     }
 
     @Test(expected = RuntimeException.class)
-    public void testRemoveByPrincipal() throws RepoInitParsingException, RepositoryException {
+    public void testRemoveActionByPrincipal() throws RepoInitParsingException, RepositoryException {
         String setup = "set ACL on home("+U.username+")\n"
                 + "remove jcr:all for "+U.username+"\n" +
                 "end";
         U.parseAndExecute(setup);
+    }
+
+    @Test
+    public void testRemoveByPath() throws RepoInitParsingException, RepositoryException {
+        // non-matching ACE (path-mismatch) -> not removed (and no exception)
+        String setup = "remove ACE for " + U.username + "\n"
+                + "deny jcr:read on /\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(path, U.adminSession, 2);
+
+        // non-matching ACE (privilege-mismatch) -> not removed (and no exception)
+        setup = "remove ACE for " + U.username + "\n"
+                + "deny jcr:read,jcr:write on "+path+"\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(path, U.adminSession, 2);
+
+        // matching ACE -> removed
+        setup = "remove ACE for " + U.username + "\n"
+                + "deny jcr:read on "+path+"\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(path, U.adminSession, 1);
+    }
+
+    @Test
+    public void testRemoveByRepository() throws RepoInitParsingException, RepositoryException {
+        // non-matching ACE (allow mismatch) -> not removed (and no exception)
+        String setup = "remove ACE for " + groupPrincipalName + "\n"
+                + "deny jcr:namespaceManagement on :repository\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(null, U.adminSession, 2);
+
+        // matching ACE -> removed
+        setup = "remove ACE for " + groupPrincipalName + "\n"
+                + "allow jcr:namespaceManagement on :repository\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(null, U.adminSession, 1);
+    }
+
+    @Test
+    public void testRemoveByPrincipalRepositoryPath() throws RepoInitParsingException, RepositoryException {
+        // non-matching ACE (privilege mismatch) -> not removed (and no exception)
+        String setup = "remove ACE for " + groupPrincipalName + "\n"
+                + "allow jcr:versionManagement on :repository\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(null, U.adminSession, 2);
+
+        // matching ACE -> removed
+        setup = "remove ACE for " + groupPrincipalName + "\n"
+                + "allow jcr:namespaceManagement on :repository\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(null, U.adminSession, 1);
+    }
+
+    @Test
+    public void testRemoveByHomePath() throws RepoInitParsingException, RepositoryException {
+        // no-matching ACE (restriction mismatch) -> not removed
+        String setup = "remove ACE on home("+U.username+")\n"
+                + "allow jcr:read for "+U.username+" restriction(rep:itemNames, prop1)\n" +
+                "end";
+        U.parseAndExecute(setup);
+        assertPolicy(userHomePath, U.adminSession, 2);
+        
+        setup = "remove ACE on home("+U.username+")\n"
+                + "allow jcr:read for "+U.username+"\n" +
+                "end";
+        U.parseAndExecute(setup);
+        assertPolicy(userHomePath, U.adminSession, 1);
+    }
+    
+    @Test
+    public void testRemoveEntryWithRestriction() throws Exception {
+        String setup = "remove ACE for " + groupPrincipalName + "\n"
+                + "allow jcr:read on "+path+" restriction(rep:glob, /*/foo/*)\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertPolicy(path, U.adminSession, 1);
     }
 }

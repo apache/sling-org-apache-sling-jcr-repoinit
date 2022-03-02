@@ -34,6 +34,9 @@ import org.apache.sling.repoinit.parser.operations.RegisterNodetypes;
 import org.apache.sling.repoinit.parser.operations.RegisterPrivilege;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPaths;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipalBased;
+import org.apache.sling.repoinit.parser.operations.RemoveAcePaths;
+import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipalBased;
+import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipals;
 import org.apache.sling.repoinit.parser.operations.RemoveGroupMembers;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
@@ -101,6 +104,18 @@ class DoNothingVisitor implements OperationVisitor {
 
     @Override
     public void visitSetAclPrincipalBased(SetAclPrincipalBased operation) {
+    }
+
+    @Override
+    public void visitRemoveAcePrincipal(RemoveAcePrincipals s) {
+    }
+
+    @Override
+    public void visitRemoveAcePaths(RemoveAcePaths s) {
+    }
+
+    @Override
+    public void visitRemoveAcePrincipalBased(RemoveAcePrincipalBased s) {
     }
 
     @Override
