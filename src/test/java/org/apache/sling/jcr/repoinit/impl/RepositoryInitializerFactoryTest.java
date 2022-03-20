@@ -16,25 +16,30 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
-import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
-import org.apache.sling.repoinit.parser.RepoInitParser;
-import org.apache.sling.testing.mock.sling.junit.SlingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
-import org.mockito.ArgumentMatchers;
+import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
+import org.apache.sling.jcr.api.SlingRepository;
+import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
+import org.apache.sling.repoinit.parser.RepoInitParser;
+import org.apache.sling.testing.mock.sling.ResourceResolverType;
+import org.apache.sling.testing.mock.sling.junit.SlingContext;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 
 public class RepositoryInitializerFactoryTest {
 
     @Rule
-    public SlingContext context = new SlingContext();
+    public SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
 
     RepositoryInitializerFactory sut;
     JcrRepoInitOpsProcessor processor;
@@ -56,4 +61,19 @@ public class RepositoryInitializerFactoryTest {
             .when(processor).apply(ArgumentMatchers.any(), ArgumentMatchers.any());
         sut.applyOperations(mock(Session.class), null, null); 
     }
+    
+    @Test
+    public void validateDeveloperMode() throws Exception {
+        Properties oldProps = System.getProperties();
+        try {
+            System.setProperty(RepositoryInitializerFactory.PROPERTY_DEVELOPER_MODE, "true");
+            RepositoryInitializerFactory spy = Mockito.spy(sut);
+            doThrow(new RepositoryException("reason")).when(spy).executeScripts(any(Session.class),any(RepositoryInitializerFactory.Config.class));
+            
+            spy.processRepository(context.getService(SlingRepository.class));
+        } finally {
+            System.clearProperty(RepositoryInitializerFactory.PROPERTY_DEVELOPER_MODE);
+        }
+    }
+
 }

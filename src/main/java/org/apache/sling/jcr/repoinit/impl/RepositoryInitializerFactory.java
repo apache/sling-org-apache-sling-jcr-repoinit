@@ -73,6 +73,8 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
             String[] scripts() default {};
     }
 
+    protected static final String PROPERTY_DEVELOPER_MODE = "org.apache.sling.jcr.repoinit.developermode";
+    
     private final Logger log = LoggerFactory.getLogger(getClass());
 
 
@@ -87,7 +89,11 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     @Activate
     public void activate(final RepositoryInitializerFactory.Config config) {
         this.config = config;
-        log.debug("Activated: {}", this.toString());
+        if (isDeveloperModeEnabled()) {
+            log.info("Activated: {} (developer mode active)", this.toString());
+        } else {
+            log.debug("Activated: {}", this.toString());
+        }
     }
 
     @Override
@@ -99,42 +105,53 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
 
     @Override
     public void processRepository(final SlingRepository repo) throws Exception {
-        if ( (config.references() != null && config.references().length > 0)
-           || (config.scripts() != null && config.scripts().length > 0 )) {
-
-            // loginAdministrative is ok here, definitely an admin operation
-            final Session s = repo.loginAdministrative(null);
-            try {
-                if ( config.references() != null ) {
-                    final RepoinitTextProvider p = new RepoinitTextProvider();
-                    for(final String reference : config.references()) {
-                        if(reference == null || reference.trim().length() == 0) {
-                            continue;
-                        }
-                        final String repoinitText = p.getRepoinitText("raw:" + reference);
-                        final List<Operation> ops = parser.parse(new StringReader(repoinitText));
-                        String msg = String.format("Executing %s repoinit operations", ops.size());
-                        log.info(msg);
-                        applyOperations(s,ops,msg);
-                    }
-                }
-                if ( config.scripts() != null ) {
-                    for(final String script : config.scripts()) {
-                        if(script == null || script.trim().length() == 0) {
-                            continue;
-                        }
-                        final List<Operation> ops = parser.parse(new StringReader(script));
-                        String msg = String.format("Executing %s repoinit operations", ops.size());
-                        log.info(msg);
-                        applyOperations(s,ops,msg);
-                    }
-                }
-            } finally {
-                s.logout();
+        // loginAdministrative is ok here, definitely an admin operation
+        final Session s = repo.loginAdministrative(null);
+        try {
+            executeScripts(s, config);
+        } catch (Exception e) {
+            if (isDeveloperModeEnabled()) {
+                log.error("Eror in the repoinit scripts, which is ignored because the developer mode is active. "
+                        + "If not fixed it will prevent the startup of non-developer systems");
+            } else {
+                throw (e);
             }
+        } finally {
+            s.logout();
         }
     }
 
+
+    
+    protected void executeScripts (Session session, RepositoryInitializerFactory.Config config) throws Exception {
+        if ( (config.references() != null && config.references().length > 0)
+                || (config.scripts() != null && config.scripts().length > 0 )) {
+            if ( config.references() != null ) {
+                final RepoinitTextProvider p = new RepoinitTextProvider();
+                for(final String reference : config.references()) {
+                    if(reference == null || reference.trim().length() == 0) {
+                        continue;
+                    }
+                    final String repoinitText = p.getRepoinitText("raw:" + reference);
+                    final List<Operation> ops = parser.parse(new StringReader(repoinitText));
+                    String msg = String.format("Executing %s repoinit operations", ops.size());
+                    log.info(msg);
+                    applyOperations(session,ops,msg);
+                }
+            }
+            if ( config.scripts() != null ) {
+                for(final String script : config.scripts()) {
+                    if(script == null || script.trim().length() == 0) {
+                        continue;
+                    }
+                    final List<Operation> ops = parser.parse(new StringReader(script));
+                    String msg = String.format("Executing %s repoinit operations", ops.size());
+                    log.info(msg);
+                    applyOperations(session,ops,msg);
+                }
+            }
+        }
+    }
 
     /**
      * Apply the operations within a session, support retries
@@ -177,5 +194,13 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
         }
     }
 
+    
+    protected static boolean isDeveloperModeEnabled() {
+        String dm = System.getProperty(PROPERTY_DEVELOPER_MODE);
+        if (dm == null) {
+            return false;
+        }
+        return dm.toLowerCase().equals("true");
+    }
 
 }
