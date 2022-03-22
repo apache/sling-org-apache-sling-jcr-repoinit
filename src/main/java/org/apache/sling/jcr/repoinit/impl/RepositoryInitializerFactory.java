@@ -111,8 +111,8 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
             executeScripts(s, config);
         } catch (Exception e) {
             if (isDeveloperModeEnabled()) {
-                log.error("Eror in the repoinit scripts, which is ignored because the developer mode is active. "
-                        + "If not fixed it will prevent the startup of non-developer systems");
+                log.error("Repoinit error, won't stop execution because {} is set. Without that "
+                        + "developer option the startup would fail.",PROPERTY_DEVELOPER_MODE,e);
             } else {
                 throw (e);
             }
@@ -122,7 +122,6 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     }
 
 
-    
     protected void executeScripts (Session session, RepositoryInitializerFactory.Config config) throws Exception {
         if ( (config.references() != null && config.references().length > 0)
                 || (config.scripts() != null && config.scripts().length > 0 )) {
@@ -196,10 +195,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
 
     
     protected static boolean isDeveloperModeEnabled() {
-        String dm = System.getProperty(PROPERTY_DEVELOPER_MODE);
-        if (dm == null) {
-            return false;
-        }
+        String dm = System.getProperty(PROPERTY_DEVELOPER_MODE,"");
         return dm.toLowerCase().equals("true");
     }
 

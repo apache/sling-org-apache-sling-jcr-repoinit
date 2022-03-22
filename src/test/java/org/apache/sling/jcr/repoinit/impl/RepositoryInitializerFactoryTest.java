@@ -69,7 +69,6 @@ public class RepositoryInitializerFactoryTest {
             System.setProperty(RepositoryInitializerFactory.PROPERTY_DEVELOPER_MODE, "true");
             RepositoryInitializerFactory spy = Mockito.spy(sut);
             doThrow(new RepositoryException("reason")).when(spy).executeScripts(any(Session.class),any(RepositoryInitializerFactory.Config.class));
-            
             spy.processRepository(context.getService(SlingRepository.class));
         } finally {
             System.clearProperty(RepositoryInitializerFactory.PROPERTY_DEVELOPER_MODE);
