@@ -27,6 +27,7 @@ import javax.jcr.Session;
 
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
+import org.apache.sling.jcr.repoinit.impl.util.LogCapture;
 import org.apache.sling.repoinit.parser.RepoInitParser;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
@@ -35,6 +36,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
+
+import ch.qos.logback.classic.Level;
 
 public class RepositoryInitializerFactoryTest {
 
@@ -64,12 +67,14 @@ public class RepositoryInitializerFactoryTest {
     
     @Test
     public void validateDeveloperMode() throws Exception {
+        
         Properties oldProps = System.getProperties();
-        try {
+        try (LogCapture capture = new LogCapture(RepositoryInitializerFactory.class.getName(),true);){
             System.setProperty(RepositoryInitializerFactory.PROPERTY_DEVELOPER_MODE, "true");
             RepositoryInitializerFactory spy = Mockito.spy(sut);
             doThrow(new RepositoryException("reason")).when(spy).executeScripts(any(Session.class),any(RepositoryInitializerFactory.Config.class));
             spy.processRepository(context.getService(SlingRepository.class));
+            capture.assertContains(Level.ERROR, "Repoinit error, won't stop execution");
         } finally {
             System.clearProperty(RepositoryInitializerFactory.PROPERTY_DEVELOPER_MODE);
         }

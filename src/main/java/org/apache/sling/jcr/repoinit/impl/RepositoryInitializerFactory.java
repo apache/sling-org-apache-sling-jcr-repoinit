@@ -194,7 +194,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     }
 
     
-    protected static boolean isDeveloperModeEnabled() {
+    protected boolean isDeveloperModeEnabled() {
         String dm = System.getProperty(PROPERTY_DEVELOPER_MODE,"");
         return dm.toLowerCase().equals("true");
     }
