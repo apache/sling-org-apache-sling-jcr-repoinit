@@ -90,7 +90,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     public void activate(final RepositoryInitializerFactory.Config config) {
         this.config = config;
         if (isDeveloperModeEnabled()) {
-            log.info("Activated: {} (developer mode active)", this.toString());
+            log.info("Activated: {} (developer mode active)", this);
         } else {
             log.debug("Activated: {}", this.toString());
         }
@@ -123,31 +123,28 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
 
 
     protected void executeScripts (Session session, RepositoryInitializerFactory.Config config) throws Exception {
-        if ( (config.references() != null && config.references().length > 0)
-                || (config.scripts() != null && config.scripts().length > 0 )) {
-            if ( config.references() != null ) {
-                final RepoinitTextProvider p = new RepoinitTextProvider();
-                for(final String reference : config.references()) {
-                    if(reference == null || reference.trim().length() == 0) {
-                        continue;
-                    }
-                    final String repoinitText = p.getRepoinitText("raw:" + reference);
-                    final List<Operation> ops = parser.parse(new StringReader(repoinitText));
-                    String msg = String.format("Executing %s repoinit operations", ops.size());
-                    log.info(msg);
-                    applyOperations(session,ops,msg);
+        if (config.references() != null) {
+            final RepoinitTextProvider p = new RepoinitTextProvider();
+            for (final String reference : config.references()) {
+                if (reference == null || reference.trim().length() == 0) {
+                    continue;
                 }
+                final String repoinitText = p.getRepoinitText("raw:" + reference);
+                final List<Operation> ops = parser.parse(new StringReader(repoinitText));
+                String msg = String.format("Executing %s repoinit operations", ops.size());
+                log.info(msg);
+                applyOperations(session, ops, msg);
             }
-            if ( config.scripts() != null ) {
-                for(final String script : config.scripts()) {
-                    if(script == null || script.trim().length() == 0) {
-                        continue;
-                    }
-                    final List<Operation> ops = parser.parse(new StringReader(script));
-                    String msg = String.format("Executing %s repoinit operations", ops.size());
-                    log.info(msg);
-                    applyOperations(session,ops,msg);
+        }
+        if (config.scripts() != null) {
+            for (final String script : config.scripts()) {
+                if (script == null || script.trim().length() == 0) {
+                    continue;
                 }
+                final List<Operation> ops = parser.parse(new StringReader(script));
+                String msg = String.format("Executing %s repoinit operations", ops.size());
+                log.info(msg);
+                applyOperations(session, ops, msg);
             }
         }
     }
@@ -196,7 +193,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     
     protected boolean isDeveloperModeEnabled() {
         String dm = System.getProperty(PROPERTY_DEVELOPER_MODE,"");
-        return dm.toLowerCase().equals("true");
+        return dm.equalsIgnoreCase("true");
     }
 
 }
