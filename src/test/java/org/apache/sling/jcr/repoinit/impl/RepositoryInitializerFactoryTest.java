@@ -70,13 +70,13 @@ public class RepositoryInitializerFactoryTest {
         
         Properties oldProps = System.getProperties();
         try (LogCapture capture = new LogCapture(RepositoryInitializerFactory.class.getName(),true);){
-            System.setProperty(RepositoryInitializerFactory.PROPERTY_DEVELOPER_MODE, "true");
+            System.setProperty(RepositoryInitializerFactory.PROPERTY_FAIL_ON_ERROR, "false");
             RepositoryInitializerFactory spy = Mockito.spy(sut);
             doThrow(new RepositoryException("reason")).when(spy).executeScripts(any(Session.class),any(RepositoryInitializerFactory.Config.class));
             spy.processRepository(context.getService(SlingRepository.class));
             capture.assertContains(Level.ERROR, "Repoinit error, won't stop execution");
         } finally {
-            System.clearProperty(RepositoryInitializerFactory.PROPERTY_DEVELOPER_MODE);
+            System.clearProperty(RepositoryInitializerFactory.PROPERTY_FAIL_ON_ERROR);
         }
     }
 

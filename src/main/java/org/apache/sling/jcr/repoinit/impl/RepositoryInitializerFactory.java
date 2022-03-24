@@ -73,7 +73,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
             String[] scripts() default {};
     }
 
-    protected static final String PROPERTY_DEVELOPER_MODE = "org.apache.sling.jcr.repoinit.developermode";
+    protected static final String PROPERTY_FAIL_ON_ERROR = "org.apache.sling.jcr.repoinit.failOnError";
     
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -89,8 +89,8 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     @Activate
     public void activate(final RepositoryInitializerFactory.Config config) {
         this.config = config;
-        if (isDeveloperModeEnabled()) {
-            log.info("Activated: {} (developer mode active)", this);
+        if (continueOnError()) {
+            log.info("Activated: {} (continue on repoinit errors)", this);
         } else {
             log.debug("Activated: {}", this.toString());
         }
@@ -110,9 +110,9 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
         try {
             executeScripts(s, config);
         } catch (Exception e) {
-            if (isDeveloperModeEnabled()) {
-                log.error("Repoinit error, won't stop execution because {} is set. Without that "
-                        + "developer option the startup would fail.",PROPERTY_DEVELOPER_MODE,e);
+            if (continueOnError()) {
+                log.error("Repoinit error, won't stop execution because {} is set to non-true. Without this "
+                        + "setting the startup would fail.",PROPERTY_FAIL_ON_ERROR,e);
             } else {
                 throw (e);
             }
@@ -191,9 +191,9 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     }
 
     
-    protected boolean isDeveloperModeEnabled() {
-        String dm = System.getProperty(PROPERTY_DEVELOPER_MODE,"");
-        return dm.equalsIgnoreCase("true");
+    protected boolean continueOnError() {
+        String failOnError = System.getProperty(PROPERTY_FAIL_ON_ERROR,"true");
+        return !failOnError.equals("true");
     }
 
 }
