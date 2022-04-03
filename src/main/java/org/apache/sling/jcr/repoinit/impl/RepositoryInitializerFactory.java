@@ -16,6 +16,7 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.api.SlingRepositoryInitializer;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.repoinit.parser.RepoInitParser;
+import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.repoinit.parser.operations.Operation;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
@@ -122,7 +124,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     }
 
 
-    protected void executeScripts (Session session, RepositoryInitializerFactory.Config config) throws Exception {
+    protected void executeScripts (Session session, RepositoryInitializerFactory.Config config) throws IOException, RepositoryException, RepoInitParsingException {
         if (config.references() != null) {
             final RepoinitTextProvider p = new RepoinitTextProvider();
             for (final String reference : config.references()) {
