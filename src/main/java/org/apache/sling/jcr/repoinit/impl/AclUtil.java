@@ -129,10 +129,12 @@ public class AclUtil {
     private static void setAcl(Session session, List<String> principals, String jcrPath, List<String> privileges, boolean isAllow, List<RestrictionClause> restrictionClauses)
             throws RepositoryException {
 
-        final String [] privArray = privileges.toArray(new String[privileges.size()]);
-        final Privilege[] jcrPriv = AccessControlUtils.privilegesFromNames(session, privArray);
+        AccessControlManager acMgr = session.getAccessControlManager();
 
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, jcrPath);
+        final String [] privArray = privileges.toArray(new String[privileges.size()]);
+        final Privilege[] jcrPriv = AccessControlUtils.privilegesFromNames(acMgr, privArray);
+        
+        JackrabbitAccessControlList acl = getAccessControlList(acMgr, jcrPath, true);
         checkState(acl != null, "No JackrabbitAccessControlList available for path " + jcrPath);
 
         LocalRestrictions localRestrictions = createLocalRestrictions(restrictionClauses, acl, session);
@@ -159,7 +161,7 @@ public class AclUtil {
             changed = true;
         }
         if ( changed ) {
-            session.getAccessControlManager().setPolicy(jcrPath, acl);
+            acMgr.setPolicy(jcrPath, acl);
         }
     }
 
@@ -202,24 +204,30 @@ public class AclUtil {
      * @throws RepositoryException
      */
     public static void removePolicies(@NotNull Session session, @NotNull List<String> paths) throws RepositoryException {
+        AccessControlManager acMgr = session.getAccessControlManager();
         for (String jcrPath : getJcrPaths(session, paths)) {
-            LOG.info("Removing access control policy on {}", jcrPath);
-            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, jcrPath);
+            if (!isValidPath(session, jcrPath)) {
+                LOG.info("Cannot remove ACL; no node at {} ", jcrPath);
+                continue;
+            }
+            LOG.info("Removing access control policy at {}", jcrPath);
+            JackrabbitAccessControlList acl = getAccessControlList(acMgr, jcrPath, false);
             if (acl == null) {
                 LOG.info("No ACL to remove at path {}", jcrPath);
             } else {
-                session.getAccessControlManager().removePolicy(jcrPath, acl);
+                acMgr.removePolicy(jcrPath, acl);
             }
         }
     }
     
     public static void removeEntries(@NotNull Session session, @NotNull List<String> principals, @NotNull List<String> paths) throws RepositoryException {
         Set<String> principalNames = new HashSet<>(principals);
+        AccessControlManager acMgr = session.getAccessControlManager();
         for (String jcrPath : getJcrPaths(session, paths)) {
-            if (jcrPath != null && !session.nodeExists(jcrPath)) {
+            if (!isValidPath(session, jcrPath)) {
                 LOG.info("Cannot remove access control entries on non-existent path {}", jcrPath);
             } else {
-                JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, jcrPath);
+                JackrabbitAccessControlList acl = getAccessControlList(acMgr, jcrPath, false);
                 if (acl != null) {
                     boolean modified = false;
                     for (AccessControlEntry ace : acl.getAccessControlEntries()) {
@@ -229,7 +237,7 @@ public class AclUtil {
                         }
                     }
                     if (modified) {
-                        session.getAccessControlManager().setPolicy(jcrPath, acl);
+                        acMgr.setPolicy(jcrPath, acl);
                     }
                 } else {
                     LOG.info("Cannot remove access control entries for principal(s) {}. No ACL at {}", principalNames, jcrPath);
@@ -240,16 +248,17 @@ public class AclUtil {
 
     public static void removeEntries(@NotNull Session session, @NotNull List<String> principals, @NotNull List<String> paths, List<String> privileges, boolean isAllow, List<RestrictionClause> restrictionClauses) throws RepositoryException {
         Set<String> principalNames = new HashSet<>(principals);
+        AccessControlManager acMgr = session.getAccessControlManager();
         for (String jcrPath : getJcrPaths(session, paths)) {
-            if (jcrPath != null && !session.nodeExists(jcrPath)) {
+            if (!isValidPath(session, jcrPath)) {
                 LOG.info("Cannot remove access control entries on non-existent path {}", jcrPath);
             } else {
-                JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, jcrPath);
+                JackrabbitAccessControlList acl = getAccessControlList(acMgr, jcrPath, false);
                 if (acl != null) {
                     boolean modified = false;
 
                     LocalRestrictions restr = createLocalRestrictions(restrictionClauses, acl, session);
-                    Privilege[] privs = AccessControlUtils.privilegesFromNames(session, privileges.toArray(new String[0]));
+                    Privilege[] privs = AccessControlUtils.privilegesFromNames(acMgr, privileges.toArray(new String[0]));
                     
                     for (AccessControlEntry ace : acl.getAccessControlEntries()) {
                         Principal principal = ace.getPrincipal();
@@ -263,7 +272,7 @@ public class AclUtil {
                         }
                     }
                     if (modified) {
-                        session.getAccessControlManager().setPolicy(jcrPath, acl);
+                        acMgr.setPolicy(jcrPath, acl);
                     } else {
                         LOG.info("No matching access control entry found to remove for principals {} at {}. Expected entry with isAllow={}, privileges={}, restrictions={}", principalNames, jcrPath, isAllow, privileges, restrictionClauses);
                     }
@@ -299,7 +308,7 @@ public class AclUtil {
                     modified = true;
                 }
             } else if (action == AclLine.Action.ALLOW) {
-                final Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
+                final Privilege[] privileges = AccessControlUtils.privilegesFromNames(acMgr, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
                 for (String effectivePath : jcrPaths) {
                     if (acl == null) {
                         // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with the same definition exists
@@ -345,7 +354,7 @@ public class AclUtil {
             List<String> jcrPaths = getJcrPaths(session, line.getProperty(PROP_PATHS));
             LocalRestrictions restr = createLocalRestrictions(line.getRestrictions(), acl, session);
             List<String> privNames = line.getProperty(PROP_PRIVILEGES);
-            Privilege[] privs = AccessControlUtils.privilegesFromNames(session, privNames.toArray(new String[0]));
+            Privilege[] privs = AccessControlUtils.privilegesFromNames(acMgr, privNames.toArray(new String[0]));
             Predicate<PrincipalAccessControlList.Entry> predicate = entry -> {
                 if (!jcrPaths.contains(entry.getEffectivePath())) {
                     return false;
@@ -384,6 +393,25 @@ public class AclUtil {
             LOG.info("Cannot remove principal-based ACL for principal {}. No such policy exists.", principalName);
         } else {
             acMgr.removePolicy(acl.getPath(), acl);
+        }
+    }
+    
+    private static boolean isValidPath(@NotNull Session session, @Nullable String jcrPath) throws RepositoryException {
+        return jcrPath == null || session.nodeExists(jcrPath);
+    }
+    
+    @Nullable
+    private static JackrabbitAccessControlList getAccessControlList(@NotNull AccessControlManager acMgr,
+                                                                    @Nullable String path, boolean includeApplicable) throws RepositoryException {
+        if (includeApplicable) {
+            return AccessControlUtils.getAccessControlList(acMgr, path);
+        } else {
+            for (AccessControlPolicy policy : acMgr.getPolicies(path)) {
+                if (policy instanceof JackrabbitAccessControlList) {
+                    return (JackrabbitAccessControlList) policy;
+                }
+            }
+            return null;
         }
     }
 

@@ -50,7 +50,9 @@ import java.util.Collection;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
 public class DeleteAclTest {
@@ -94,6 +96,7 @@ public class DeleteAclTest {
         U.parseAndExecute(""
                 + "create path (nt:unstructured) /content\n"
                 + "create path (nt:unstructured) /var\n"
+                + "create path (nt:unstructured) /no/policy\n"
                 + "set ACL for " + U.username + "\n"
                 + "allow jcr:read on /content, /var, home("+userA+")\n"
                 + "allow jcr:namespaceManagement on :repository\n"
@@ -131,9 +134,22 @@ public class DeleteAclTest {
         assertArrayEquals(new AccessControlPolicy[0], acMgr.getPolicies((String) null));
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void testDeleteAclNonExistingPath() throws Exception {
+        assertFalse(adminSession.nodeExists("/nonExisting"));
         U.parseAndExecute("delete ACL on /nonExisting\n");
+        assertFalse(adminSession.nodeExists("/nonExisting"));
+    }
+
+    @Test
+    public void testDeleteNonExistingAcl() throws Exception {
+        assertTrue(adminSession.nodeExists("/no/policy"));
+        assertArrayEquals(new AccessControlPolicy[0], acMgr.getPolicies("/no/policy"));
+
+        U.parseAndExecute("delete ACL on /no/policy\n");
+        
+        assertTrue(adminSession.nodeExists("/no/policy"));
+        assertArrayEquals(new AccessControlPolicy[0], acMgr.getPolicies("/no/policy"));
     }
 
     @Test

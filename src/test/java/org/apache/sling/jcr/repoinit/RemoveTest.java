@@ -41,6 +41,7 @@ import javax.jcr.security.AccessControlPolicy;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 public class RemoveTest {
@@ -169,6 +170,28 @@ public class RemoveTest {
                 + "remove jcr:all for "+U.username+"\n" +
                 "end";
         U.parseAndExecute(setup);
+    }
+    
+    @Test
+    public void testRemoveByNonExistingPath() throws Exception {
+        String path = "/non/existing";
+        String setup = "remove ACE for " + U.username + "\n"
+                + "deny jcr:read on "+path+"\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertFalse(U.adminSession.nodeExists(path));
+
+        setup = "remove ACE on "+path+"\n"
+                + "deny jcr:read for " + U.username + "\n"
+                + "end";
+        U.parseAndExecute(setup);
+        assertFalse(U.adminSession.nodeExists(path));
+
+        setup = "set ACL on "+path+"\n" +
+                "remove * for "+U.username+"\n" +
+                "end";
+        U.parseAndExecute(setup);
+        assertFalse(U.adminSession.nodeExists(path));
     }
 
     @Test
