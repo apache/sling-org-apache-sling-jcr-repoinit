@@ -16,6 +16,7 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.api.SlingRepositoryInitializer;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.repoinit.parser.RepoInitParser;
+import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.repoinit.parser.operations.Operation;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
@@ -73,6 +75,8 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
             String[] scripts() default {};
     }
 
+    protected static final String PROPERTY_FAIL_ON_ERROR = "org.apache.sling.jcr.repoinit.failOnError";
+    
     private final Logger log = LoggerFactory.getLogger(getClass());
 
 
@@ -87,7 +91,11 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     @Activate
     public void activate(final RepositoryInitializerFactory.Config config) {
         this.config = config;
-        log.debug("Activated: {}", this.toString());
+        if (continueOnError()) {
+            log.info("Activated: {} (continue on repoinit errors)", this);
+        } else {
+            log.debug("Activated: {}", this.toString());
+        }
     }
 
     @Override
@@ -99,42 +107,49 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
 
     @Override
     public void processRepository(final SlingRepository repo) throws Exception {
-        if ( (config.references() != null && config.references().length > 0)
-           || (config.scripts() != null && config.scripts().length > 0 )) {
-
-            // loginAdministrative is ok here, definitely an admin operation
-            final Session s = repo.loginAdministrative(null);
-            try {
-                if ( config.references() != null ) {
-                    final RepoinitTextProvider p = new RepoinitTextProvider();
-                    for(final String reference : config.references()) {
-                        if(reference == null || reference.trim().length() == 0) {
-                            continue;
-                        }
-                        final String repoinitText = p.getRepoinitText("raw:" + reference);
-                        final List<Operation> ops = parser.parse(new StringReader(repoinitText));
-                        String msg = String.format("Executing %s repoinit operations", ops.size());
-                        log.info(msg);
-                        applyOperations(s,ops,msg);
-                    }
-                }
-                if ( config.scripts() != null ) {
-                    for(final String script : config.scripts()) {
-                        if(script == null || script.trim().length() == 0) {
-                            continue;
-                        }
-                        final List<Operation> ops = parser.parse(new StringReader(script));
-                        String msg = String.format("Executing %s repoinit operations", ops.size());
-                        log.info(msg);
-                        applyOperations(s,ops,msg);
-                    }
-                }
-            } finally {
-                s.logout();
+        // loginAdministrative is ok here, definitely an admin operation
+        final Session s = repo.loginAdministrative(null);
+        try {
+            executeScripts(s, config);
+        } catch (Exception e) {
+            if (continueOnError()) {
+                log.error("Repoinit error, won't stop execution because {} is set to non-true. Without this "
+                        + "setting the startup would fail.",PROPERTY_FAIL_ON_ERROR,e);
+            } else {
+                throw (e);
             }
+        } finally {
+            s.logout();
         }
     }
 
+
+    protected void executeScripts (Session session, RepositoryInitializerFactory.Config config) throws IOException, RepositoryException, RepoInitParsingException {
+        if (config.references() != null) {
+            final RepoinitTextProvider p = new RepoinitTextProvider();
+            for (final String reference : config.references()) {
+                if (reference == null || reference.trim().length() == 0) {
+                    continue;
+                }
+                final String repoinitText = p.getRepoinitText("raw:" + reference);
+                final List<Operation> ops = parser.parse(new StringReader(repoinitText));
+                String msg = String.format("Executing %s repoinit operations", ops.size());
+                log.info(msg);
+                applyOperations(session, ops, msg);
+            }
+        }
+        if (config.scripts() != null) {
+            for (final String script : config.scripts()) {
+                if (script == null || script.trim().length() == 0) {
+                    continue;
+                }
+                final List<Operation> ops = parser.parse(new StringReader(script));
+                String msg = String.format("Executing %s repoinit operations", ops.size());
+                log.info(msg);
+                applyOperations(session, ops, msg);
+            }
+        }
+    }
 
     /**
      * Apply the operations within a session, support retries
@@ -177,5 +192,10 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
         }
     }
 
+    
+    protected boolean continueOnError() {
+        String failOnError = System.getProperty(PROPERTY_FAIL_ON_ERROR,"true");
+        return !failOnError.equals("true");
+    }
 
 }
