@@ -27,6 +27,7 @@ import javax.jcr.Session;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.api.SlingRepositoryInitializer;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
+import org.apache.sling.jcr.repoinit.impl.RetryableOperation.RetryableOperationResult;
 import org.apache.sling.repoinit.parser.RepoInitParser;
 import org.apache.sling.repoinit.parser.operations.Operation;
 import org.osgi.framework.Constants;
@@ -146,21 +147,39 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     protected void applyOperations(Session session, List<Operation> ops, String logMessage) throws RepositoryException {
 
         RetryableOperation retry = new RetryableOperation.Builder().withBackoffBaseMsec(1000).withMaxRetries(3).build();
-        RetryableOperation.RetryableOperationResult result = retry.apply(() -> {
+        RetryableOperation.RetryableOperationResult result = applyOperationInternal(session, ops, logMessage, retry);
+        if (!result.isSuccessful()) {
+            String msg = String.format("Applying repoinit operation failed despite retry; set loglevel to DEBUG to see all exceptions. "
+                    + "Last exception message was: %s", result.getFailureTrace().getMessage());
+            throw new RepositoryException(msg, result.getFailureTrace());
+        }
+    }
+
+    /**
+     * Perform the operations
+     * @param session the session to use
+     * @param ops the operations
+     * @param logMessage logmessage which should be printed
+     * @param retry the retry object
+     * @return
+     */
+    protected RetryableOperationResult applyOperationInternal(Session session, List<Operation> ops, String logMessage,
+            RetryableOperation retry) {
+        return retry.apply(() -> {
             try {
                 processor.apply(session, ops);
                 session.save();
                 return new RetryableOperation.RetryableOperationResult(true,false,null);
-            } catch (InvalidItemStateException ise) {
+            } catch (InvalidItemStateException|RepoInitException ex) {
                 // a retry makes sense, because this exception might be caused by an concurrent operation
-                log.debug("(temporarily) failed to apply repoinit operations",ise);
+                log.debug("(temporarily) failed to apply repoinit operations",ex);
                 try {
                     session.refresh(false); // discard all pending changes
                 } catch (RepositoryException e1) {
                     // ignore
                 }
-                return new RetryableOperation.RetryableOperationResult(false,true,ise);
-            } catch (RepositoryException|RepoInitException ex) {
+                return new RetryableOperation.RetryableOperationResult(false,true,ex);
+            } catch (RepositoryException ex) {
                 // a permanent error, retry is not useful
                 try {
                     session.refresh(false); // discard all pending changes
@@ -170,11 +189,6 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                 return new RetryableOperation.RetryableOperationResult(false,false,ex);
             }
         }, logMessage);
-        if (!result.isSuccessful()) {
-            String msg = String.format("Applying repoinit operation failed despite retry; set loglevel to DEBUG to see all exceptions. "
-                    + "Last exception message was: %s", result.getFailureTrace().getMessage());
-            throw new RepositoryException(msg, result.getFailureTrace());
-        }
     }
 
 
