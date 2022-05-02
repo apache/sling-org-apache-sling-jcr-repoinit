@@ -20,6 +20,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.UUID;
 
 import javax.jcr.PropertyType;
@@ -229,10 +230,10 @@ public class SetPropertiesTest {
 
         // create the test node
         String name = UUID.randomUUID().toString();
+        String testPath = pathPrefix + name;
         U.getAdminSession()
-            .getNode("/one/two")
+            .getNode(Paths.get(testPath).getParent().toString())
             .addNode(name, "slingtest:sling11293");
-        String testPath = "/one/two/" + name;
         U.assertNodeExists(testPath);
         // verify the initial autocreated property values
         U.assertSVPropertyExists(testPath, "singleVal", vf.createValue("autocreated value"));
