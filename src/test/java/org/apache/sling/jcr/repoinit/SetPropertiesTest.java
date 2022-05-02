@@ -16,8 +16,23 @@
  */
 package org.apache.sling.jcr.repoinit;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.util.UUID;
+
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeType;
+
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.sling.commons.testing.jcr.RepositoryUtil;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
+import org.apache.sling.jcr.repoinit.impl.UserUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
@@ -25,16 +40,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
-import javax.jcr.Value;
-
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.util.UUID;
 
 
 /** Test the setting of properties on nodes */
@@ -213,6 +218,132 @@ public class SetPropertiesTest {
         } catch(RuntimeException asExpected) {
             // all good
         }
+    }
+
+    /**
+     * SLING-11293 "set default properties" instruction to change autocreated property value
+     */
+    @Test
+    public void setAutocreatedDefaultProperties() throws Exception {
+        registerSling11293NodeType();
+
+        // create the test node
+        String name = UUID.randomUUID().toString();
+        U.getAdminSession()
+            .getNode("/one/two")
+            .addNode(name, "slingtest:sling11293");
+        String testPath = "/one/two/" + name;
+        U.assertNodeExists(testPath);
+        // verify the initial autocreated property values
+        U.assertSVPropertyExists(testPath, "singleVal", vf.createValue("autocreated value"));
+        U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
+                vf.createValue("autocreated value1"),
+                vf.createValue("autocreated value2")
+        });
+
+        // setting "default" the first time should change the value as the value is now
+        //  the same as the autocreated default values
+        final String setPropsA =
+                "set properties on " + testPath + "\n" +
+                        "default singleVal to sChanged1a\n" +
+                        "default multiVal to mChanged1a, mChanged2a\n" +
+                "end";
+        U.parseAndExecute(setPropsA);
+        U.assertSVPropertyExists(testPath, "singleVal", vf.createValue("sChanged1a"));
+        U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
+                vf.createValue("mChanged1a"),
+                vf.createValue("mChanged2a")
+        });
+
+        // setting again should do nothing as the value is now
+        //  not the same as the autocreated default values
+        final String setPropsB =
+                "set properties on " + testPath + "\n" +
+                        "default singleVal to sChanged1b\n" +
+                        "default multiVal to mChanged1b, mChanged2b\n" +
+                "end";
+        U.parseAndExecute(setPropsB);
+        U.assertSVPropertyExists(testPath, "singleVal", vf.createValue("sChanged1a"));
+        U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
+                vf.createValue("mChanged1a"),
+                vf.createValue("mChanged2a")
+        });
+    }
+
+    /**
+     * SLING-11293 "set default properties" instruction to change autocreated property value
+     * for an authorizable
+     */
+    @Test
+    public void setAutocreatedDefaultUserProperties() throws Exception {
+        registerSling11293NodeType();
+
+        String userid = "user" + UUID.randomUUID();
+
+        U.assertUser("before creating user", userid, false);
+        U.parseAndExecute("create user " + userid);
+        U.assertUser("after creating user", userid, true);
+
+        final Authorizable a = UserUtil.getUserManager(U.getAdminSession()).getAuthorizable(userid);
+
+        // create the test node
+        String name = UUID.randomUUID().toString();
+        U.getAdminSession()
+            .getNode(a.getPath())
+            .addNode(name, "slingtest:sling11293");
+        String testPath = a.getPath() + "/" + name;
+        U.assertNodeExists(testPath);
+        // verify the initial autocreated property values
+        U.assertSVPropertyExists(testPath, "singleVal", vf.createValue("autocreated value"));
+        U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
+                vf.createValue("autocreated value1"),
+                vf.createValue("autocreated value2")
+        });
+
+        // setting "default" the first time should change the value as the value is now
+        //  the same as the autocreated default values
+        final String setPropsA =
+                "set properties on authorizable(" + userid + ")/" + name + "\n" +
+                        "default singleVal to sChanged1a\n" +
+                        "default multiVal to mChanged1a, mChanged2a\n" +
+                "end";
+        U.parseAndExecute(setPropsA);
+        U.assertAuthorizableSVPropertyExists(userid, name + "/singleVal", vf.createValue("sChanged1a"));
+        U.assertAuthorizableMVPropertyExists(userid, name + "/multiVal", new Value[] {
+                vf.createValue("mChanged1a"),
+                vf.createValue("mChanged2a")
+        });
+
+        // setting again should do nothing as the value is now
+        //  not the same as the autocreated default values
+        final String setPropsB =
+                "set properties on authorizable(" + userid + ")/" + name + "\n" +
+                        "default singleVal to sChanged1b\n" +
+                        "default multiVal to mChanged1b, mChanged2b\n" +
+                "end";
+        U.parseAndExecute(setPropsB);
+        U.assertAuthorizableSVPropertyExists(userid, name + "/singleVal", vf.createValue("sChanged1a"));
+        U.assertAuthorizableMVPropertyExists(userid, name + "/multiVal", new Value[] {
+                vf.createValue("mChanged1a"),
+                vf.createValue("mChanged2a")
+        });
+    }
+
+    protected void registerSling11293NodeType()
+            throws RepositoryException, RepoInitParsingException, NoSuchNodeTypeException {
+        final String registerAndCreateTestPath =
+                "register nodetypes\n" +
+                "<<===\n" +
+                "<< <slingtest='http://sling.apache.org/ns/test/repoinit-it/v1.0'>\n" +
+                "<< [slingtest:sling11293] > nt:unstructured\n" +
+                "<<    - singleVal (String) = 'autocreated value'\n" +
+                "<<       autocreated\n" +
+                "<<    - multiVal (String) = 'autocreated value1', 'autocreated value2'\n" +
+                "<<       multiple autocreated\n" +
+                "===>>";
+        U.parseAndExecute(registerAndCreateTestPath);
+        NodeType nodeType = U.getAdminSession().getWorkspace().getNodeTypeManager().getNodeType("slingtest:sling11293");
+        assertNotNull(nodeType);
     }
 
     /**
