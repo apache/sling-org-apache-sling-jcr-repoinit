@@ -354,7 +354,7 @@ public class SetPropertiesTest {
 
     protected void registerSling11293NodeType()
             throws RepositoryException, RepoInitParsingException, NoSuchNodeTypeException {
-        final String registerAndCreateTestPath =
+        final String registerNodeTypes =
                 "register nodetypes\n" +
                 "<<===\n" +
                 "<< <slingtest='http://sling.apache.org/ns/test/repoinit-it/v1.0'>\n" +
@@ -370,9 +370,11 @@ public class SetPropertiesTest {
                 "<<    - multiVal (String) = 'autocreated value1', 'autocreated value2'\n" +
                 "<<       multiple autocreated\n" +
                 "===>>";
-        U.parseAndExecute(registerAndCreateTestPath);
+        U.parseAndExecute(registerNodeTypes);
         NodeType nodeType = U.getAdminSession().getWorkspace().getNodeTypeManager().getNodeType("slingtest:sling11293");
         assertNotNull(nodeType);
+        NodeType mixinType = U.getAdminSession().getWorkspace().getNodeTypeManager().getNodeType("slingtest:sling11293mixin");
+        assertNotNull(mixinType);
     }
 
     /**
