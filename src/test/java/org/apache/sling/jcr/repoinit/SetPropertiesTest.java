@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.UUID;
 
+import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -225,15 +226,36 @@ public class SetPropertiesTest {
      * SLING-11293 "set default properties" instruction to change autocreated property value
      */
     @Test
-    public void setAutocreatedDefaultProperties() throws Exception {
+    public void setAutocreatedDefaultPropertiesFromPrimaryType() throws Exception {
         registerSling11293NodeType();
 
         // create the test node
         String name = UUID.randomUUID().toString();
         String testPath = pathPrefix + name;
-        U.getAdminSession()
-            .getNode(Paths.get(testPath).getParent().toString())
-            .addNode(name, "slingtest:sling11293");
+        Node parentNode = U.getAdminSession()
+            .getNode(Paths.get(testPath).getParent().toString());
+        parentNode.addNode(name, "slingtest:sling11293");
+        changeAutocreatedDefaultProperties(testPath);
+    }
+
+    /**
+     * SLING-11293 "set default properties" instruction to change autocreated property value
+     */
+    @Test
+    public void setAutocreatedDefaultPropertiesFromMixinType() throws Exception {
+        registerSling11293NodeType();
+
+        // create the test node
+        String name = UUID.randomUUID().toString();
+        String testPath = pathPrefix + name;
+        Node parentNode = U.getAdminSession()
+            .getNode(Paths.get(testPath).getParent().toString());
+        parentNode.addNode(name).addMixin("slingtest:sling11293mixin");
+        changeAutocreatedDefaultProperties(testPath);
+    }
+
+    protected void changeAutocreatedDefaultProperties(String testPath)
+            throws RepositoryException, RepoInitParsingException {
         U.assertNodeExists(testPath);
         // verify the initial autocreated property values
         U.assertSVPropertyExists(testPath, "singleVal", vf.createValue("autocreated value"));
@@ -337,6 +359,12 @@ public class SetPropertiesTest {
                 "<<===\n" +
                 "<< <slingtest='http://sling.apache.org/ns/test/repoinit-it/v1.0'>\n" +
                 "<< [slingtest:sling11293] > nt:unstructured\n" +
+                "<<    - singleVal (String) = 'autocreated value'\n" +
+                "<<       autocreated\n" +
+                "<<    - multiVal (String) = 'autocreated value1', 'autocreated value2'\n" +
+                "<<       multiple autocreated\n" +
+                "<< [slingtest:sling11293mixin]\n" +
+                "<<    mixin\n" +
                 "<<    - singleVal (String) = 'autocreated value'\n" +
                 "<<       autocreated\n" +
                 "<<    - multiVal (String) = 'autocreated value1', 'autocreated value2'\n" +
