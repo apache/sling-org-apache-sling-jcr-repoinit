@@ -16,9 +16,13 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.stream.Stream;
 
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -26,6 +30,8 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.util.Text;
@@ -37,6 +43,7 @@ import org.apache.jackrabbit.value.StringValue;
 import org.apache.sling.repoinit.parser.operations.PropertyLine;
 import org.apache.sling.repoinit.parser.operations.SetProperties;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * OperationVisitor which processes only operations related to setting node
@@ -65,22 +72,85 @@ class NodePropertiesVisitor extends DoNothingVisitor {
     }
 
     /**
-     * True if the property needs to be set - if false, it is not touched. This
-     * handles the "default" repoinit instruction, which means "do not change the
-     * property if already set"
+     * Find the PropertyDefinition for the specified propName
      *
-     * @throws RepositoryException
-     * @throws PathNotFoundException
+     * @param propName the propertyName to check
+     * @param parentNode the parent node where the property will be set
+     * @return the property definition of the property or null if it could not be determined
      */
-    private static boolean needToSetProperty(Node n, PropertyLine line) throws RepositoryException {
-        if(!line.isDefault()) {
-            // It's a "set" line -> overwrite existing value if any
-            return true;
+    private static @Nullable PropertyDefinition resolvePropertyDefinition(@NotNull String propName, @NotNull Node parentNode) throws RepositoryException {
+        NodeType primaryNodeType = parentNode.getPrimaryNodeType();
+        // try the primary type
+        PropertyDefinition propDef = resolvePropertyDefinition(propName, primaryNodeType);
+        if (propDef == null) {
+            // not found in the primary type, so try the mixins
+            NodeType[] mixinNodeTypes = parentNode.getMixinNodeTypes();
+            for (NodeType mixinNodeType : mixinNodeTypes) {
+                propDef = resolvePropertyDefinition(propName, mixinNodeType);
+                if (propDef != null) {
+                    break;
+                }
+            }
+        }
+        return propDef;
+    }
+
+    /**
+     * Inspect the NodeType definition to try to determine the
+     * requiredType for the specified property
+     *
+     * @param propName the propertyName to check
+     * @param parentNode the parent node where the property will be set
+     * @return the required type of the property or {@link PropertyType#UNDEFINED} if it could not be determined
+     */
+    private static @Nullable PropertyDefinition resolvePropertyDefinition(@NotNull String propName, @NotNull NodeType nodeType) {
+        return Stream.of(nodeType.getPropertyDefinitions())
+            .filter(pd -> propName.equals(pd.getName()))
+            .findFirst()
+            .orElse(null);
+    }
+
+    /**
+     * SLING-11293 - Check if a property is defined as autocreated and the current value
+     * is the same as the autocreated default value
+     *
+     * @param n the node to check
+     * @param pRelPath the property relative path to check
+     * @return true or false
+     */
+    protected static boolean isUnchangedAutocreatedProperty(Node n, final String pRelPath)
+            throws RepositoryException {
+        boolean sameAsDefault = false;
+
+        // deal with the pRelPath nesting
+        Path path = Paths.get(pRelPath);
+        Path parentPath = path.getParent();
+        String name = path.getFileName().toString();
+        if (parentPath != null) {
+            String relPath = parentPath.toString();
+            if (n.hasNode(relPath)) {
+                n = n.getNode(relPath);
+            } else {
+                n = null;
+            }
         }
 
-        // Otherwise set the property only if not set yet
-        final String name = line.getPropertyName();
-        return(!n.hasProperty(name) || n.getProperty(name) == null);
+        //  if the property has been set by being autocreated and the value is still
+        //  the same as the default values then also allow changing the value
+        if (n != null && n.hasProperty(name)) {
+            @Nullable
+            PropertyDefinition pd = resolvePropertyDefinition(name, n);
+            if (pd != null && pd.isAutoCreated()) {
+                // if the current value is the same as the autocreated default values
+                //  then allow the value to be changed.
+                if (pd.isMultiple()) {
+                    sameAsDefault = Arrays.equals(pd.getDefaultValues(), n.getProperty(name).getValues());
+                } else {
+                    sameAsDefault = Arrays.equals(pd.getDefaultValues(), new Value[] {n.getProperty(name).getValue()});
+                }
+            }
+        }
+        return sameAsDefault;
     }
 
     /**
@@ -91,14 +161,49 @@ class NodePropertiesVisitor extends DoNothingVisitor {
      * @throws RepositoryException
      * @throws PathNotFoundException
      */
-    private static boolean needToSetProperty(Authorizable a, String pRelPath, boolean isDefault) throws RepositoryException {
-        if (!isDefault) {
+    private static boolean needToSetProperty(@NotNull Node n, @NotNull PropertyLine line) throws RepositoryException {
+        if (!line.isDefault()) {
             // It's a "set" line -> overwrite existing value if any
             return true;
         }
 
         // Otherwise set the property only if not set yet
-        return(!a.hasProperty(pRelPath) || a.getProperty(pRelPath) == null);
+        final String name = line.getPropertyName();
+        boolean needToSet;
+        if (isUnchangedAutocreatedProperty(n, name)) { // SLING-11293
+            needToSet = true;
+        } else {
+            needToSet = (!n.hasProperty(name) || n.getProperty(name) == null);
+        }
+        return needToSet;
+    }
+
+    /**
+     * True if the property needs to be set - if false, it is not touched. This
+     * handles the "default" repoinit instruction, which means "do not change the
+     * property if already set"
+     *
+     * @throws RepositoryException
+     * @throws PathNotFoundException
+     */
+    private static boolean needToSetProperty(Session session, Authorizable a, String pRelPath, PropertyLine line) throws RepositoryException {
+        if (!line.isDefault()) {
+            // It's a "set" line -> overwrite existing value if any
+            return true;
+        }
+
+        // Otherwise set the property only if not set yet
+        boolean needToSet;
+        Node n = null;
+        if (session.nodeExists(a.getPath())) {
+            n = session.getNode(a.getPath());
+        }
+        if (n != null && isUnchangedAutocreatedProperty(n, pRelPath)) { // SLING-11293
+            needToSet = true;
+        } else {
+            needToSet = (!a.hasProperty(pRelPath) || a.getProperty(pRelPath) == null);
+        }
+        return needToSet;
     }
 
     /**
@@ -157,7 +262,7 @@ class NodePropertiesVisitor extends DoNothingVisitor {
             for (PropertyLine pl : propertyLines) {
                 final String pName = pl.getPropertyName();
                 final String pRelPath = toRelPath(subTreePath, pName);
-                if (needToSetProperty(a, pRelPath, pl.isDefault())) {
+                if (needToSetProperty(session, a, pRelPath, pl)) {
                     final List<Object> values = pl.getPropertyValues();
                     if (values.size() > 1) {
                         Value[] pValues = convertToValues(values);
