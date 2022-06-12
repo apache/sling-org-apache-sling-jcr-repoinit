@@ -33,6 +33,7 @@ import org.apache.sling.repoinit.parser.operations.CreatePath;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipals;
 import org.apache.sling.repoinit.parser.operations.PathSegmentDefinition;
+import org.apache.sling.repoinit.parser.operations.PropertyLine;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPaths;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePaths;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipalBased;
@@ -41,6 +42,7 @@ import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipals;
+import org.apache.sling.repoinit.parser.operations.SetProperties;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -200,6 +202,13 @@ class AclVisitor extends DoNothingVisitor {
                 report(e, "CreatePath execution failed at " + psd + ": " + e);
             }
             parentPath += "/" + psd.getSegment();
+        }
+        List<PropertyLine> propertyLines = cp.getPropertyLines();
+        if (!propertyLines.isEmpty()) {
+            // delegate to the NodePropertiesVisitor to set the properties
+            SetProperties sp = new SetProperties(Collections.singletonList(parentPath), propertyLines);
+            NodePropertiesVisitor npv = new NodePropertiesVisitor(session);
+            npv.visitSetProperties(sp);
         }
         try {
             session.save();

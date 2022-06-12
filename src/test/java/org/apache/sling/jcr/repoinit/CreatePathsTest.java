@@ -16,12 +16,17 @@
  */
 package org.apache.sling.jcr.repoinit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
 
 import org.apache.sling.commons.testing.jcr.RepositoryUtil;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
@@ -31,9 +36,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 /** Test the creation of paths with specific node types */
 public class CreatePathsTest {
     
@@ -41,7 +43,11 @@ public class CreatePathsTest {
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
     
     private TestUtil U;
-    
+
+    private static final String TEST_ID = UUID.randomUUID().toString();
+    private static final String NS_PREFIX = CreatePathsTest.class.getSimpleName();
+    private static final String NS_URI = "uri:" + NS_PREFIX + ":" + TEST_ID;
+
     @Before
     public void setup() throws RepositoryException, IOException {
         U = new TestUtil(context);
@@ -150,4 +156,34 @@ public class CreatePathsTest {
         U.parseAndExecute("create path " + fullPath);
         assertTrue(U.adminSession.propertyExists(fullPath));
     }
+
+    /**
+     * SLING-10740 create path statement for node type with a mandatory property
+     */
+    @Test
+    public void createPathWithMandatoryProperty() throws Exception {
+        // register a nodetype with a required property
+        U = new TestUtil(context);
+        U.parseAndExecute("register namespace (" + NS_PREFIX + ") " + NS_URI);
+        String registerNodetypeCndStatement = "register nodetypes\n"
+                + "<<===\n"
+                + "<<  <" + NS_PREFIX + "='" + NS_URI + "'>\n"
+                + "<<  [" + NS_PREFIX + ":foo]\n"
+                + "<<    - displayName (String) mandatory\n"
+                + "===>>\n";
+        U.parseAndExecute(registerNodetypeCndStatement);
+
+        // create the path with the mandatory property populated
+        final String path = String.format("/one(%s:foo)", NS_PREFIX);
+        String createPathCndStatement = "create path " + path + " with properties\n"
+                + "  default displayName{String} to \"Hello\"\n"
+                + "end\n";
+        U.parseAndExecute(createPathCndStatement);
+
+        //verify it worked
+        U.assertNodeExists("/one");
+        ValueFactory vf = U.adminSession.getValueFactory();
+        U.assertSVPropertyExists("/one", "displayName", vf.createValue("Hello"));
+    }
+
 }
