@@ -17,8 +17,10 @@
  */
 package org.apache.sling.jcr.repoinit.it;
 
-import static org.junit.Assert.fail;
+import java.time.Duration;
 import java.util.concurrent.Callable;
+
+import org.awaitility.Awaitility;
 
 /** RetryRule does not seem to work for teleported tests */
 public abstract class Retry implements Callable<Void> {
@@ -30,26 +32,13 @@ public abstract class Retry implements Callable<Void> {
     }
 
     public Retry(int timeout, int interval) {
-        final long endTime = System.currentTimeMillis() + timeout;
-        Throwable failure = null;
-        while(System.currentTimeMillis() < endTime) {
-            try {
-                failure = null;
+        Awaitility.await()
+            .atMost(Duration.ofMillis(timeout))
+            .pollInterval(Duration.ofMillis(interval))
+            .ignoreExceptions()
+            .until(() -> {
                 call();
-                break;
-            } catch(Throwable t) {
-                failure = t;
-                try {
-                    Thread.sleep(interval);
-                } catch(InterruptedException ignore) {
-                }
-            }
-        }
-        if(failure != null) {
-            if(failure instanceof AssertionError) {
-                throw (AssertionError)failure;
-            }
-            fail("Failed with timeout:" + failure.toString());
-        }
+                return true;
+            });
     }
 }

@@ -36,6 +36,7 @@ import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.repoinit.parser.RepoInitParser;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Test.None;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
@@ -130,7 +131,7 @@ public class RepoInitTextIT extends RepoInitTestSupport {
         };
     }
 
-    @Test
+    @Test(expected = None.class)
     public void namespaceAndCndRegistered() throws Exception {
         final String nodeName = "ns-" + UUID.randomUUID();
         session.getRootNode().addNode(nodeName, "slingtest:unstructured");

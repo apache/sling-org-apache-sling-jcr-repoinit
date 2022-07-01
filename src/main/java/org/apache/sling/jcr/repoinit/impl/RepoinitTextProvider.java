@@ -22,8 +22,11 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.sling.provisioning.model.Feature;
@@ -50,37 +53,61 @@ import org.slf4j.LoggerFactory;
  *  meaning that the supplied classpath: URI returns raw repoinit statements.
  */
 public class RepoinitTextProvider {
-    public static enum TextFormat { raw, model };
+    public enum TextFormat { 
+        RAW("raw"), 
+        MODEL("model");
+
+        private String type;
+
+        TextFormat(String type) {
+            this.type = type;
+        } 
+
+        public static TextFormat fromType(String v) {
+            Optional<TextFormat> findFirst = Stream.of(TextFormat.values())
+                .filter(tf -> tf.type.equals(v))
+                .findFirst();
+            if (!findFirst.isPresent()) {
+                throw new IllegalArgumentException("Value not found: " + v);
+            }
+            return findFirst.get();
+        }
+
+        @Override
+        public String toString() {
+            return type;
+        }
+    }
     private static final String DEFAULT_MODEL_SECTION = "repoinit";
-    
+
     public static final Pattern REF_PATTERN = Pattern.compile("([a-z]+)(@([a-zA-Z0-9_-]+))?:(.*)");
-    
+
     private Logger log = LoggerFactory.getLogger(getClass());
-    
+
     static class Reference {
         final TextFormat format;
         final String modelSection;
         final String url;
-        
+
         Reference(String ref) {
-            if(ref == null) {
+            if (ref == null) {
                 throw new IllegalArgumentException("Null reference");
             }
             final Matcher m = REF_PATTERN.matcher(ref);
-            if(!m.matches()) {
+            if (!m.matches()) {
                 throw new IllegalArgumentException("Invalid reference '" + ref + "', should match " + REF_PATTERN);
             }
-            format = TextFormat.valueOf(m.group(1));
-            if(format.equals(TextFormat.raw)) {
+            format = TextFormat.fromType(m.group(1));
+            if (format.equals(TextFormat.RAW)) {
                 modelSection = null;
-            } else if(format.equals(TextFormat.model) && m.group(3) == null) {
+            } else if(format.equals(TextFormat.MODEL) && m.group(3) == null) {
                 modelSection = DEFAULT_MODEL_SECTION;
             } else {
                 modelSection = m.group(3);
             }
             url = m.group(4);
         }
-        
+
         @Override
         public String toString() {
             final StringBuilder sb = new StringBuilder();
@@ -93,25 +120,25 @@ public class RepoinitTextProvider {
             return sb.toString();
         }
     }
-    
+
     public String getRepoinitText(String referenceString) throws IOException {
         final Reference ref = new Reference(referenceString);
         log.info("Reading repoinit statements from {}", ref);
         final String rawText = getRawText(ref.url);
         log.debug("Raw text from {}: \n{}", ref.url, rawText);
-        if(TextFormat.model.equals(ref.format)) {
+        if (TextFormat.MODEL.equals(ref.format)) {
             log.debug("Extracting provisioning model section {}", ref.modelSection);
             return extractFromModel(ref.url, rawText, ref.modelSection); 
         } else {
             return rawText;
         }
     }
-    
+
     private String extractFromModel(String sourceInfo, String rawText, String modelSection) throws IOException {
         final StringReader reader = new StringReader(rawText);
         final Model model = ModelReader.read(reader, sourceInfo);
         final StringBuilder sb = new StringBuilder();
-        if(modelSection == null) {
+        if (modelSection == null) {
             throw new IllegalStateException("Model section name is null, cannot read model");
         }
         for (final Feature feature : model.getFeatures()) {
@@ -123,17 +150,17 @@ public class RepoinitTextProvider {
         }
         return sb.toString();
     }
-    
+
     private String getRawText(String urlString) throws IOException {
         String result = "";
         final URL url = new URL(urlString);
         final URLConnection c = url.openConnection();
         final InputStream is = c.getInputStream();
-        if(is == null) {
+        if (is == null) {
             log.warn("Cannot get InputStream for {}", url);
         } else {
             final StringWriter w = new StringWriter();
-            IOUtils.copy(is, w, "UTF-8");
+            IOUtils.copy(is, w, StandardCharsets.UTF_8);
             result = w.toString();
         }
         return result;

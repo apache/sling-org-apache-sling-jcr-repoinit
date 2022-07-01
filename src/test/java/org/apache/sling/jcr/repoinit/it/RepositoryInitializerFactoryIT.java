@@ -17,16 +17,16 @@
 package org.apache.sling.jcr.repoinit.it;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
+import org.awaitility.Awaitility;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.junit.PaxExam;
@@ -62,22 +62,20 @@ public class RepositoryInitializerFactoryIT extends RepoInitTestSupport {
         cfg.update(props);
 
         // Configs are processed asynchronously, give them some time
-        final long endTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5);
-        List<String> missing = null;
-        while(System.currentTimeMillis() < endTime) {
-            session.refresh(false);
-            missing = new ArrayList<>();
-            for(String path : expectedPaths) {
-                if(!session.itemExists(path)) {
-                    missing.add(path);
+        List<String> missing = new ArrayList<>();
+        Awaitility.await("configAndPathsExist")
+            .atMost(Duration.ofSeconds(5))
+            .pollInterval(Duration.ofMillis(250))
+            .until(() -> {
+                session.refresh(false);
+                missing.clear();
+                for (String path : expectedPaths) {
+                    if (!session.itemExists(path)) {
+                        missing.add(path);
+                    }
                 }
-            }
-            if(missing.isEmpty()) {
-                break;
-            }
-            Thread.sleep(250);
-        }
-        assertTrue("Expected all paths to be created, missing: " + missing, missing.isEmpty());
+                return missing.isEmpty();
+            });
     }
 
     @Test

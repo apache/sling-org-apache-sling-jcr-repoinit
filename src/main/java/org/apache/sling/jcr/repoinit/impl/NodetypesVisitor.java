@@ -40,7 +40,9 @@ class NodetypesVisitor extends DoNothingVisitor {
     @Override
     public void visitRegisterNodetypes(RegisterNodetypes rn) {
         try {
-            log.info("Registering nodetypes from {}", excerpt(rn.getCndStatements(), 100));
+            if (log.isInfoEnabled()) {
+                log.info("Registering nodetypes from {}", excerpt(rn.getCndStatements(), 100));
+            }
             CndImporter.registerNodeTypes(new StringReader(rn.getCndStatements()), session);
         } catch(Exception e) {
             report(e, "Unable to register nodetypes from " + rn);

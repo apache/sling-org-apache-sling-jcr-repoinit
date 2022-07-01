@@ -30,19 +30,20 @@ import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.Test.None;
 
 /** Test register nodetypes statements. Also registers a namespace */
 public class RegisterNodetypesTest {
 
     @Rule
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
-    
+
     private TestUtil U;
-    
+
     private static final String TEST_ID = UUID.randomUUID().toString();
     private static final String NS_PREFIX = RegisterNodetypesTest.class.getSimpleName();
     private static final String NS_URI = "uri:" + NS_PREFIX + ":" + TEST_ID;
-    
+
     @Before
     public void setup() throws RepositoryException, RepoInitParsingException {
         U = new TestUtil(context);
@@ -55,8 +56,8 @@ public class RegisterNodetypesTest {
         final NamespaceRegistry ns = U.getAdminSession().getWorkspace().getNamespaceRegistry();
         assertEquals(NS_URI, ns.getURI(NS_PREFIX));
     }
-    
-    @Test
+
+    @Test(expected = None.class)
     public void fooNodetypeRegistered() throws Exception {
         U.getAdminSession().getRootNode().addNode("test_" + TEST_ID, NS_PREFIX + ":foo");
     }

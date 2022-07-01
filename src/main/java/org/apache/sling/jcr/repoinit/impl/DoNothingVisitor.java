@@ -51,9 +51,9 @@ import org.slf4j.LoggerFactory;
 class DoNothingVisitor implements OperationVisitor {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
-    
+
     protected final Session session;
-    
+
     /** Create a visitor using the supplied JCR Session.
      * @param s must have sufficient rights to create users
      *      and set ACLs.
@@ -61,15 +61,15 @@ class DoNothingVisitor implements OperationVisitor {
     protected DoNothingVisitor(Session s) {
         session = s;
     }
-    
+
     protected void report(Exception e, String message) {
         throw new RepoInitException(message, e);
     }
-    
+
     protected void report(String message) {
         throw new RepoInitException(message);
     }
-    
+
     protected static String excerpt(String s, int maxLength) {
         if(s.length() < maxLength) {
             return s;
@@ -77,97 +77,119 @@ class DoNothingVisitor implements OperationVisitor {
             return s.substring(0, maxLength -1) + "...";
         }
     }
-    
+
     @Override
     public void visitCreateServiceUser(CreateServiceUser s) {
+        // no-op
     }
 
     @Override
     public void visitDeleteServiceUser(DeleteServiceUser s) {
+        // no-op
     }
 
     @Override
     public void visitCreateUser(CreateUser cu) {
+        // no-op
     }
 
     @Override
     public void visitDeleteUser(DeleteUser u) {
+        // no-op
     }
-    
+
     @Override
     public void visitSetAclPrincipal(SetAclPrincipals s) {
-     }
+        // no-op
+    }
 
     @Override
     public void visitSetAclPaths(SetAclPaths s) {
+        // no-op
     }
 
     @Override
     public void visitSetAclPrincipalBased(SetAclPrincipalBased operation) {
+        // no-op
     }
 
     @Override
     public void visitRemoveAcePrincipal(RemoveAcePrincipals s) {
+        // no-op
     }
 
     @Override
     public void visitRemoveAcePaths(RemoveAcePaths s) {
+        // no-op
     }
 
     @Override
     public void visitRemoveAcePrincipalBased(RemoveAcePrincipalBased s) {
+        // no-op
     }
 
     @Override
     public void visitDeleteAclPrincipals(DeleteAclPrincipals s) {
+        // no-op
     }
 
     @Override
     public void visitDeleteAclPaths(DeleteAclPaths s) {
+        // no-op
     }
 
     @Override
     public void visitDeleteAclPrincipalBased(DeleteAclPrincipalBased s) {
+        // no-op
     }
 
     @Override
     public void visitCreatePath(CreatePath cp) {
+        // no-op
     }
 
     @Override
     public void visitRegisterNamespace(RegisterNamespace rn) {
+        // no-op
     }
 
     @Override
     public void visitRegisterNodetypes(RegisterNodetypes rn) {
+        // no-op
     }
 
     @Override
     public void visitRegisterPrivilege(RegisterPrivilege rp) {
-
+        // no-op
     }
 
     @Override
     public void visitDisableServiceUser(DisableServiceUser dsu) {
+        // no-op
     }
 
     @Override
     public void visitCreateGroup(CreateGroup g) {
+        // no-op
     }
 
     @Override
     public void visitDeleteGroup(DeleteGroup g) {
+        // no-op
     }
 
     @Override
     public void visitAddGroupMembers(AddGroupMembers am) {
+        // no-op
     }
 
     @Override
     public void visitRemoveGroupMembers(RemoveGroupMembers rm) {
+        // no-op
     }
 
     @Override
     public void visitSetProperties(SetProperties sp) {
+        // no-op
     }
 }

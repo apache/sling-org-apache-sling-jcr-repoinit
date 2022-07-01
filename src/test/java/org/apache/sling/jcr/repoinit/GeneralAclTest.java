@@ -39,6 +39,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.Test.None;
 
 /** Various ACL-related tests */
 public class GeneralAclTest {
@@ -365,9 +366,8 @@ public class GeneralAclTest {
      */
     private void verifyCanRead(Session userSession, String relativePath, boolean successExpected) {
         final String path = "/" + relativePath;
-        Node n = null;
         try {
-            n = userSession.getNode(path);
+            userSession.getNode(path);
             assertTrue("Not expecting " + path + " to be readable but it was successfully read", successExpected);
         } catch(RepositoryException notReadable) {
             assertFalse("Expecting " + path + " to be readable but could not read it", successExpected);
@@ -705,7 +705,7 @@ public class GeneralAclTest {
     }
 
 
-    @Test
+    @Test(expected = None.class)
     public void emptyRestrictionTest() throws Exception {
         final String aclSetup =
                 "set ACL for " + U.username + "\n"

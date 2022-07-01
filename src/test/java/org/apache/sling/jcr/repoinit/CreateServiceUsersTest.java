@@ -47,7 +47,7 @@ public class CreateServiceUsersTest {
     private String userId;
     private TestUtil U;
 
-    private final List<String> toRemove = new ArrayList();
+    private final List<String> toRemove = new ArrayList<>();
     
     @Before
     public void setup() throws RepositoryException {
