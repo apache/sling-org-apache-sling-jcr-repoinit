@@ -16,28 +16,26 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
-import java.io.Reader;
 import java.io.StringReader;
 import java.util.List;
 import java.util.UUID;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
-import javax.jcr.Value;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -69,12 +67,11 @@ public class TestUtil {
     }
 
     public List<Operation> parse(String input) throws RepoInitParsingException {
-        final Reader r = new StringReader(input);
-        try {
-            return new RepoInitParserService().parse(r);
-        } finally {
-            IOUtils.closeQuietly(r);
+        List<Operation> parse = null;
+        try (final StringReader r = new StringReader(input)) {
+            parse = new RepoInitParserService().parse(r);
         }
+        return parse;
     }
 
     private void assertPathContains(Authorizable u, String pathShouldContain) throws RepositoryException {
