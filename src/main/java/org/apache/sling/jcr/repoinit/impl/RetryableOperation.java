@@ -36,6 +36,7 @@ public class RetryableOperation {
     int maxRetries;
     int jitter;
 
+    @SuppressWarnings("java:S2245") // we don't do crypto stuff here
     Random random = new Random();
     int retryCount = 0;
 
@@ -66,7 +67,6 @@ public class RetryableOperation {
 
     private void delay(int retryCount) {
 
-        @SuppressWarnings("java:S2119") // we don't do crypto stuff here
         int j = random.nextInt(jitter);
         int delayInMilis = (backoffBase * retryCount) + j;
         try {
