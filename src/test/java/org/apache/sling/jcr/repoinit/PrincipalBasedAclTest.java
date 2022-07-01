@@ -50,6 +50,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.Test.None;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -481,7 +482,7 @@ public class PrincipalBasedAclTest {
         assertEquals(2, pacl.size());
     }
 
-    @Test
+    @Test(expected = None.class)
     public void  principalAclNotAvailable() throws Exception {
         try {
             // create service user outside of supported tree for principal-based access control
@@ -693,7 +694,7 @@ public class PrincipalBasedAclTest {
         }
     }
 
-    @Test
+    @Test(expected = None.class)
     public void testRemoveNoExistingPolicy() throws Exception {
         String setup = "remove principal ACE for " + U.username + "\n"
                 + "allow jcr:read on " + path + "\n"
@@ -887,7 +888,7 @@ public class PrincipalBasedAclTest {
         assertPolicy(getPrincipal(U.username), U.adminSession, 2);
     }
 
-    @Test
+    @Test(expected = None.class)
     public void testRemoveAllPrincipalMismatch() throws Exception {
         String setup = "set principal ACL for " + U.username + "\n"
                 + "allow jcr:write on "+path+"\n"

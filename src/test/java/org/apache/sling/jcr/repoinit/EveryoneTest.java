@@ -25,6 +25,7 @@ import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.Test.None;
 
 public class EveryoneTest {
 
@@ -40,7 +41,7 @@ public class EveryoneTest {
         testUtil.parseAndExecute(statement);
     }
 
-    @Test
+    @Test(expected = None.class)
     public void setAclForEveryone() throws RepositoryException, RepoInitParsingException {
         final String statement = "set ACL for everyone\n  allow jcr:read on /content\nend";
         testUtil.parseAndExecute(statement);

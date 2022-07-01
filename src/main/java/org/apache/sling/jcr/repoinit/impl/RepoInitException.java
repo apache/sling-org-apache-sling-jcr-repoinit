@@ -22,11 +22,12 @@ package org.apache.sling.jcr.repoinit.impl;
  *
  */
 public class RepoInitException extends RuntimeException {
-    
+    private static final long serialVersionUID = 1526164337560554094L;
+
     public RepoInitException(String msg, Exception e) {
         super(msg, e);
     }
-    
+
     public RepoInitException(String msg) {
         super(msg);
     }

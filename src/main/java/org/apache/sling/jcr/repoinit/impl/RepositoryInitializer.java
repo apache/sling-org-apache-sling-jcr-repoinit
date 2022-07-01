@@ -77,7 +77,7 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
     @Activate
     public void activate(Config config) {
         this.config = config;
-        log.debug("Activated: {}", this.toString());
+        log.debug("Activated: {}", this);
     }
 
     @Override
@@ -89,12 +89,16 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
     public void processRepository(SlingRepository repo) throws Exception {
         if ( config.references() != null && config.references().length > 0 ) {
             // loginAdministrative is ok here, definitely an admin operation
+            @SuppressWarnings("deprecation")
             final Session s = repo.loginAdministrative(null);
             try {
                 final RepoinitTextProvider p = new RepoinitTextProvider();
                 for(String reference : config.references()) {
                     final String repoinitText = p.getRepoinitText(reference);
-                    final List<Operation> ops = parser.parse(new StringReader(repoinitText));
+                    final List<Operation> ops;
+                    try (StringReader sr = new StringReader(repoinitText)) {
+                        ops = parser.parse(sr);
+                    }
                     log.info("Executing {} repoinit operations", ops.size());
                     processor.apply(s, ops);
                     s.save();

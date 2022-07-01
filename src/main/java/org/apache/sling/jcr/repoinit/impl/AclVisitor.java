@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
  */
 class AclVisitor extends DoNothingVisitor {
 
-    private static final Logger log = LoggerFactory.getLogger(AclVisitor.class);
+    private static final Logger slog = LoggerFactory.getLogger(AclVisitor.class);
     
     /**
      * Create a visitor using the supplied JCR Session.
@@ -180,9 +180,10 @@ class AclVisitor extends DoNothingVisitor {
 
     @Override
     public void visitCreatePath(CreatePath cp) {
-        String parentPath = "";
+        StringBuilder parentPathBuilder = new StringBuilder();
         for (PathSegmentDefinition psd : cp.getDefinitions()) {
-            final String fullPath = parentPath + "/" + psd.getSegment();
+            String parentPath = parentPathBuilder.toString();
+            final String fullPath = String.format("%s/%s", parentPath, psd.getSegment());
             try {
                 if (session.itemExists(fullPath)) {
                     log.info("Path already exists, nothing to do (and not checking its primary type for now): {}", fullPath);
@@ -201,12 +202,12 @@ class AclVisitor extends DoNothingVisitor {
             } catch (Exception e) {
                 report(e, "CreatePath execution failed at " + psd + ": " + e);
             }
-            parentPath += "/" + psd.getSegment();
+            parentPathBuilder.append("/").append(psd.getSegment());
         }
         List<PropertyLine> propertyLines = cp.getPropertyLines();
         if (!propertyLines.isEmpty()) {
             // delegate to the NodePropertiesVisitor to set the properties
-            SetProperties sp = new SetProperties(Collections.singletonList(parentPath), propertyLines);
+            SetProperties sp = new SetProperties(Collections.singletonList(parentPathBuilder.toString()), propertyLines);
             NodePropertiesVisitor npv = new NodePropertiesVisitor(session);
             npv.visitSetProperties(sp);
         }
@@ -225,7 +226,7 @@ class AclVisitor extends DoNothingVisitor {
                 return parent.addNode(psd.getSegment());
             } catch (ConstraintViolationException e) {
                 // assume that no default primary type could be detected -> retry with a default
-                log.info("Adding Node without node type failed ('{}'), retry with sling:Folder", e.getMessage());
+                slog.info("Adding Node without node type failed ('{}'), retry with sling:Folder", e.getMessage());
                 return parent.addNode(psd.getSegment(), "sling:Folder");
             }
         } else {

@@ -34,17 +34,15 @@ public class PrivilegeVisitor extends DoNothingVisitor {
         try {
             Privilege priv = ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager().getPrivilege(rp.getPrivilegeName());
             log.info("Privilege {} already exists: {}, no changes made.", rp.getPrivilegeName(), priv);
-        } catch (Exception e) {
-            if (e instanceof AccessControlException) {
-                try {
-                    ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager()
-                        .registerPrivilege(rp.getPrivilegeName(), rp.isAbstract(), rp.getDeclaredAggregateNames().toArray(new String[0]));
-                } catch (Exception ex) {
-                    report(ex, "Unable to register privilege from: " + rp);
-                }
-            } else {
-                report(e, "Unable to register privilege from: " + rp);
+        } catch (AccessControlException ace) {
+            try {
+                ((JackrabbitWorkspace) session.getWorkspace()).getPrivilegeManager()
+                    .registerPrivilege(rp.getPrivilegeName(), rp.isAbstract(), rp.getDeclaredAggregateNames().toArray(new String[0]));
+            } catch (Exception ex) {
+                report(ex, "Unable to register privilege from: " + rp);
             }
+        } catch (Exception e) {
+            report(e, "Unable to register privilege from: " + rp);
         }
     }
 }

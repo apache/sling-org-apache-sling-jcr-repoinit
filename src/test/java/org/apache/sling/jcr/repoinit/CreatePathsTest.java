@@ -30,6 +30,7 @@ import javax.jcr.ValueFactory;
 
 import org.apache.sling.commons.testing.jcr.RepositoryUtil;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
+import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.junit.Before;
@@ -54,34 +55,34 @@ public class CreatePathsTest {
         RepositoryUtil.registerSlingNodeTypes(U.adminSession);
     }
 
-    @Test
-    public void createSimplePath() throws Exception {
-        final String path = "/one/two/three";
+    /**
+     * @param path the path to create
+     */
+    protected void assertSimplePath(final String path) throws RepositoryException, RepoInitParsingException {
         U.parseAndExecute("create path " + path);
         U.assertNodeExists(path);
+    }
+
+    @Test
+    public void createSimplePath() throws Exception {
+        assertSimplePath("/one/two/three");
     }
 
     @Test
     public void createSimplePathWithNamespace() throws Exception {
-        final String path = "/rep:policy/one";
-        U.parseAndExecute("create path " + path);
-        U.assertNodeExists(path);
+        assertSimplePath("/rep:policy/one");
     }
 
     @Test
     public void createSimplePathWithAtSymbol() throws Exception {
-        final String path = "/one/@two/three";
-        U.parseAndExecute("create path " + path);
-        U.assertNodeExists(path);
+        assertSimplePath("/one/@two/three");
     }
 
     @Test
     public void createSimplePathWithPlusSymbol() throws Exception {
-        final String path = "/one/+two/three";
-        U.parseAndExecute("create path " + path);
-        U.assertNodeExists(path);
+        assertSimplePath("/one/+two/three");
     }
-    
+
     @Test
     public void createPathWithTypes() throws Exception {
         final String path = "/four/five(sling:Folder)/six(nt:folder)";
@@ -90,7 +91,7 @@ public class CreatePathsTest {
         U.assertNodeExists("/four/five", "sling:Folder");
         U.assertNodeExists("/four/five/six", "nt:folder");
     }
-    
+
     @Test
     public void createPathWithSpecificDefaultType() throws Exception {
         final String path = "/seven/eight(nt:unstructured)/nine";
@@ -99,7 +100,7 @@ public class CreatePathsTest {
         U.assertNodeExists("/seven/eight", "nt:unstructured");
         U.assertNodeExists("/seven/eight/nine", "sling:Folder");
     }
-    
+
     @Test
     public void createPathWithJcrDefaultType() throws Exception {
         final String path = "/ten/eleven(sling:Folder)/twelve";

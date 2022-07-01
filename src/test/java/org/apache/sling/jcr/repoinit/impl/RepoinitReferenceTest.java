@@ -38,20 +38,20 @@ public class RepoinitReferenceTest {
         final List<Object []> result = new ArrayList<Object[]>();
         
         // Valid references
-        result.add(new Object[] { "model@foo:uri:1234", TextFormat.model, "foo", "uri:1234", null }); 
-        result.add(new Object[] { "model:uri:2345", TextFormat.model, "repoinit", "uri:2345", null }); 
-        result.add(new Object[] { "raw:uri:4567", TextFormat.raw , null, "uri:4567", null }); 
-        result.add(new Object[] { "raw:uri@5678", TextFormat.raw, null, "uri@5678", null });
+        result.add(new Object[] { "model@foo:uri:1234", TextFormat.MODEL, "foo", "uri:1234", null }); 
+        result.add(new Object[] { "model:uri:2345", TextFormat.MODEL, "repoinit", "uri:2345", null }); 
+        result.add(new Object[] { "raw:uri:4567", TextFormat.RAW , null, "uri:4567", null }); 
+        result.add(new Object[] { "raw:uri@5678", TextFormat.RAW, null, "uri@5678", null });
 
         // Invalid references
         result.add(new Object[] { "model@foo", null, null, null, IllegalArgumentException.class });
-        result.add(new Object[] { "model#foo:url", TextFormat.model, "repoinit", "url", IllegalArgumentException.class });
+        result.add(new Object[] { "model#foo:url", TextFormat.MODEL, "repoinit", "url", IllegalArgumentException.class });
         result.add(new Object[] { "", null, null, null, IllegalArgumentException.class });
         result.add(new Object[] { null, null, null, null, IllegalArgumentException.class });
         result.add(new Object[] { "foo:url", null, null, null, IllegalArgumentException.class });
         
         // foo is ignored, by design
-        result.add(new Object[] { "raw@foo:url", TextFormat.raw, null, "url", null });
+        result.add(new Object[] { "raw@foo:url", TextFormat.RAW, null, "url", null });
         
         return result;
     }

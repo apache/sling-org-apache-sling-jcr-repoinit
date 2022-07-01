@@ -16,10 +16,20 @@
  */
 package org.apache.sling.jcr.repoinit;
 
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
+
+import java.util.UUID;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlPolicy;
+
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.sling.jcr.repoinit.impl.AclUtil;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.jcr.repoinit.impl.UserUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
@@ -31,18 +41,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.security.AccessControlList;
-import javax.jcr.security.AccessControlPolicy;
-
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
 
 public class RemoveTest {
 

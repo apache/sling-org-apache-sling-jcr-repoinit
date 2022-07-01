@@ -57,7 +57,7 @@ public class RegisterPrivilegeTest {
         Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace()).getPrivilegeManager().getPrivilege("withoutabstract_withoutaggregates1");
 
         assertFalse(privilege.isAbstract());
-        assertTrue(privilege.getDeclaredAggregatePrivileges().length == 0);
+        assertEquals(0, privilege.getDeclaredAggregatePrivileges().length);
     }
 
     @Test
@@ -65,7 +65,7 @@ public class RegisterPrivilegeTest {
         Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace()).getPrivilegeManager().getPrivilege("withabstract_withoutaggregates");
 
         assertTrue(privilege.isAbstract());
-        assertTrue(privilege.getDeclaredAggregatePrivileges().length == 0);
+        assertEquals(0, privilege.getDeclaredAggregatePrivileges().length);
     }
 
     @Test
@@ -73,7 +73,7 @@ public class RegisterPrivilegeTest {
         Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace()).getPrivilegeManager().getPrivilege("withoutabstract_withaggregates");
 
         assertFalse(privilege.isAbstract());
-        assertTrue(privilege.getDeclaredAggregatePrivileges().length == 2);
+        assertEquals(2, privilege.getDeclaredAggregatePrivileges().length);
 
         Set<String> names = new HashSet<>();
         for (Privilege p : privilege.getDeclaredAggregatePrivileges()) {
@@ -87,7 +87,7 @@ public class RegisterPrivilegeTest {
         Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace()).getPrivilegeManager().getPrivilege("withabstract_withaggregates");
 
         assertTrue(privilege.isAbstract());
-        assertTrue(privilege.getDeclaredAggregatePrivileges().length == 2);
+        assertEquals(2, privilege.getDeclaredAggregatePrivileges().length);
 
         Set<String> names = new HashSet<>();
         for (Privilege p : privilege.getDeclaredAggregatePrivileges()) {

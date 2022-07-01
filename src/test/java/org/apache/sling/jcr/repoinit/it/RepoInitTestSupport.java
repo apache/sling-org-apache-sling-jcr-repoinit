@@ -16,6 +16,16 @@
  */
 package org.apache.sling.jcr.repoinit.it;
 
+import static org.apache.sling.testing.paxexam.SlingOptions.awaitility;
+import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
+import static org.apache.sling.testing.paxexam.SlingOptions.versionResolver;
+import static org.ops4j.pax.exam.CoreOptions.composite;
+import static org.ops4j.pax.exam.CoreOptions.junitBundles;
+import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
+import static org.ops4j.pax.exam.CoreOptions.options;
+import static org.ops4j.pax.exam.CoreOptions.vmOption;
+import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
+
 import javax.inject.Inject;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
@@ -29,15 +39,6 @@ import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.sling.testing.paxexam.SlingOptions.slingQuickstartOakTar;
-import static org.apache.sling.testing.paxexam.SlingOptions.versionResolver;
-import static org.ops4j.pax.exam.CoreOptions.composite;
-import static org.ops4j.pax.exam.CoreOptions.junitBundles;
-import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
-import static org.ops4j.pax.exam.CoreOptions.options;
-import static org.ops4j.pax.exam.CoreOptions.vmOption;
-import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
 public abstract class RepoInitTestSupport extends TestSupport {
 
@@ -62,6 +63,7 @@ public abstract class RepoInitTestSupport extends TestSupport {
                 testBundle("bundle.filename"),
                 mavenBundle().groupId("org.apache.sling").artifactId("org.apache.sling.repoinit.parser").versionAsInProject(),
                 junitBundles(),
+                awaitility(),
                 newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
                     .put("whitelist.bundles.regexp", "^PAXEXAM.*$")
                     .asOption()

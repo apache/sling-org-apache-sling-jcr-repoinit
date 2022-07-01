@@ -32,6 +32,10 @@ import java.security.Principal;
 /** Utilities for User management */
 public class UserUtil {
 
+    private UserUtil() {
+        // private constructor to hide the implicit public one
+    }
+
     static class SameNamePrincipal implements Principal {
 
         private final String name;

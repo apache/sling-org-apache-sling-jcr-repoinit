@@ -88,7 +88,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     @Activate
     public void activate(final RepositoryInitializerFactory.Config config) {
         this.config = config;
-        log.debug("Activated: {}", this.toString());
+        log.debug("Activated: {}", this);
     }
 
     @Override
@@ -104,6 +104,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
            || (config.scripts() != null && config.scripts().length > 0 )) {
 
             // loginAdministrative is ok here, definitely an admin operation
+            @SuppressWarnings("deprecation")
             final Session s = repo.loginAdministrative(null);
             try {
                 if ( config.references() != null ) {
@@ -113,7 +114,10 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                             continue;
                         }
                         final String repoinitText = p.getRepoinitText("raw:" + reference);
-                        final List<Operation> ops = parser.parse(new StringReader(repoinitText));
+                        final List<Operation> ops;
+                        try (StringReader sr = new StringReader(repoinitText)) {
+                            ops = parser.parse(sr);
+                        }
                         String msg = String.format("Executing %s repoinit operations", ops.size());
                         log.info(msg);
                         applyOperations(s,ops,msg);
@@ -124,7 +128,10 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                         if(script == null || script.trim().length() == 0) {
                             continue;
                         }
-                        final List<Operation> ops = parser.parse(new StringReader(script));
+                        final List<Operation> ops;
+                        try (StringReader sr = new StringReader(script)) {
+                            ops = parser.parse(sr);
+                        }
                         String msg = String.format("Executing %s repoinit operations", ops.size());
                         log.info(msg);
                         applyOperations(s,ops,msg);
