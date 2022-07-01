@@ -37,7 +37,7 @@
 
   <properties>
     <jackrabbit.version>2.18.2</jackrabbit.version>
-    <oak.version>1.16.0</oak.version>
+    <oak.version>1.22.1</oak.version>
     <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
     <!-- To debug the pax process, override this with -D -->
     <pax.vm.options>-Xmx512M</pax.vm.options>
