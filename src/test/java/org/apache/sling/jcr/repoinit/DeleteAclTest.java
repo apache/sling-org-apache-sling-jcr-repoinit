@@ -16,7 +16,6 @@
  */
 package org.apache.sling.jcr.repoinit;
 
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -46,6 +45,7 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collection;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -59,7 +59,7 @@ public class DeleteAclTest {
     
     @Parameterized.Parameters(name = "ImportBehavior={0}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return Arrays.asList(
                 new Object[] {ImportBehavior.NAME_IGNORE},
                 new Object[] {ImportBehavior.NAME_BESTEFFORT},
                 new Object[] {ImportBehavior.NAME_ABORT}
