@@ -17,6 +17,7 @@
 package org.apache.sling.jcr.repoinit.impl;
 
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
+import org.apache.sling.jcr.repoinit.impl.RepoInitInitializer.Validationmode;
 import org.apache.sling.jcr.repoinit.impl.RetryableOperation.RetryableOperationResult;
 import org.apache.sling.repoinit.parser.RepoInitParser;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
@@ -54,10 +55,10 @@ public class RepositoryInitializerFactoryTest {
     }
 
     @Test(expected = RepositoryException.class)
-    public void handleUncheckedErrorsInOperations() throws RepositoryException {
+    public void handleUncheckedErrorsInOperations() throws Exception {
         doThrow(new RepoInitException("some op failed", new Exception("root cause")))
             .when(processor).apply(ArgumentMatchers.any(), ArgumentMatchers.any());
-        sut.applyOperations(mock(Session.class), null, null);
+        sut.applyOperations(mock(Session.class), null, null, Validationmode.NONE);
     }
 
     // https://issues.apache.org/jira/browse/SLING-11276
@@ -66,7 +67,7 @@ public class RepositoryInitializerFactoryTest {
         doThrow(new RepoInitException("some op failed", new Exception("root cause")))
             .when(processor).apply(ArgumentMatchers.any(), ArgumentMatchers.any());
         RetryableOperation retry = new RetryableOperation.Builder().withBackoffBaseMsec(1).withMaxRetries(3).build();
-        RetryableOperationResult result = sut.applyOperationInternal(mock(Session.class), null, null, retry);
+        RetryableOperationResult result = sut.applyOperationInternal(mock(Session.class), null, null, retry, Validationmode.NONE);
         assertEquals(3, retry.retryCount);
         assertFalse(result.isSuccessful());
     }

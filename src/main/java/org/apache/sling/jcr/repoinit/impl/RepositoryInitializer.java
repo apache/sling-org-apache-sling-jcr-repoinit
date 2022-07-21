@@ -18,8 +18,11 @@ package org.apache.sling.jcr.repoinit.impl;
 
 import java.io.StringReader;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.sling.jcr.api.SlingRepository;
@@ -38,33 +41,33 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** SlingRepositoryInitializer that executes repoinit statements read
- *  from a configurable URL.
+/**
+ * SlingRepositoryInitializer that executes repoinit statements read from a
+ * configurable URL.
  */
 @Designate(ocd = RepositoryInitializer.Config.class)
-@Component(service = SlingRepositoryInitializer.class,
-    configurationPolicy=ConfigurationPolicy.REQUIRE,
-    property = {
-            Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-            // SlingRepositoryInitializers are executed in ascending
-            // order of their service ranking
-            Constants.SERVICE_RANKING + ":Integer=100"
-    })
-public class RepositoryInitializer implements SlingRepositoryInitializer {
+@Component(service = { SlingRepositoryInitializer.class,
+    RepoInitInitializer.class }, configurationPolicy = ConfigurationPolicy.REQUIRE, property = {
+        Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
+        // SlingRepositoryInitializers are executed in ascending
+        // order of their service ranking
+        Constants.SERVICE_RANKING + ":Integer=100" })
+public class RepositoryInitializer
+        implements SlingRepositoryInitializer, RepoInitInitializer {
 
-    @ObjectClassDefinition(name = "Apache Sling Repository Initializer",
-        description="Initializes the JCR content repository using repoinit statements")
+    static final String EXCEPTION_MESSAGE_VALIDATION_FAILED = "RepoInit Validation in strict mode failed - altering changes present.";
+    static String WARNMESSAGE = "Repository state differs from expected state after Repoinit execution - content modified in an altering way after repoinit has been applied.";
+    
+    
+    @ObjectClassDefinition(name = "Apache Sling Repository Initializer", description = "Initializes the JCR content repository using repoinit statements")
     public @interface Config {
 
-        @AttributeDefinition(name="Repoinit references",
-            description=
-                 "References to the source text that provides repoinit statements."
-                + " format is either model@repoinit:<provisioning model URL> or raw:<raw URL>")
+        @AttributeDefinition(name = "Repoinit references", description = "References to the source text that provides repoinit statements."
+            + " format is either model@repoinit:<provisioning model URL> or raw:<raw URL>")
         String[] references() default {};
     }
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-
 
     @Reference
     private RepoInitParser parser;
@@ -82,26 +85,41 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + ", references=" + Arrays.toString(config.references());
+        return getClass().getSimpleName() + ", references="
+            + Arrays.toString(config.references());
     }
 
     @Override
     public void processRepository(SlingRepository repo) throws Exception {
-        if ( config.references() != null && config.references().length > 0 ) {
+        processRepository(repo, Validationmode.NONE);
+    }
+
+    @Override
+    public void processRepository(SlingRepository repo,
+            Validationmode validationMode) throws Exception {
+        if (config.references() != null && config.references().length > 0) {
             // loginAdministrative is ok here, definitely an admin operation
             @SuppressWarnings("deprecation")
             final Session s = repo.loginAdministrative(null);
             try {
                 final RepoinitTextProvider p = new RepoinitTextProvider();
-                for(String reference : config.references()) {
+                for (String reference : config.references()) {
                     final String repoinitText = p.getRepoinitText(reference);
                     final List<Operation> ops;
                     try (StringReader sr = new StringReader(repoinitText)) {
                         ops = parser.parse(sr);
                     }
                     log.info("Executing {} repoinit operations", ops.size());
-                    processor.apply(s, ops);
-                    s.save();
+                    processor.apply(s, ops); 
+                    if (Validationmode.NONE.equals(validationMode)) {
+                        s.save();
+                    } else if (s.hasPendingChanges()) {
+                        log.warn(WARNMESSAGE);
+                        if (Validationmode.STRICT.equals(validationMode)) {
+                            throw new RepoInitException(
+                                EXCEPTION_MESSAGE_VALIDATION_FAILED);
+                        }
+                    }
                 }
             } finally {
                 s.logout();
