@@ -21,17 +21,20 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.ValueFormatException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.util.Text;
@@ -44,6 +47,7 @@ import org.apache.sling.repoinit.parser.operations.PropertyLine;
 import org.apache.sling.repoinit.parser.operations.SetProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
 
 /**
  * OperationVisitor which processes only operations related to setting node
@@ -294,18 +298,34 @@ class NodePropertiesVisitor extends DoNothingVisitor {
                 final PropertyLine.PropertyType pType = pl.getPropertyType();
                 final int type = PropertyType.valueFromName(pType.name());
                 final List<Object> values = pl.getPropertyValues();
+                Property p = n.hasProperty(pName) ? n.getProperty(pName)  : null;
                 if (values.size() > 1) {
                     Value[] pValues = convertToValues(values);
-                    n.setProperty(pName, pValues, type);
+                    //only set property if type and/or values change
+                    if( p == null ||  p.getType() != type || !equalValues(pValues, p.getValues()))
+                        n.setProperty(pName, pValues, type);
                 } else {
                     Value pValue = convertToValue(values.get(0));
-                    n.setProperty(pName, pValue, type);
+                    //only set property if type and/or value changes
+                    if( p == null || p.getType() != type || !pValue.getString().equals(p.getValue().getString()))
+                        n.setProperty(pName, pValue, type);
                 }
             } else {
                 log.info("Property '{}' already set on path '{}', existing value will not be overwritten in 'default' mode",
                     pName, nodePath);
             }
         }
+    }
+
+    private boolean equalValues(Value[] a1, Value[] a2) throws ValueFormatException, IllegalStateException, RepositoryException {
+        boolean result = true;
+        Iterator<Value> it1 = Arrays.stream(a1).iterator();
+        Iterator<Value> it2 = Arrays.stream(a2).iterator();
+        // each item needs to have same value in same order
+        while(it1.hasNext() && it2.hasNext())
+            result = result && it1.next().getString().equals(it2.next().getString()); 
+        // no remaining items in the iterators
+        return result && !(it1.hasNext() || it2.hasNext()) ;
     }
 
     @Override
