@@ -21,7 +21,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -34,7 +33,6 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
-import javax.jcr.ValueFormatException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.util.Text;
@@ -295,20 +293,18 @@ class NodePropertiesVisitor extends DoNothingVisitor {
         for (PropertyLine pl : propertyLines) {
             final String pName = pl.getPropertyName();
             if (needToSetProperty(n, pl)) {
-                final PropertyLine.PropertyType pType = pl.getPropertyType();
-                final int type = PropertyType.valueFromName(pType.name());
-                final List<Object> values = pl.getPropertyValues();
-                Property p = n.hasProperty(pName) ? n.getProperty(pName)  : null;
-                if (values.size() > 1) {
-                    Value[] pValues = convertToValues(values);
-                    //only set property if type and/or values change
-                    if( p == null ||  p.getType() != type || !equalValues(pValues, p.getValues()))
-                        n.setProperty(pName, pValues, type);
-                } else {
-                    Value pValue = convertToValue(values.get(0));
-                    //only set property if type and/or value changes
-                    if( p == null || p.getType() != type || !pValue.getString().equals(p.getValue().getString()))
-                        n.setProperty(pName, pValue, type);
+                final int newType = PropertyType.valueFromName(pl.getPropertyType().name());
+                Value[] newValues = convertToValues(pl.getPropertyValues());
+                Property oldProperty = n.hasProperty(pName) ? n.getProperty(pName)  : null;
+                // only set property if type and/or values change
+                // note: Node#setProperty() touches the node even if the property value is unchanged
+                //       and thus needs to be explicitly avoided
+                if(hasPropertyChange(oldProperty, newType, newValues)) {
+                    if (newValues.length == 1) {
+                        n.setProperty(pName, newValues[0], newType);
+                    } else {
+                        n.setProperty(pName, newValues, newType);
+                    }
                 }
             } else {
                 log.info("Property '{}' already set on path '{}', existing value will not be overwritten in 'default' mode",
@@ -317,15 +313,29 @@ class NodePropertiesVisitor extends DoNothingVisitor {
         }
     }
 
-    private boolean equalValues(Value[] a1, Value[] a2) throws ValueFormatException, IllegalStateException, RepositoryException {
-        boolean result = true;
-        Iterator<Value> it1 = Arrays.stream(a1).iterator();
-        Iterator<Value> it2 = Arrays.stream(a2).iterator();
-        // each item needs to have same value in same order
-        while(it1.hasNext() && it2.hasNext())
-            result = result && it1.next().getString().equals(it2.next().getString()); 
-        // no remaining items in the iterators
-        return result && !(it1.hasNext() || it2.hasNext()) ;
+    private boolean hasPropertyChange(Property oldProperty, int newType, Value... newValues) throws RepositoryException {
+        if (oldProperty == null || oldProperty.getType() != newType) {
+            return true;
+        }
+
+        final Value[] oldValues = oldProperty.isMultiple() ? oldProperty.getValues() : new Value[]{ oldProperty.getValue() };
+        if (oldValues.length != newValues.length) {
+            return true;
+        }
+
+        for (int i = 0; i < oldValues.length; i++) {
+            final Value oldValue = oldValues[i];
+            final Value newValue = newValues[i];
+            if (!valueEquals(oldValue, newValue)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean valueEquals(Value oldValue, Value newValue) throws RepositoryException {
+        return oldValue.getType() == newValue.getType()
+                && oldValue.getString().equals(newValue.getString());
     }
 
     @Override
