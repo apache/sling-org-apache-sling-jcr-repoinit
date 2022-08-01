@@ -244,10 +244,12 @@ public class TestUtil {
         }
     }
 
-    public void parseAndExecute(String input) throws RepositoryException, RepoInitParsingException {
+    public boolean parseAndExecute(String input) throws RepositoryException, RepoInitParsingException {
         final JcrRepoInitOpsProcessorImpl p = new JcrRepoInitOpsProcessorImpl();
         p.apply(adminSession, parse(input));
+        boolean hasChanges = adminSession.hasPendingChanges();
         adminSession.save();
+        return hasChanges;
     }
 
     public void cleanupUser() throws RepositoryException, RepoInitParsingException {

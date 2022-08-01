@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -44,6 +45,7 @@ import org.apache.sling.repoinit.parser.operations.PropertyLine;
 import org.apache.sling.repoinit.parser.operations.SetProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
 
 /**
  * OperationVisitor which processes only operations related to setting node
@@ -291,21 +293,49 @@ class NodePropertiesVisitor extends DoNothingVisitor {
         for (PropertyLine pl : propertyLines) {
             final String pName = pl.getPropertyName();
             if (needToSetProperty(n, pl)) {
-                final PropertyLine.PropertyType pType = pl.getPropertyType();
-                final int type = PropertyType.valueFromName(pType.name());
-                final List<Object> values = pl.getPropertyValues();
-                if (values.size() > 1) {
-                    Value[] pValues = convertToValues(values);
-                    n.setProperty(pName, pValues, type);
-                } else {
-                    Value pValue = convertToValue(values.get(0));
-                    n.setProperty(pName, pValue, type);
+                final int newType = PropertyType.valueFromName(pl.getPropertyType().name());
+                Value[] newValues = convertToValues(pl.getPropertyValues());
+                Property oldProperty = n.hasProperty(pName) ? n.getProperty(pName)  : null;
+                // only set property if type and/or values change
+                // note: Node#setProperty() touches the node even if the property value is unchanged
+                //       and thus needs to be explicitly avoided
+                if(hasPropertyChange(oldProperty, newType, newValues)) {
+                    if (newValues.length == 1) {
+                        n.setProperty(pName, newValues[0], newType);
+                    } else {
+                        n.setProperty(pName, newValues, newType);
+                    }
                 }
             } else {
                 log.info("Property '{}' already set on path '{}', existing value will not be overwritten in 'default' mode",
                     pName, nodePath);
             }
         }
+    }
+
+    private boolean hasPropertyChange(Property oldProperty, int newType, Value... newValues) throws RepositoryException {
+        if (oldProperty == null || oldProperty.getType() != newType) {
+            return true;
+        }
+
+        final Value[] oldValues = oldProperty.isMultiple() ? oldProperty.getValues() : new Value[]{ oldProperty.getValue() };
+        if (oldValues.length != newValues.length) {
+            return true;
+        }
+
+        for (int i = 0; i < oldValues.length; i++) {
+            final Value oldValue = oldValues[i];
+            final Value newValue = newValues[i];
+            if (!valueEquals(oldValue, newValue)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean valueEquals(Value oldValue, Value newValue) throws RepositoryException {
+        return oldValue.getType() == newValue.getType()
+                && oldValue.getString().equals(newValue.getString());
     }
 
     @Override

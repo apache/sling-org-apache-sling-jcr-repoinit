@@ -16,7 +16,9 @@
  */
 package org.apache.sling.jcr.repoinit;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -43,7 +45,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-
 /** Test the setting of properties on nodes */
 public class SetPropertiesTest {
     
@@ -56,13 +57,14 @@ public class SetPropertiesTest {
     private static final String path1 = pathPrefix + UUID.randomUUID();
     private static final String path2 = pathPrefix + UUID.randomUUID();
     private static final String path3 = pathPrefix + UUID.randomUUID();
+    private static final String path4 = pathPrefix + UUID.randomUUID();
 
     @Before
     public void setup() throws RepositoryException, IOException, RepoInitParsingException {
         U = new TestUtil(context);
         vf = U.adminSession.getValueFactory();
         RepositoryUtil.registerSlingNodeTypes(U.adminSession);
-        for(String p : new String[] { path1, path2, path3 }) {
+        for(String p : new String[] { path1, path2, path3, path4 }) {
             U.parseAndExecute("create path " + p);
             U.assertNodeExists(p);
         }
@@ -220,6 +222,19 @@ public class SetPropertiesTest {
         } catch(RuntimeException asExpected) {
             // all good
         }
+    }
+    
+    @Test
+    public void noChangeOnSameProps() throws Exception {
+        String testRT = "/my/props/test";
+        String repoinitStr = "set properties on " + path4 + " \n set sling:ResourceType{String} to "+testRT+" \n end";
+        boolean hasChanges = U.parseAndExecute(repoinitStr);
+        assertTrue("No changes first attempt - session should contain changes.", hasChanges);
+        hasChanges = U.parseAndExecute(repoinitStr);
+        assertFalse("Returning changes on second execution with same values - session should NOT contain changes.", hasChanges);
+        Value expectedValue = vf.createValue(testRT);
+        U.assertSVPropertyExists(path4, "sling:ResourceType", expectedValue);
+        
     }
 
     /**
