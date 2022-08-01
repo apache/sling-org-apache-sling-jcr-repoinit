@@ -32,6 +32,7 @@ import org.apache.sling.repoinit.parser.operations.AclLine;
 import org.apache.sling.repoinit.parser.operations.CreatePath;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipals;
+import org.apache.sling.repoinit.parser.operations.DeletePath;
 import org.apache.sling.repoinit.parser.operations.PathSegmentDefinition;
 import org.apache.sling.repoinit.parser.operations.PropertyLine;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPaths;
@@ -215,6 +216,26 @@ class AclVisitor extends DoNothingVisitor {
             session.save();
         } catch (Exception e) {
             report(e, "Session.save failed: " + e);
+        }
+    }
+
+    @Override
+    public void visitDeletePath(final DeletePath dp) {
+        final String path = dp.getPath();
+        try {
+            if (!session.itemExists(path)) {
+                log.info("Path does not exist, nothing to do: {}", path);
+            } else {
+                log.info("Deleting path {}", path);
+                session.removeItem(path);
+            }
+        } catch (final Exception e) {
+            throw new RuntimeException("DeletePath execution for path " + path + " failed", e);
+        }
+        try {
+            session.save();
+        } catch (Exception e) {
+            throw new RuntimeException("Session.save failed: " + e, e);
         }
     }
     
