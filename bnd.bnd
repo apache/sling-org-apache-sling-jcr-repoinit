@@ -3,4 +3,4 @@ Import-Package:\
   org.apache.jackrabbit.oak.spi.security.principal;version="[1.5,3)",\
   *
 Provide-Capability: osgi.implementation;osgi.implementation="org.apache.sling.jcr.repoinit";version:Version="8.1"
-Require-Capability: org.apache.sling.repoinit.language;filter:="(version>=8.5)"
+Require-Capability: org.apache.sling.repoinit.language;filter:="(version>=8.6)"

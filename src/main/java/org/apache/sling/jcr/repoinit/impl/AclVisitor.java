@@ -29,6 +29,7 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.sling.repoinit.parser.operations.AclLine;
+import org.apache.sling.repoinit.parser.operations.AddMixins;
 import org.apache.sling.repoinit.parser.operations.CreatePath;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipals;
@@ -38,6 +39,7 @@ import org.apache.sling.repoinit.parser.operations.DeleteAclPaths;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePaths;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipalBased;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipals;
+import org.apache.sling.repoinit.parser.operations.RemoveMixins;
 import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
@@ -217,7 +219,57 @@ class AclVisitor extends DoNothingVisitor {
             report(e, "Session.save failed: " + e);
         }
     }
-    
+
+    @Override
+    public void visitAddMixins(AddMixins am) {
+        List<String> paths = am.getPaths();
+        if (paths != null) {
+            for (String absPath : paths) {
+                try {
+                    if (!session.itemExists(absPath)) {
+                        log.warn("Path does not exist, not adding mixins: {}", absPath);
+                    } else {
+                        List<String> mixins = am.getMixins();
+                        if (mixins != null) {
+                            Node node = session.getNode(absPath);
+                            log.info("Adding mixins {} to node {}", mixins, absPath);
+                            for (String mixin : mixins) {
+                                node.addMixin(mixin);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    report(e, "AddMixins execution failed at " + absPath + ": " + e);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void visitRemoveMixins(RemoveMixins rm) {
+        List<String> paths = rm.getPaths();
+        if (paths != null) {
+            for (String absPath : paths) {
+                try {
+                    if (!session.itemExists(absPath)) {
+                        log.warn("Path does not exist, not removing mixins: {}", absPath);
+                    } else {
+                        List<String> mixins = rm.getMixins();
+                        if (mixins != null) {
+                            Node node = session.getNode(absPath);
+                            log.info("Removing mixins {} from node {}", mixins, absPath);
+                            for (String mixin : mixins) {
+                                node.removeMixin(mixin);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    report(e, "RemoveMixins execution failed at " + absPath + ": " + e);
+                }
+            }
+        }
+    }
+
     @NotNull
     private static Node addChildNode(@NotNull Node parent, @NotNull PathSegmentDefinition psd) throws RepositoryException {
         String primaryType = psd.getPrimaryType();
