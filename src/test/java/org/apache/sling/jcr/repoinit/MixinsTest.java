@@ -16,11 +16,16 @@
  */
 package org.apache.sling.jcr.repoinit;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
 
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
@@ -82,6 +87,45 @@ public class MixinsTest {
         U.parseAndExecute("remove mixin mix:lockable,mix:referenceable from /removeTwoMixinsOnOnePath1,/removeTwoMixinsOnOnePath2");
         U.assertNodeExists("/removeTwoMixinsOnOnePath1", "nt:unstructured", Collections.emptyList());
         U.assertNodeExists("/removeTwoMixinsOnOnePath2", "nt:unstructured", Collections.emptyList());
+    }
+
+    @Test
+    public void addMixinOnNotExistingPath() throws Exception {
+        // this should just log a warning and continue
+        U.parseAndExecute("add mixin mix:lockable to /addMixinOnNotExistingPath");
+        assertNodeNotExists("/addMixinOnNotExistingPath");
+    }
+
+    @Test
+    public void removeMixinFromNotExistingPath() throws Exception {
+        // this should just log a warning and continue
+        U.parseAndExecute("remove mixin mix:lockable from /removeMixinFromNotExistingPath");
+        assertNodeNotExists("/removeMixinFromNotExistingPath");
+    }
+
+    @Test
+    public void addNonExistingMixinToPath() throws Exception {
+        U.parseAndExecute("create path /addNonExistingMixinToPath(nt:unstructured)");
+        try {
+            U.parseAndExecute("add mixin mix:invalid to /addNonExistingMixinToPath");
+        } catch (Exception e) {
+            assertTrue("Expected NoSuchNodeTypeException", e.getCause() instanceof NoSuchNodeTypeException);
+        }
+    }
+
+    @Test
+    public void removeNonExistingMixinFromPath() throws Exception {
+        U.parseAndExecute("create path /removeNonExistingMixinFromPath(nt:unstructured)");
+        try {
+            U.parseAndExecute("remove mixin mix:invalid from /removeNonExistingMixinFromPath");
+        } catch (Exception e) {
+            assertTrue("Expected NoSuchNodeTypeException", e.getCause() instanceof NoSuchNodeTypeException);
+        }
+    }
+
+    protected void assertNodeNotExists(String path) throws RepositoryException {
+        Session adminSession = context.resourceResolver().adaptTo(Session.class);
+        assertFalse("Node should not exist", adminSession.nodeExists(path));
     }
 
 }
