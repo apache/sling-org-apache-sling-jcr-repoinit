@@ -19,6 +19,7 @@ package org.apache.sling.jcr.repoinit.impl;
 import javax.jcr.Session;
 
 import org.apache.sling.repoinit.parser.operations.AddGroupMembers;
+import org.apache.sling.repoinit.parser.operations.AddMixins;
 import org.apache.sling.repoinit.parser.operations.CreateGroup;
 import org.apache.sling.repoinit.parser.operations.CreatePath;
 import org.apache.sling.repoinit.parser.operations.CreateServiceUser;
@@ -38,6 +39,7 @@ import org.apache.sling.repoinit.parser.operations.RemoveAcePaths;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipalBased;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipals;
 import org.apache.sling.repoinit.parser.operations.RemoveGroupMembers;
+import org.apache.sling.repoinit.parser.operations.RemoveMixins;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipals;
@@ -192,4 +194,15 @@ class DoNothingVisitor implements OperationVisitor {
     public void visitSetProperties(SetProperties sp) {
         // no-op
     }
+
+    @Override
+    public void visitAddMixins(AddMixins s) {
+        // no-op
+    }
+
+    @Override
+    public void visitRemoveMixins(RemoveMixins s) {
+        // no-op
+    }
+
 }
