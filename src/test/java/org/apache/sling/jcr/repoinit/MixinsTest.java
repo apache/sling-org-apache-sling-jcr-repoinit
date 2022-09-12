@@ -34,6 +34,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import ch.qos.logback.classic.Level;
+
 /** Test the creation of paths with specific node types */
 public class MixinsTest {
 
@@ -70,37 +72,50 @@ public class MixinsTest {
 
     @Test
     public void removeOneMixinFromOnePath() throws Exception {
-        U.parseAndExecute("create path /removeOneMixinOnOnePath(nt:unstructured mixin mix:lockable)");
-        U.assertNodeExists("/removeOneMixinOnOnePath", "nt:unstructured", Collections.singletonList("mix:lockable"));
+        U.parseAndExecute("create path /removeOneMixinOnOnePath(nt:unstructured mixin mix:lockable,mix:referenceable)");
+        U.assertNodeExists("/removeOneMixinOnOnePath", "nt:unstructured", Arrays.asList("mix:lockable","mix:referenceable"));
 
         U.parseAndExecute("remove mixin mix:lockable from /removeOneMixinOnOnePath");
+        U.assertNodeExists("/removeOneMixinOnOnePath", "nt:unstructured", Collections.singletonList("mix:referenceable"));
+
+        U.parseAndExecute("remove mixin mix:referenceable from /removeOneMixinOnOnePath");
         U.assertNodeExists("/removeOneMixinOnOnePath", "nt:unstructured", Collections.emptyList());
     }
 
     @Test
     public void removeTwoMixinsFromTwoPaths() throws Exception {
-        U.parseAndExecute("create path /removeTwoMixinsOnOnePath1(nt:unstructured mixin mix:lockable,mix:referenceable)\n"
+        U.parseAndExecute("create path /removeTwoMixinsOnOnePath1(nt:unstructured mixin mix:lockable,mix:referenceable,mix:lastModified)\n"
                 + "create path /removeTwoMixinsOnOnePath2(nt:unstructured mixin mix:lockable,mix:referenceable)");
-        U.assertNodeExists("/removeTwoMixinsOnOnePath1", "nt:unstructured", Arrays.asList("mix:lockable","mix:referenceable"));
+        U.assertNodeExists("/removeTwoMixinsOnOnePath1", "nt:unstructured", Arrays.asList("mix:lockable","mix:referenceable", "mix:lastModified"));
         U.assertNodeExists("/removeTwoMixinsOnOnePath2", "nt:unstructured", Arrays.asList("mix:lockable","mix:referenceable"));
 
         U.parseAndExecute("remove mixin mix:lockable,mix:referenceable from /removeTwoMixinsOnOnePath1,/removeTwoMixinsOnOnePath2");
-        U.assertNodeExists("/removeTwoMixinsOnOnePath1", "nt:unstructured", Collections.emptyList());
+        U.assertNodeExists("/removeTwoMixinsOnOnePath1", "nt:unstructured", Collections.singletonList("mix:lastModified"));
         U.assertNodeExists("/removeTwoMixinsOnOnePath2", "nt:unstructured", Collections.emptyList());
     }
 
     @Test
     public void addMixinOnNotExistingPath() throws Exception {
-        // this should just log a warning and continue
-        U.parseAndExecute("add mixin mix:lockable to /addMixinOnNotExistingPath");
-        assertNodeNotExists("/addMixinOnNotExistingPath");
+        try (LogCapture capture = new LogCapture("org.apache.sling.jcr.repoinit.impl.AclVisitor", true)) {
+            // this should just log a warning and continue
+            U.parseAndExecute("add mixin mix:lockable to /addMixinOnNotExistingPath");
+            assertNodeNotExists("/addMixinOnNotExistingPath");
+
+            // verify the warning was logged
+            capture.assertContains(Level.WARN, "Path does not exist, not adding mixins: /addMixinOnNotExistingPath");
+        }
     }
 
     @Test
     public void removeMixinFromNotExistingPath() throws Exception {
-        // this should just log a warning and continue
-        U.parseAndExecute("remove mixin mix:lockable from /removeMixinFromNotExistingPath");
-        assertNodeNotExists("/removeMixinFromNotExistingPath");
+        try (LogCapture capture = new LogCapture("org.apache.sling.jcr.repoinit.impl.AclVisitor", true)) {
+            // this should just log a warning and continue
+            U.parseAndExecute("remove mixin mix:lockable from /removeMixinFromNotExistingPath");
+            assertNodeNotExists("/removeMixinFromNotExistingPath");
+
+            // verify the warning was logged
+            capture.assertContains(Level.WARN, "Path does not exist, not removing mixins: /removeMixinFromNotExistingPath");
+        }
     }
 
     @Test
