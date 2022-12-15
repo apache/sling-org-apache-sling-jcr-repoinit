@@ -96,7 +96,7 @@ public class MixinsTest {
 
     @Test
     public void addMixinOnNotExistingPath() throws Exception {
-        try (LogCapture capture = new LogCapture("org.apache.sling.jcr.repoinit.impl.AclVisitor", true)) {
+        try (LogCapture capture = new LogCapture("org.apache.sling.jcr.repoinit.impl.NodeVisitor", true)) {
             // this should just log a warning and continue
             U.parseAndExecute("add mixin mix:lockable to /addMixinOnNotExistingPath");
             assertNodeNotExists("/addMixinOnNotExistingPath");
@@ -108,7 +108,7 @@ public class MixinsTest {
 
     @Test
     public void removeMixinFromNotExistingPath() throws Exception {
-        try (LogCapture capture = new LogCapture("org.apache.sling.jcr.repoinit.impl.AclVisitor", true)) {
+        try (LogCapture capture = new LogCapture("org.apache.sling.jcr.repoinit.impl.NodeVisitor", true)) {
             // this should just log a warning and continue
             U.parseAndExecute("remove mixin mix:lockable from /removeMixinFromNotExistingPath");
             assertNodeNotExists("/removeMixinFromNotExistingPath");
