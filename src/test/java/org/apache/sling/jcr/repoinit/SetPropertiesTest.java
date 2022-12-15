@@ -255,7 +255,7 @@ public class SetPropertiesTest {
     /**
      * SLING-11293 "set default properties" instruction to change autocreated property value
      */
-//    @Test
+    @Test
     public void setAutocreatedDefaultPropertiesFromMixinType() throws Exception {
         registerSling11293NodeType();
 
