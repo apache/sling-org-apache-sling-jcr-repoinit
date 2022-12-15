@@ -16,6 +16,8 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,6 +28,7 @@ import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.sling.repoinit.parser.operations.AddMixins;
 import org.apache.sling.repoinit.parser.operations.CreatePath;
+import org.apache.sling.repoinit.parser.operations.EnsureNodes;
 import org.apache.sling.repoinit.parser.operations.PathSegmentDefinition;
 import org.apache.sling.repoinit.parser.operations.PropertyLine;
 import org.apache.sling.repoinit.parser.operations.RemoveMixins;
@@ -51,18 +54,50 @@ public class NodeVisitor extends DoNothingVisitor {
     }
 
     @Override
+    public void visitEnsureNodes(EnsureNodes en) {
+        createNodes(en.getDefinitions(), en.getPropertyLines(), true);
+    }
+
+    @Override
     public void visitCreatePath(CreatePath cp) {
+        createNodes(cp.getDefinitions(), cp.getPropertyLines(), false);
+    }
+
+    private void createNodes(List<PathSegmentDefinition> pathSegmentDefinitions, List<PropertyLine> propertyLines, boolean strict) {
         StringBuilder parentPathBuilder = new StringBuilder();
-        for (PathSegmentDefinition psd : cp.getDefinitions()) {
+        for (PathSegmentDefinition psd : pathSegmentDefinitions) {
             String parentPath = parentPathBuilder.toString();
             final String fullPath = String.format("%s/%s", parentPath, psd.getSegment());
             try {
-                if (session.itemExists(fullPath)) {
-                    log.info("Path already exists, nothing to do (and not checking its primary type for now): {}", fullPath);
+                final Node node;
+                if (strict) {
+                    if (session.nodeExists(fullPath)) {
+                        log.info("Node at {} already exists, checking/adjusting its types", fullPath);
+                        node = session.getNode(fullPath);
+                        if (psd.getPrimaryType() != null && !node.getPrimaryNodeType().getName().equals(psd.getPrimaryType())) {
+                            log.info("Adjusting primary type of node {} to {}", fullPath, psd.getPrimaryType());
+                            node.setPrimaryType(psd.getPrimaryType());
+                        }
+                    } else if (!session.propertyExists(fullPath)) {
+                        final Node parent = parentPath.equals("") ? session.getRootNode() : session.getNode(parentPath);
+                        log.info("Creating node {} with primary type {}", fullPath, psd.getPrimaryType());
+                        node = addChildNode(parent, psd);
+                        
+                    } else {
+                        throw new RepoInitException("There is a property with the name of the to be created node already at " + fullPath + ", therefore bailing out here as potentially not supported by the underlying JCR");
+                    }
                 } else {
-                    final Node parent = parentPath.equals("") ? session.getRootNode() : session.getNode(parentPath);
-                    log.info("Creating node {} with primary type {}", fullPath, psd.getPrimaryType());
-                    Node node = addChildNode(parent, psd);
+                    if (session.itemExists(fullPath)) {
+                        log.info("Path already exists, nothing to do (and not checking its primary type for now): {}", fullPath);
+                        node = null;
+                    } else {
+                        final Node parent = parentPath.equals("") ? session.getRootNode() : session.getNode(parentPath);
+                        log.info("Creating node {} with primary type {}", fullPath, psd.getPrimaryType());
+                        node = addChildNode(parent, psd);
+                    }
+                }
+                
+                if (node != null) {
                     List<String> mixins = psd.getMixins();
                     if (mixins != null) {
                         log.info("Adding mixins {} to node {}", mixins, fullPath);
@@ -76,7 +111,6 @@ public class NodeVisitor extends DoNothingVisitor {
             }
             parentPathBuilder.append("/").append(psd.getSegment());
         }
-        List<PropertyLine> propertyLines = cp.getPropertyLines();
         if (!propertyLines.isEmpty()) {
             // delegate to the NodePropertiesVisitor to set the properties
             SetProperties sp = new SetProperties(Collections.singletonList(parentPathBuilder.toString()), propertyLines);
