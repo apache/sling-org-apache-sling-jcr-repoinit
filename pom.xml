@@ -155,12 +155,26 @@
             <artifactId>org.apache.sling.testing.jcr-mock</artifactId>
             <version>1.3.2</version>
             <scope>test</scope>
+            <exclusions>
+                <!-- exclude outdated transitive jackrabbit-api dependency -->
+                <exclusion>
+                    <groupId>org.apache.jackrabbit</groupId>
+                    <artifactId>jackrabbit-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.testing.sling-mock</artifactId>
             <version>2.2.14</version>
             <scope>test</scope>
+            <exclusions>
+                <!-- exclude outdated transitive jackrabbit-api dependency -->
+                <exclusion>
+                    <groupId>org.apache.jackrabbit</groupId>
+                    <artifactId>jackrabbit-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>
@@ -187,6 +201,12 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>18.0.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
