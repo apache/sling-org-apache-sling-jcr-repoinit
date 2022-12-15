@@ -36,7 +36,7 @@
   </description>
 
   <properties>
-    <jackrabbit.version>2.20.6</jackrabbit.version>
+    <jackrabbit.version>2.20.7</jackrabbit.version>
     <oak.version>1.22.13</oak.version>
     <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
     <!-- To debug the pax process, override this with -D -->
