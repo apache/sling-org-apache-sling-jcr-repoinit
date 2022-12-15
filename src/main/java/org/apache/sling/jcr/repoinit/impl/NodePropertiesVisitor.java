@@ -51,6 +51,7 @@ import org.jetbrains.annotations.Nullable;
  * OperationVisitor which processes only operations related to setting node
  * properties. Having several such specialized visitors makes it easy to control
  * the execution order.
+ * @see NodeVisitor NodeVisitor, for operations related to nodes and their types
  */
 class NodePropertiesVisitor extends DoNothingVisitor {
     /**

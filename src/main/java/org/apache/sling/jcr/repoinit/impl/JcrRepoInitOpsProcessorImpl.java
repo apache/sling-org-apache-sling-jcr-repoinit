@@ -46,6 +46,7 @@ public class JcrRepoInitOpsProcessorImpl implements JcrRepoInitOpsProcessor {
                 new NodetypesVisitor(session),
                 new PrivilegeVisitor(session),
                 new UserVisitor(session),
+                new NodeVisitor(session),
                 new AclVisitor(session),
                 new GroupMembershipVisitor(session),
                 new NodePropertiesVisitor(session)
