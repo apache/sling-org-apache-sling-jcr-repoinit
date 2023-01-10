@@ -136,6 +136,7 @@ class AclVisitor extends DoNothingVisitor {
         }
     }
 
+    @Override
     public void visitEnsureAclPrincipalBased(EnsureAclPrincipalBased s) {
         for (String principalName : s.getPrincipals()) {
             try {
