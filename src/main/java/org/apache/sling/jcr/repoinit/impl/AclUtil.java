@@ -292,7 +292,7 @@ public class AclUtil {
         }
     }
 
-    public static void setPrincipalAcl(Session session, String principalName, Collection<AclLine> lines) throws RepositoryException {
+    public static void setPrincipalAcl(Session session, String principalName, Collection<AclLine> lines, boolean isStrict) throws RepositoryException {
         final JackrabbitAccessControlManager acMgr = getJACM(session);
         Principal principal = AccessControlUtils.getPrincipal(session, principalName);
         if (principal == null) {
@@ -304,7 +304,7 @@ public class AclUtil {
         }
 
         final PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal, true);
-        if (acl == null) {
+        if (acl == null && isStrict) {
             String principalDescription = principal.getName();
             // try to get path of principal in case it is backed by a JCR user/group
             if (principal instanceof ItemBasedPrincipal) {
@@ -327,12 +327,22 @@ public class AclUtil {
             } else if (action == AclLine.Action.ALLOW) {
                 final Privilege[] privileges = AccessControlUtils.privilegesFromNames(acMgr, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
                 for (String effectivePath : jcrPaths) {
-                    final LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
-                    final boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
-                    if (!added) {
-                        LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, effectivePath);
+                    if (acl == null) {
+                        // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with the same definition exists
+                        // or if there exists no node at the effective path (unable to evaluate path-based entries).
+                        LOG.info("No PrincipalAccessControlList available for principal {}", principal);
+                        if (!containsEquivalentEntry(session, effectivePath, principal, privileges, true, line.getRestrictions())) {
+                            LOG.warn("No equivalent path-based entry exists for principal {} and effective path {} ", principal.getName(), effectivePath);
+                            return;
+                        }
                     } else {
-                        modified = true;
+                        final LocalRestrictions restrictions = createLocalRestrictions(line.getRestrictions(), acl, session);
+                        final boolean added = acl.addEntry(effectivePath, privileges, restrictions.getRestrictions(), restrictions.getMVRestrictions());
+                        if (!added) {
+                            LOG.info("Equivalent principal-based entry already exists for principal {} and effective path {} ", principalName, effectivePath);
+                        } else {
+                            modified = true;
+                        }
                     }
                 }
             } else {
@@ -499,6 +509,24 @@ public class AclUtil {
             paths.add(a.getPath());
         }
         return paths;
+    }
+
+    private static boolean containsEquivalentEntry(Session session, String absPath, Principal principal, Privilege[] privileges, boolean isAllow, List<RestrictionClause> restrictionList) throws RepositoryException {
+        if (absPath != null && !session.nodeExists(absPath)) {
+            LOG.info("Cannot determine existence of equivalent path-based entry for principal {}. No node at path {} ", principal.getName(), absPath);
+            return true;
+        }
+        for (AccessControlPolicy policy : session.getAccessControlManager().getPolicies(absPath)) {
+            if (policy instanceof JackrabbitAccessControlList) {
+                LocalRestrictions lr = createLocalRestrictions(restrictionList, ((JackrabbitAccessControlList) policy), session);
+                LocalAccessControlEntry newEntry = new LocalAccessControlEntry(principal, privileges, isAllow, lr);
+                if (contains(((JackrabbitAccessControlList) policy).getAccessControlEntries(), newEntry)) {
+                    LOG.info("Equivalent path-based entry exists for principal {} and effective path {} ", newEntry.principal.getName(), absPath);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // visible for testing
