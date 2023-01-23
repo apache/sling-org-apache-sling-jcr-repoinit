@@ -29,6 +29,7 @@ import org.apache.sling.repoinit.parser.operations.DeleteGroup;
 import org.apache.sling.repoinit.parser.operations.DeleteServiceUser;
 import org.apache.sling.repoinit.parser.operations.DeleteUser;
 import org.apache.sling.repoinit.parser.operations.DisableServiceUser;
+import org.apache.sling.repoinit.parser.operations.EnsureAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.EnsureNodes;
 import org.apache.sling.repoinit.parser.operations.OperationVisitor;
 import org.apache.sling.repoinit.parser.operations.RegisterNamespace;
@@ -113,6 +114,11 @@ class DoNothingVisitor implements OperationVisitor {
 
     @Override
     public void visitSetAclPrincipalBased(SetAclPrincipalBased operation) {
+        // no-op
+    }
+
+    @Override
+    public void visitEnsureAclPrincipalBased(EnsureAclPrincipalBased ensureAclPrincipalBased) {
         // no-op
     }
 

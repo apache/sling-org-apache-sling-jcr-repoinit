@@ -21,6 +21,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -291,7 +292,7 @@ public class AclUtil {
         }
     }
 
-    public static void setPrincipalAcl(Session session, String principalName, Collection<AclLine> lines) throws RepositoryException {
+    public static void setPrincipalAcl(Session session, String principalName, Collection<AclLine> lines, boolean isStrict) throws RepositoryException {
         final JackrabbitAccessControlManager acMgr = getJACM(session);
         Principal principal = AccessControlUtils.getPrincipal(session, principalName);
         if (principal == null) {
@@ -303,6 +304,14 @@ public class AclUtil {
         }
 
         final PrincipalAccessControlList acl = getPrincipalAccessControlList(acMgr, principal, true);
+        if (acl == null && isStrict) {
+            String principalDescription = principal.getName();
+            // try to get path of principal in case it is backed by a JCR user/group
+            if (principal instanceof ItemBasedPrincipal) {
+                principalDescription += " (" + ((ItemBasedPrincipal) principal).getPath() + ")";
+            }
+            throw new IllegalStateException("No PrincipalAccessControlList available for principal '" + principalDescription + "'.");
+        }
         boolean modified = false;
         for (AclLine line : lines) {
             AclLine.Action action = line.getAction();
@@ -407,7 +416,14 @@ public class AclUtil {
     private static boolean isValidPath(@NotNull Session session, @Nullable String jcrPath) throws RepositoryException {
         return jcrPath == null || session.nodeExists(jcrPath);
     }
-    
+
+    /**
+     * 
+     * @param acMgr the access control manager
+     * @param principal the principal
+     * @return the first available {@link PrincipalAccessControlList} bound to the given principal or {@code null} of <a href="https://jackrabbit.apache.org/oak/docs/security/authorization/principalbased.html">principal-based authorization</a> is not enabled for the given principal
+     * @throws RepositoryException
+     */
     @Nullable
     private static JackrabbitAccessControlList getAccessControlList(@NotNull AccessControlManager acMgr,
                                                                     @Nullable String path, boolean includeApplicable) throws RepositoryException {

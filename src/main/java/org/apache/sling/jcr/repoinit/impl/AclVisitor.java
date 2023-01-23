@@ -29,6 +29,7 @@ import javax.jcr.Session;
 import org.apache.sling.repoinit.parser.operations.AclLine;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipals;
+import org.apache.sling.repoinit.parser.operations.EnsureAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPaths;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePaths;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipalBased;
@@ -101,6 +102,7 @@ class AclVisitor extends DoNothingVisitor {
         }
     }
 
+    
     @Override
     public void visitSetAclPrincipal(SetAclPrincipals s) {
         final List<String> principals = s.getPrincipals();
@@ -127,7 +129,19 @@ class AclVisitor extends DoNothingVisitor {
         for (String principalName : s.getPrincipals()) {
             try {
                 log.info("Adding principal-based access control entry for {}", principalName);
-                AclUtil.setPrincipalAcl(session, principalName, s.getLines());
+                AclUtil.setPrincipalAcl(session, principalName, s.getLines(), false);
+            } catch (Exception e) {
+                report(e, "Failed to set principal-based ACL (" + e.getMessage() + ")");
+            }
+        }
+    }
+
+    @Override
+    public void visitEnsureAclPrincipalBased(EnsureAclPrincipalBased s) {
+        for (String principalName : s.getPrincipals()) {
+            try {
+                log.info("Enforcing principal-based access control entry for {}", principalName);
+                AclUtil.setPrincipalAcl(session, principalName, s.getLines(), true);
             } catch (Exception e) {
                 report(e, "Failed to set principal-based ACL (" + e.getMessage() + ")");
             }
