@@ -17,45 +17,49 @@
 package org.apache.sling.jcr.repoinit.impl;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import javax.jcr.Session;
 
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.repoinit.parser.operations.Operation;
-import org.apache.sling.repoinit.parser.operations.OperationVisitor;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
 
 /**
  * Apply Operations produced by the repoinit parser to a JCR Repository
  */
 @Component(service = JcrRepoInitOpsProcessor.class,
-    property = {
-            Constants.SERVICE_VENDOR + "=The Apache Software Foundation"
-    })
+        property = {
+                Constants.SERVICE_VENDOR + "=The Apache Software Foundation"
+        })
 public class JcrRepoInitOpsProcessorImpl implements JcrRepoInitOpsProcessor {
 
-    /** Apply the supplied operations: first the namespaces and nodetypes
-     *  registrations, then the service users, paths and ACLs.
+    /**
+     * Apply the supplied operations: first the namespaces and nodetypes
+     * registrations, then the service users, paths and ACLs.
      */
     @Override
     public void apply(Session session, List<Operation> ops) {
-
-        final OperationVisitor [] visitors = {
-                new NamespacesVisitor(session),
-                new NodetypesVisitor(session),
-                new PrivilegeVisitor(session),
-                new UserVisitor(session),
-                new NodeVisitor(session),
-                new AclVisitor(session),
-                new GroupMembershipVisitor(session),
-                new NodePropertiesVisitor(session)
-        };
-
-        for(OperationVisitor v : visitors) {
-            for(Operation op : ops) {
-                op.accept(v);
-            }
-        }
+        Stream.of(
+                // register namespaces first
+                singleton(new NamespacesVisitor(session)),
+                // then create node types and privileges, both use namespaces
+                asList(
+                        new NodetypesVisitor(session),
+                        new PrivilegeVisitor(session)),
+                // finally apply everything else
+                asList(
+                        new UserVisitor(session),
+                        new NodeVisitor(session),
+                        new AclVisitor(session),
+                        new GroupMembershipVisitor(session),
+                        new NodePropertiesVisitor(session))
+        ).forEach(visitorGroup -> {
+            ops.forEach(op -> visitorGroup.forEach(op::accept));
+        });
     }
 }
