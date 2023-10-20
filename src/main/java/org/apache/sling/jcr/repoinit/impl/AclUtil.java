@@ -119,23 +119,25 @@ public class AclUtil {
         return new LocalRestrictions(restrictions,mvrestrictions);
     }
 
-
     public static void setAcl(Session session, List<String> principals, List<String> paths, List<String> privileges, boolean isAllow)
             throws RepositoryException {
-        setAcl(session, principals, paths, privileges, isAllow, Collections.emptyList());
+        setAcl(session, principals, paths, privileges, isAllow, Collections.emptyList(), Collections.emptyList());
     }
 
-    public static void setAcl(Session session, List<String> principals, List<String> paths, List<String> privileges, boolean isAllow, List<RestrictionClause> restrictionClauses)
+    public static void setAcl(Session session, List<String> principals, List<String> paths, List<String> privileges,
+                              boolean isAllow, List<RestrictionClause> restrictionClauses, List<String> options)
             throws RepositoryException {
+
         for (String jcrPath : getJcrPaths(session, paths)) {
             if (jcrPath != null && !session.nodeExists(jcrPath)) {
                 throw new PathNotFoundException("Cannot set ACL on non-existent path " + jcrPath);
             }
-            setAcl(session, principals, jcrPath, privileges, isAllow, restrictionClauses);
+            setAcl(session, principals, jcrPath, privileges, isAllow, restrictionClauses, options);
         }
     }
 
-    private static void setAcl(Session session, List<String> principals, String jcrPath, List<String> privileges, boolean isAllow, List<RestrictionClause> restrictionClauses)
+    private static void setAcl(Session session, List<String> principals, String jcrPath, List<String> privileges,
+                               boolean isAllow, List<RestrictionClause> restrictionClauses, List<String> options)
             throws RepositoryException {
 
         AccessControlManager acMgr = session.getAccessControlManager();
@@ -152,7 +154,9 @@ public class AclUtil {
 
         boolean changed = false;
         for (String name : principals) {
-            Principal principal = AccessControlUtils.getPrincipal(session, name);
+            Principal principal = options.contains("ignoreMissingPrincipal")
+                    ? () -> name
+                    : AccessControlUtils.getPrincipal(session, name);
             if (principal == null) {
                 // backwards compatibility: fallback to original code treating principal name as authorizable ID (see SLING-8604)
                 final Authorizable authorizable = UserUtil.getAuthorizable(session, name);
@@ -172,11 +176,6 @@ public class AclUtil {
         if ( changed ) {
             acMgr.setPolicy(jcrPath, acl);
         }
-    }
-
-    public static void setRepositoryAcl(Session session, List<String> principals, List<String> privileges, boolean isAllow, List<RestrictionClause> restrictionClauses)
-           throws RepositoryException {
-        setAcl(session, principals, (String)null, privileges, isAllow, restrictionClauses);
     }
 
     /**
@@ -420,7 +419,7 @@ public class AclUtil {
     /**
      * 
      * @param acMgr the access control manager
-     * @param principal the principal
+     * @param path the path
      * @return the first available {@link PrincipalAccessControlList} bound to the given principal or {@code null} of <a href="https://jackrabbit.apache.org/oak/docs/security/authorization/principalbased.html">principal-based authorization</a> is not enabled for the given principal
      * @throws RepositoryException
      */

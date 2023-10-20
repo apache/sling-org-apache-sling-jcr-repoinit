@@ -16,8 +16,6 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
