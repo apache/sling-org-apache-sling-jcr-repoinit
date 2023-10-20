@@ -25,7 +25,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.StringReader;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import javax.jcr.Node;
@@ -35,11 +37,14 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.repoinit.parser.impl.RepoInitParserService;
 import org.apache.sling.repoinit.parser.operations.Operation;
@@ -50,28 +55,28 @@ import org.jetbrains.annotations.NotNull;
 public class TestUtil {
 
     public static final String JCR_PRIMARY_TYPE = "jcr:primaryType";
+
+    @NotNull
     public final Session adminSession;
     public final String id;
     public final String username;
 
     public TestUtil(SlingContext ctx) {
-        adminSession = ctx.resourceResolver().adaptTo(Session.class);
+        adminSession = Objects.requireNonNull(ctx.resourceResolver().adaptTo(Session.class));
         id = UUID.randomUUID().toString();
         username = "user_" + id;
     }
 
-    public TestUtil(Session adminSession) {
+    public TestUtil(@NotNull Session adminSession) {
         this.adminSession = adminSession;
         id = UUID.randomUUID().toString();
         username = "user_" + id;
     }
 
-    public List<Operation> parse(String input) throws RepoInitParsingException {
-        List<Operation> parse = null;
-        try (final StringReader r = new StringReader(input)) {
-            parse = new RepoInitParserService().parse(r);
+    public List<Operation> parse(String... inputLines) throws RepoInitParsingException {
+        try (final StringReader r = new StringReader(String.join("\n", inputLines))) {
+            return new RepoInitParserService().parse(r);
         }
-        return parse;
     }
 
     private void assertPathContains(Authorizable u, String pathShouldContain) throws RepositoryException {
@@ -244,9 +249,9 @@ public class TestUtil {
         }
     }
 
-    public boolean parseAndExecute(String input) throws RepositoryException, RepoInitParsingException {
+    public boolean parseAndExecute(String... inputLines) throws RepositoryException, RepoInitParsingException {
         final JcrRepoInitOpsProcessorImpl p = new JcrRepoInitOpsProcessorImpl();
-        p.apply(adminSession, parse(input));
+        p.apply(adminSession, parse(inputLines));
         boolean hasChanges = adminSession.hasPendingChanges();
         adminSession.save();
         return hasChanges;
@@ -294,5 +299,15 @@ public class TestUtil {
         if (adminSession.hasPendingChanges()) {
             adminSession.save();
         }
+    }
+
+    public void assertPrivileges(String principalName, String path, boolean allowed, String... privilegeNames) throws RepositoryException {
+        final Privilege[] privileges = AccessControlUtils.privilegesFromNames(adminSession, privilegeNames);
+        final JackrabbitAccessControlManager acMgr = AclUtil.getJACM(adminSession);
+        assertEquals(
+                String.format("Expected %s to have %s %s on %s",
+                        principalName, String.join(", ", privilegeNames), allowed ? "allowed" : "denied", path),
+                allowed,
+                acMgr.hasPrivileges(path, Collections.singleton(() -> principalName), privileges));
     }
 }
