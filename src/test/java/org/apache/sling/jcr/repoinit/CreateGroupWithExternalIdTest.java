@@ -21,7 +21,14 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.jcr.repoinit.impl.UserUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
@@ -74,6 +81,9 @@ public class CreateGroupWithExternalIdTest {
 
         // Do this twice in order to test initial creation and update scenarios.
         for (int i = 0; i < 2; i++) {
+            // WARNING: rep:externalId is an implementation detail of oak-auth-external and should
+            //          normally only be set by that module. It is NOT recommended to use the approach
+            //          illustrated below to set up a production system.
             U.parseAndExecute(
                     "create group " + GROUP_NAME,
                     "set properties on authorizable(" + GROUP_NAME + ")",
@@ -102,14 +112,20 @@ public class CreateGroupWithExternalIdTest {
 
     @NotNull
     private static SecurityProvider createSecurityProvider() {
+        final SecurityProvider defaults = SecurityProviderBuilder.newBuilder().build();
+
+
+        final CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration();
+        principalConfiguration.addConfiguration(defaults.getConfiguration(PrincipalConfiguration.class));
+        principalConfiguration.addConfiguration(new ExternalPrincipalConfiguration());
         return SecurityProviderBuilder.newBuilder()
                 .with(
-                        null, ConfigurationParameters.EMPTY,
-                        null, ConfigurationParameters.EMPTY,
-                        null, ConfigurationParameters.EMPTY,
-                        null, ConfigurationParameters.EMPTY,
-                        new ExternalPrincipalConfiguration(), ConfigurationParameters.EMPTY,
-                        null, ConfigurationParameters.EMPTY)
+                        defaults.getConfiguration(AuthenticationConfiguration.class), ConfigurationParameters.EMPTY,
+                        defaults.getConfiguration(PrivilegeConfiguration.class), ConfigurationParameters.EMPTY,
+                        defaults.getConfiguration(UserConfiguration.class), ConfigurationParameters.EMPTY,
+                        defaults.getConfiguration(AuthorizationConfiguration.class), ConfigurationParameters.EMPTY,
+                        principalConfiguration, ConfigurationParameters.EMPTY,
+                        defaults.getConfiguration(TokenConfiguration.class), ConfigurationParameters.EMPTY)
                 .build();
     }
 }
