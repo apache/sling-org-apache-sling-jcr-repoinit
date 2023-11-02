@@ -40,9 +40,9 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-public class SetAclWithoutExistingAuthorizableTest {
+class SetAclWithoutExistingAuthorizableTest {
 
-    public static Stream<Arguments> repoInitStatements() {
+    static Stream<Arguments> repoInitStatements() {
         return Stream.of(
                 arguments(String.join("\n",
                         "set ACL on / (ACLOptions=ignoreMissingPrincipal)",
@@ -57,7 +57,7 @@ public class SetAclWithoutExistingAuthorizableTest {
 
     @ParameterizedTest
     @MethodSource("repoInitStatements")
-    public void withImportBehaviourBestEffort(String repoinit) throws Exception {
+    void withImportBehaviourBestEffort(String repoinit) throws Exception {
         TestUtil U = createTestUtil(ImportBehavior.NAME_BESTEFFORT);
         assertReadOnRootPath(U, false);
         U.parseAndExecute(repoinit);
@@ -66,7 +66,7 @@ public class SetAclWithoutExistingAuthorizableTest {
 
     @ParameterizedTest
     @MethodSource("repoInitStatements")
-    public void withImportBehaviourIgnore(String repoinit) throws Exception {
+    void withImportBehaviourIgnore(String repoinit) throws Exception {
         TestUtil U = createTestUtil(ImportBehavior.NAME_IGNORE);
         assertReadOnRootPath(U, false);
         U.parseAndExecute(repoinit);
@@ -75,7 +75,7 @@ public class SetAclWithoutExistingAuthorizableTest {
 
     @ParameterizedTest
     @MethodSource("repoInitStatements")
-    public void withImportBehaviourAbort(String repoinit) throws Exception {
+    void withImportBehaviourAbort(String repoinit) throws Exception {
         TestUtil U = createTestUtil(ImportBehavior.NAME_ABORT);
         assertReadOnRootPath(U, false);
         assertThrows(RepoInitException.class, () -> U.parseAndExecute(repoinit));
