@@ -19,16 +19,10 @@ package org.apache.sling.jcr.repoinit;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderHelper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.jcr.repoinit.impl.UserUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
@@ -112,20 +106,8 @@ public class CreateGroupWithExternalIdTest {
 
     @NotNull
     private static SecurityProvider createSecurityProvider() {
-        final SecurityProvider defaults = SecurityProviderBuilder.newBuilder().build();
-
-
-        final CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration();
-        principalConfiguration.addConfiguration(defaults.getConfiguration(PrincipalConfiguration.class));
-        principalConfiguration.addConfiguration(new ExternalPrincipalConfiguration());
-        return SecurityProviderBuilder.newBuilder()
-                .with(
-                        defaults.getConfiguration(AuthenticationConfiguration.class), ConfigurationParameters.EMPTY,
-                        defaults.getConfiguration(PrivilegeConfiguration.class), ConfigurationParameters.EMPTY,
-                        defaults.getConfiguration(UserConfiguration.class), ConfigurationParameters.EMPTY,
-                        defaults.getConfiguration(AuthorizationConfiguration.class), ConfigurationParameters.EMPTY,
-                        principalConfiguration, ConfigurationParameters.EMPTY,
-                        defaults.getConfiguration(TokenConfiguration.class), ConfigurationParameters.EMPTY)
-                .build();
+        final SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().build();
+        SecurityProviderHelper.updateConfig(securityProvider, new ExternalPrincipalConfiguration(), PrincipalConfiguration.class);
+        return securityProvider;
     }
 }
