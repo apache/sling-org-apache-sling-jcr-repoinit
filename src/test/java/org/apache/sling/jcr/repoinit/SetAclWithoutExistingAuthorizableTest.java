@@ -25,49 +25,61 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.sling.jcr.repoinit.impl.RepoInitException;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
-import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import java.util.stream.Stream;
+
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class SetAclWithoutExistingAuthorizableTest {
 
-    @Test
-    public void withImportBehaviourBestEffort() throws Exception {
+    public static Stream<Arguments> repoInitStatements() {
+        return Stream.of(
+                arguments(String.join("\n",
+                        "set ACL on / (ACLOptions=ignoreMissingPrincipal)",
+                        "  allow jcr:read for nonExistingGroup",
+                        "end")),
+                arguments(String.join("\n",
+                        "set ACL for nonExistingGroup (ACLOptions=ignoreMissingPrincipal)",
+                        "  allow jcr:read on /",
+                        "end"))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("repoInitStatements")
+    public void withImportBehaviourBestEffort(String repoinit) throws Exception {
         TestUtil U = createTestUtil(ImportBehavior.NAME_BESTEFFORT);
         assertReadOnRootPath(U, false);
-        setAcl(U);
+        U.parseAndExecute(repoinit);
         assertReadOnRootPath(U, true);
     }
 
-    @Test
-    public void withImportBehaviourIgnore() throws Exception {
+    @ParameterizedTest
+    @MethodSource("repoInitStatements")
+    public void withImportBehaviourIgnore(String repoinit) throws Exception {
         TestUtil U = createTestUtil(ImportBehavior.NAME_IGNORE);
         assertReadOnRootPath(U, false);
-        setAcl(U);
+        U.parseAndExecute(repoinit);
         assertReadOnRootPath(U, false);
     }
 
-    @Test
-    public void withImportBehaviourAbort() throws Exception {
+    @ParameterizedTest
+    @MethodSource("repoInitStatements")
+    public void withImportBehaviourAbort(String repoinit) throws Exception {
         TestUtil U = createTestUtil(ImportBehavior.NAME_ABORT);
         assertReadOnRootPath(U, false);
-        assertThrows(RepoInitException.class, () -> setAcl(U));
+        assertThrows(RepoInitException.class, () -> U.parseAndExecute(repoinit));
         assertReadOnRootPath(U, false);
-    }
-
-    private static void setAcl(TestUtil U) throws RepositoryException, RepoInitParsingException {
-        U.parseAndExecute(
-                "set ACL for nonExistingGroup (ACLOptions=ignoreMissingPrincipal)",
-                "  allow jcr:read on /",
-                "end"
-        );
     }
 
     private static void assertReadOnRootPath(TestUtil U, boolean allowed) throws RepositoryException {
