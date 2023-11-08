@@ -66,7 +66,7 @@ class DoNothingVisitor implements OperationVisitor {
         session = s;
     }
 
-    protected static void report(Exception e, String message) {
+    protected void report(Exception e, String message) {
         throw new RepoInitException(message, e);
     }
 
