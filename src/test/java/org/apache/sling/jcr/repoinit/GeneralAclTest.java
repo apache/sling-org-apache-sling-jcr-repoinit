@@ -270,9 +270,9 @@ public class GeneralAclTest {
         try {
             userSession = U.loginService(username);
             userSession.getWorkspace().getNamespaceRegistry().registerNamespace(prefix, uri);
-            assertTrue("Register namespace succeeded " + prefix + " " + uri, successExpected);
+            assertTrue("Register namespace succeeded " + prefix + uri, successExpected);
         } catch (RepositoryException e) {
-            assertFalse("Error registering namespace " + prefix + " " + uri + " " + e.getMessage(), successExpected);
+            assertTrue("Error registering namespace " + prefix + uri + " " + e.getMessage(), !successExpected);
         } finally {
             if (userSession != null) {
                 userSession.logout();

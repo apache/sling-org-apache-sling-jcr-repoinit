@@ -419,7 +419,7 @@ public class AclUtil {
     /**
      * 
      * @param acMgr the access control manager
-     * @param path the path
+     * @param principal the principal
      * @return the first available {@link PrincipalAccessControlList} bound to the given principal or {@code null} of <a href="https://jackrabbit.apache.org/oak/docs/security/authorization/principalbased.html">principal-based authorization</a> is not enabled for the given principal
      * @throws RepositoryException
      */
