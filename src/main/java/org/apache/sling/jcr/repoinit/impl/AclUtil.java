@@ -153,15 +153,19 @@ public class AclUtil {
         AccessControlEntry[] existingAces = acl.getAccessControlEntries();
 
         boolean changed = false;
+        final boolean ignoreMissingPrincipal = options.contains(AclVisitor.OPTION_IGNORE_MISSING_PRINCIPAL);
         for (String name : principals) {
-            Principal principal = options.contains("ignoreMissingPrincipal")
-                    ? () -> name
-                    : AccessControlUtils.getPrincipal(session, name);
+            Principal principal = AccessControlUtils.getPrincipal(session, name);
             if (principal == null) {
                 // backwards compatibility: fallback to original code treating principal name as authorizable ID (see SLING-8604)
                 final Authorizable authorizable = UserUtil.getAuthorizable(session, name);
-                checkState(authorizable != null, "Authorizable not found: {0}", name);
-                principal = authorizable.getPrincipal();
+                checkState(authorizable != null || ignoreMissingPrincipal, "Authorizable not found: {0}", name);
+                if (authorizable != null) {
+                    principal = authorizable.getPrincipal();
+                }
+            }
+            if (principal == null && ignoreMissingPrincipal) {
+                principal = () -> name;
             }
             checkState(principal != null, PRINCIPAL_NOT_FOUND_PATTERN, name);
             LocalAccessControlEntry newAce = new LocalAccessControlEntry(principal, jcrPriv, isAllow, localRestrictions);
