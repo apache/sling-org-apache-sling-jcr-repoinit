@@ -159,13 +159,17 @@ public class AclUtil {
             if (principal == null) {
                 // backwards compatibility: fallback to original code treating principal name as authorizable ID (see SLING-8604)
                 final Authorizable authorizable = UserUtil.getAuthorizable(session, name);
-                checkState(authorizable != null || ignoreMissingPrincipal, "Authorizable not found: {0}", name);
-                if (authorizable != null) {
+                if (!ignoreMissingPrincipal) {
+                    checkState(authorizable != null, "Authorizable not found: {0}", name);
                     principal = authorizable.getPrincipal();
+                } else {
+                    if (authorizable != null) {
+                        principal = authorizable.getPrincipal();
+                    }
+                    if (principal == null) {
+                        principal = () -> name;
+                    }
                 }
-            }
-            if (principal == null && ignoreMissingPrincipal) {
-                principal = () -> name;
             }
             checkState(principal != null, PRINCIPAL_NOT_FOUND_PATTERN, name);
             LocalAccessControlEntry newAce = new LocalAccessControlEntry(principal, jcrPriv, isAllow, localRestrictions);
