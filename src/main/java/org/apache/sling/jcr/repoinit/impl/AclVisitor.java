@@ -101,7 +101,11 @@ class AclVisitor extends DoNothingVisitor {
             try {
                 handleAclLine(line, Instruction.SET, principals, paths, s.getOptions());
             } catch (Exception e) {
-                report(e, String.format("Failed to set %sACL (%s) %s", isRepositoryAcl ? "repository level " : "", e, line));
+                if (isRepositoryAcl) {
+                    report(e, "Failed to set repository level ACL (" + e + ") " + line);
+                } else {
+                    report(e, "Failed to set ACL (" + e + ") " + line);
+                }
             }
         }
     }
