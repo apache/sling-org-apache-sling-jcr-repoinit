@@ -16,7 +16,6 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
-import static org.apache.sling.repoinit.parser.operations.AclLine.Action.ALLOW;
 import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PATHS;
 import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PRINCIPALS;
 import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PRIVILEGES;
@@ -38,8 +37,6 @@ import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipals;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipals;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 /**
  * OperationVisitor which processes only operations related to ACLs.
@@ -70,11 +67,49 @@ class AclVisitor extends DoNothingVisitor {
         super(s);
     }
 
+    private void handleAclLine(AclLine line, Instruction instruction, List<String> principals, List<String> paths, List<String> options) {
+        final AclLine.Action action = line.getAction();
+        if (action == AclLine.Action.REMOVE) {
+            report("remove not supported. use 'remove acl' instead.");
+        } else if (action == AclLine.Action.REMOVE_ALL) {
+            try {
+                AclUtil.removeEntries(session, principals, paths);
+            } catch (Exception e) {
+                report(e, "Failed to remove access control entries (" + e + ") " + line);
+            }
+        } else {
+            final boolean isAllow = action == AclLine.Action.ALLOW;
+            final String actionName = isAllow ? "allow" : "deny";
+            final List<String> privileges = line.getProperty(PROP_PRIVILEGES);
+            switch (instruction) {
+                case SET:
+                    try {
+                        log.info("Adding ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
+                        AclUtil.setAcl(session, principals, paths, privileges, isAllow, line.getRestrictions(), options);
+                    } catch (Exception e) {
+                        report(e, "Failed to set ACL (" + e + ") " + line);
+                    }
+                    break;
+                case REMOVE:
+                    try {
+                        log.info("Removing ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
+                        AclUtil.removeEntries(session, principals, paths, privileges, isAllow, line.getRestrictions());
+                    } catch (Exception e) {
+                        report(e, "Failed to remove access control entries (" + e + ") " + line);
+                    }
+                    break;
+            }
+        }
+    }
+
     @Override
     public void visitSetAclPrincipal(SetAclPrincipals s) {
         final List<String> principals = s.getPrincipals();
         for (AclLine line : s.getLines()) {
-            handleAclLine(line, Instruction.SET, principals, line.getProperty(PROP_PATHS), s.getOptions());
+            List<String> paths = line.getProperty(PROP_PATHS);
+            // empty paths indicates a repository ACL, which can be encoded with the path ":repository"
+            paths = paths.isEmpty() ? Collections.singletonList(AclLine.PATH_REPOSITORY) : paths;
+            handleAclLine(line, Instruction.SET, principals, paths, s.getOptions());
         }
     }
 
@@ -168,48 +203,6 @@ class AclVisitor extends DoNothingVisitor {
             } catch (RepositoryException e) {
                 report(e, "Failed to remove principal-based ACL (" + e.getMessage() + ")");
             }
-        }
-    }
-
-    private void handleAclLine(AclLine line, Instruction instruction, List<String> principals, List<String> paths, List<String> options) {
-        final AclLine.Action action = line.getAction();
-        switch (action) {
-            case REMOVE:
-                report("remove not supported. use 'remove acl' instead.");
-                break;
-            case REMOVE_ALL:
-                try {
-                    AclUtil.removeEntries(session, principals, paths);
-                } catch (Exception e) {
-                    report(e,"Failed to remove access control entries (" + e + ") " + line);
-                }
-                break;
-            case ALLOW:
-            case DENY:
-                final boolean isAllow = action == ALLOW;
-                final String actionName = isAllow ? "allow" : "deny";
-                final List<String> privileges = line.getProperty(PROP_PRIVILEGES);
-                switch (instruction) {
-                    case SET:
-                        try {
-                            // empty paths indicates a repository ACL, which is also encoded with the path ":repository"
-                            final List<String> fixedPaths = paths.isEmpty() ? Collections.singletonList(AclLine.PATH_REPOSITORY) : paths;
-                            log.info("Adding ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
-                            AclUtil.setAcl(session, principals, fixedPaths, privileges, isAllow, line.getRestrictions(), options);
-                        } catch (Exception e) {
-                            report(e, "Failed to set ACL (" + e + ") " + line);
-                        }
-                        break;
-                    case REMOVE:
-                        try {
-                            log.info("Removing ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
-                            AclUtil.removeEntries(session, principals, paths, privileges, isAllow, line.getRestrictions());
-                        } catch (Exception e) {
-                            report(e, "Failed to remove access control entries (" + e + ") " + line);
-                        }
-                        break;
-                }
-                break;
         }
     }
 }
