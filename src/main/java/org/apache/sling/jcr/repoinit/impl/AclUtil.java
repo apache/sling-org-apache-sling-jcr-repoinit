@@ -53,6 +53,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -153,7 +154,9 @@ public class AclUtil {
         AccessControlEntry[] existingAces = acl.getAccessControlEntries();
 
         boolean changed = false;
-        final boolean ignoreMissingPrincipal = options.contains(AclVisitor.OPTION_IGNORE_MISSING_PRINCIPAL);
+        final boolean ignoreMissingPrincipal = Optional.ofNullable(options)
+                .map(o -> o.contains(AclVisitor.OPTION_IGNORE_MISSING_PRINCIPAL))
+                .orElse(false);
         for (String name : principals) {
             final Principal principal = getPrincipal(session, name, ignoreMissingPrincipal);
             LocalAccessControlEntry newAce = new LocalAccessControlEntry(principal, jcrPriv, isAllow, localRestrictions);

@@ -42,7 +42,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class SetAclWithoutExistingAuthorizableTest {
 
-    static Stream<Arguments> repoInitStatements() {
+    static Stream<Arguments> nonExistingGroupStatements() {
         return Stream.of(
                 arguments(String.join("\n",
                         "set ACL on / (ACLOptions=ignoreMissingPrincipal)",
@@ -55,35 +55,60 @@ class SetAclWithoutExistingAuthorizableTest {
         );
     }
 
+    static Stream<Arguments> existingGroupStatements() {
+        return Stream.of(ImportBehavior.NAME_BESTEFFORT, ImportBehavior.NAME_IGNORE, ImportBehavior.NAME_ABORT)
+                .flatMap(importBehaviour -> Stream.of(
+                        arguments(importBehaviour, String.join("\n",
+                                "create group existingGroup",
+                                "set ACL on / (ACLOptions=ignoreMissingPrincipal)",
+                                "  allow jcr:read for existingGroup",
+                                "end")),
+                        arguments(importBehaviour, String.join("\n",
+                                "create group existingGroup",
+                                "set ACL for existingGroup (ACLOptions=ignoreMissingPrincipal)",
+                                "  allow jcr:read on /",
+                                "end"))
+                ));
+    }
+
     @ParameterizedTest
-    @MethodSource("repoInitStatements")
+    @MethodSource("nonExistingGroupStatements")
     void withImportBehaviourBestEffort(String repoinit) throws Exception {
         TestUtil U = createTestUtil(ImportBehavior.NAME_BESTEFFORT);
-        assertReadOnRootPath(U, false);
+        assertReadOnRootPath(U, "nonExistingGroup", false);
         U.parseAndExecute(repoinit);
-        assertReadOnRootPath(U, true);
+        assertReadOnRootPath(U, "nonExistingGroup", true);
     }
 
     @ParameterizedTest
-    @MethodSource("repoInitStatements")
+    @MethodSource("nonExistingGroupStatements")
     void withImportBehaviourIgnore(String repoinit) throws Exception {
         TestUtil U = createTestUtil(ImportBehavior.NAME_IGNORE);
-        assertReadOnRootPath(U, false);
+        assertReadOnRootPath(U, "nonExistingGroup", false);
         U.parseAndExecute(repoinit);
-        assertReadOnRootPath(U, false);
+        assertReadOnRootPath(U, "nonExistingGroup", false);
     }
 
     @ParameterizedTest
-    @MethodSource("repoInitStatements")
+    @MethodSource("nonExistingGroupStatements")
     void withImportBehaviourAbort(String repoinit) throws Exception {
         TestUtil U = createTestUtil(ImportBehavior.NAME_ABORT);
-        assertReadOnRootPath(U, false);
+        assertReadOnRootPath(U, "nonExistingGroup", false);
         assertThrows(RepoInitException.class, () -> U.parseAndExecute(repoinit));
-        assertReadOnRootPath(U, false);
+        assertReadOnRootPath(U, "nonExistingGroup", false);
     }
 
-    private static void assertReadOnRootPath(TestUtil U, boolean allowed) throws RepositoryException {
-        U.assertPrivileges("nonExistingGroup", "/", allowed, "jcr:read");
+    @ParameterizedTest
+    @MethodSource("existingGroupStatements")
+    void withExistingGroup(String importBehavior, String repoinit) throws Exception {
+        TestUtil U = createTestUtil(importBehavior);
+        assertReadOnRootPath(U, "existingGroup", false);
+        U.parseAndExecute(repoinit);
+        assertReadOnRootPath(U, "existingGroup", true);
+    }
+
+    private static void assertReadOnRootPath(TestUtil U, String principalName, boolean allowed) throws RepositoryException {
+        U.assertPrivileges(principalName, "/", allowed, "jcr:read");
     }
 
     @NotNull

@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
+import org.apache.sling.repoinit.parser.operations.RestrictionClause;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.junit.After;
@@ -54,6 +55,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.function.ThrowingRunnable;
+import org.junit.jupiter.api.Assertions;
 
 public class AclUtilTest {
 
@@ -389,6 +392,40 @@ public class AclUtilTest {
     public void testSetAclWithHomePathUnknownUser() throws Exception {
         List<String> paths = Collections.singletonList(":home:alice#");
         AclUtil.setAcl(U.adminSession, Collections.singletonList(U.username), paths, Collections.singletonList(Privilege.JCR_READ), true);
+    }
+
+    @Test
+    public void repeatedSetAclCallIsNoOp() throws Throwable {
+        final Session session = U.adminSession;
+        final ThrowingRunnable setAcls = () -> AclUtil.setAcl(
+                session,
+                Collections.singletonList(U.username),
+                Arrays.asList(":home:" + U.username + "#", ":repository", PathUtils.ROOT_PATH),
+                Collections.singletonList(Privilege.JCR_ALL),
+                true
+        );
+
+        setAcls.run();
+        Assertions.assertTrue(session.hasPendingChanges(), "Expected changes in the session");
+        session.save();
+
+        // second call should not create any changes
+        setAcls.run();
+        Assertions.assertFalse(session.hasPendingChanges(), "Expected no changes in the session");
+    }
+
+    @Test
+    public void nullRestrictionClauseAndNullOptionsAreHandled() {
+        final Session session = U.adminSession;
+        Assertions.assertDoesNotThrow(() -> AclUtil.setAcl(
+                    session,
+                    Collections.singletonList(U.username),
+                    Collections.singletonList(PathUtils.ROOT_PATH),
+                    Collections.singletonList(Privilege.JCR_READ),
+                    true,
+                    null,
+                    null
+        ));
     }
 
     private void assertIsContained(JackrabbitAccessControlList acl, String username, String[] privilegeNames, boolean isAllow) throws RepositoryException {

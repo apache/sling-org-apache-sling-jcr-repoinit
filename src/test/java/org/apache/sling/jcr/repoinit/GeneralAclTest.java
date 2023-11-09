@@ -17,6 +17,7 @@
 package org.apache.sling.jcr.repoinit;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -30,6 +31,7 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.sling.jcr.repoinit.impl.RepoInitException;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
@@ -748,5 +750,25 @@ public class GeneralAclTest {
         } finally {
             s.logout();
         }
+    }
+
+    @Test
+    public void failWhenSettingAclsForNonExistingPrincipal() throws RepositoryException {
+        U.assertPrivileges("nonExistingPrincipal", "/", false, "jcr:read");
+        assertThrows(RepoInitException.class, () -> U.parseAndExecute(
+                "set ACL on /",
+                "  allow jcr:read for nonExistingPrincipal",
+                "end"
+        ));
+        U.assertPrivileges("nonExistingPrincipal", "/", false, "jcr:read");
+    }
+
+    @Test
+    public void failWhenUsingInvalidSetAclRemoveSyntax() {
+        assertThrows(RepoInitException.class, () -> U.parseAndExecute(
+                "set ACL on /",
+                "  remove jcr:read for nonExistingPrincipal",
+                "end"
+        ));
     }
 }
