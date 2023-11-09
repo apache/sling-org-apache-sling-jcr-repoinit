@@ -69,35 +69,28 @@ class AclVisitor extends DoNothingVisitor {
 
     private void handleAclLine(AclLine line, Instruction instruction, List<String> principals, List<String> paths, List<String> options) {
         final AclLine.Action action = line.getAction();
-        if (action == AclLine.Action.REMOVE) {
-            report("remove not supported. use 'remove acl' instead.");
-        } else if (action == AclLine.Action.REMOVE_ALL) {
-            try {
+        try {
+            if (action == AclLine.Action.REMOVE) {
+                report("remove not supported. use 'remove acl' instead.");
+            } else if (action == AclLine.Action.REMOVE_ALL) {
                 AclUtil.removeEntries(session, principals, paths);
-            } catch (Exception e) {
-                report(e, "Failed to remove access control entries (" + e + ") " + line);
+            } else {
+                final boolean isAllow = action == AclLine.Action.ALLOW;
+                final String actionName = isAllow ? "allow" : "deny";
+                final List<String> privileges = line.getProperty(PROP_PRIVILEGES);
+                if (instruction == Instruction.SET) {
+                    log.info("Adding ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
+                    AclUtil.setAcl(session, principals, paths, privileges, isAllow, line.getRestrictions(), options);
+                } else if(instruction == Instruction.REMOVE) {
+                    log.info("Removing ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
+                    AclUtil.removeEntries(session, principals, paths, privileges, isAllow, line.getRestrictions());
+                }
             }
-        } else {
-            final boolean isAllow = action == AclLine.Action.ALLOW;
-            final String actionName = isAllow ? "allow" : "deny";
-            final List<String> privileges = line.getProperty(PROP_PRIVILEGES);
-            switch (instruction) {
-                case SET:
-                    try {
-                        log.info("Adding ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
-                        AclUtil.setAcl(session, principals, paths, privileges, isAllow, line.getRestrictions(), options);
-                    } catch (Exception e) {
-                        report(e, "Failed to set ACL (" + e + ") " + line);
-                    }
-                    break;
-                case REMOVE:
-                    try {
-                        log.info("Removing ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
-                        AclUtil.removeEntries(session, principals, paths, privileges, isAllow, line.getRestrictions());
-                    } catch (Exception e) {
-                        report(e, "Failed to remove access control entries (" + e + ") " + line);
-                    }
-                    break;
+        } catch (Exception e) {
+            if (instruction == Instruction.SET) {
+                report(e, "Failed to set ACL (" + e + ") " + line);
+            } else { // Instruction.REMOVE || AclLine.Action.REMOVE_ALL
+                report(e, "Failed to remove access control entries (" + e + ") " + line);
             }
         }
     }
