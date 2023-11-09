@@ -155,23 +155,7 @@ public class AclUtil {
         boolean changed = false;
         final boolean ignoreMissingPrincipal = options.contains(AclVisitor.OPTION_IGNORE_MISSING_PRINCIPAL);
         for (String name : principals) {
-            Principal principal = AccessControlUtils.getPrincipal(session, name);
-            if (principal == null) {
-                // backwards compatibility: fallback to original code treating principal name as authorizable ID (see SLING-8604)
-                final Authorizable authorizable = UserUtil.getAuthorizable(session, name);
-                if (!ignoreMissingPrincipal) {
-                    checkState(authorizable != null, "Authorizable not found: {0}", name);
-                    principal = authorizable.getPrincipal();
-                } else {
-                    if (authorizable != null) {
-                        principal = authorizable.getPrincipal();
-                    }
-                    if (principal == null) {
-                        principal = () -> name;
-                    }
-                }
-            }
-            checkState(principal != null, PRINCIPAL_NOT_FOUND_PATTERN, name);
+            final Principal principal = getPrincipal(session, name, ignoreMissingPrincipal);
             LocalAccessControlEntry newAce = new LocalAccessControlEntry(principal, jcrPriv, isAllow, localRestrictions);
             if (contains(existingAces, newAce)) {
                 LOG.info("Not adding {} to path {} since an equivalent access control entry already exists", newAce, jcrPath);
@@ -184,6 +168,28 @@ public class AclUtil {
         if ( changed ) {
             acMgr.setPolicy(jcrPath, acl);
         }
+    }
+
+    @NotNull
+    private static Principal getPrincipal(Session session, String name, boolean ignoreMissingPrincipal) throws RepositoryException {
+        Principal principal = AccessControlUtils.getPrincipal(session, name);
+        if (principal == null) {
+            // backwards compatibility: fallback to original code treating principal name as authorizable ID (see SLING-8604)
+            final Authorizable authorizable = UserUtil.getAuthorizable(session, name);
+            if (!ignoreMissingPrincipal) {
+                checkState(authorizable != null, "Authorizable not found: {0}", name);
+                principal = authorizable.getPrincipal();
+            } else {
+                if (authorizable != null) {
+                    principal = authorizable.getPrincipal();
+                }
+                if (principal == null) {
+                    principal = () -> name;
+                }
+            }
+        }
+        checkState(principal != null, PRINCIPAL_NOT_FOUND_PATTERN, name);
+        return principal;
     }
 
     /**
