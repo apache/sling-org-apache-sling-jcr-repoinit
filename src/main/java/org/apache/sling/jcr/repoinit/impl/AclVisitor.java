@@ -22,7 +22,6 @@ import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PRIVILEGE
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
