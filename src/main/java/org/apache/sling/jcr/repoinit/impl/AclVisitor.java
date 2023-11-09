@@ -22,6 +22,7 @@ import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PRIVILEGE
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -87,10 +88,15 @@ class AclVisitor extends DoNothingVisitor {
                 }
             }
         } catch (Exception e) {
-            if (instruction == Instruction.SET) {
-                report(e, "Failed to set ACL (" + e + ") " + line);
-            } else { // Instruction.REMOVE || AclLine.Action.REMOVE_ALL
+            if (instruction == Instruction.REMOVE || action == AclLine.Action.REMOVE_ALL) {
                 report(e, "Failed to remove access control entries (" + e + ") " + line);
+            } else {
+                final boolean isRepositoryAcl = Objects.equals(paths, Collections.singletonList(AclLine.PATH_REPOSITORY));
+                if (!isRepositoryAcl) {
+                    report(e, "Failed to set ACL (" + e + ") " + line);
+                } else {
+                    report(e, "Failed to set repository level ACL (" + e + ") " + line);
+                }
             }
         }
     }
