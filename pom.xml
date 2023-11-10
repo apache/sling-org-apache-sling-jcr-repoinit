@@ -41,6 +41,7 @@
     <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
     <!-- To debug the pax process, override this with -D -->
     <pax.vm.options>-Xmx512M</pax.vm.options>
+      <junit-jupiter.version>5.10.0</junit-jupiter.version>
   </properties>
 
   <scm>
@@ -269,6 +270,18 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit-jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit-jupiter.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
