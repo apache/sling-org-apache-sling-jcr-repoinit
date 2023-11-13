@@ -22,6 +22,8 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -146,7 +148,9 @@ public class RepositoryInitializerTest {
     }
 
     public static String withStackTrace(Throwable t) {
-        return t.toString() + "\n" + ExceptionUtils.getStackTrace(t);
+        StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw, true));
+        return t + "\n" + sw;
     }
 
     @Test

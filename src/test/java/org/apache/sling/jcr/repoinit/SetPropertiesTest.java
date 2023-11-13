@@ -34,7 +34,6 @@ import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.util.Text;
-import org.apache.sling.commons.testing.jcr.RepositoryUtil;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.jcr.repoinit.impl.UserUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
@@ -63,7 +62,6 @@ public class SetPropertiesTest {
     public void setup() throws RepositoryException, IOException, RepoInitParsingException {
         U = new TestUtil(context);
         vf = U.adminSession.getValueFactory();
-        RepositoryUtil.registerSlingNodeTypes(U.adminSession);
         for(String p : new String[] { path1, path2, path3, path4 }) {
             U.parseAndExecute("create path " + p);
             U.assertNodeExists(p);
