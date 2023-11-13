@@ -41,7 +41,8 @@
     <org.ops4j.pax.exam.version>4.13.3</org.ops4j.pax.exam.version>
     <!-- To debug the pax process, override this with -D -->
     <pax.vm.options>-Xmx512M</pax.vm.options>
-      <junit-jupiter.version>5.10.0</junit-jupiter.version>
+    <junit-jupiter.version>5.10.0</junit-jupiter.version>
+    <sling.java.version>8</sling.java.version>
   </properties>
 
   <scm>
