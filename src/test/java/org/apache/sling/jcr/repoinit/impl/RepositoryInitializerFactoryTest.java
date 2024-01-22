@@ -57,7 +57,7 @@ public class RepositoryInitializerFactoryTest {
     public void handleUncheckedErrorsInOperations() throws RepositoryException {
         doThrow(new RepoInitException("some op failed", new Exception("root cause")))
             .when(processor).apply(ArgumentMatchers.any(), ArgumentMatchers.any());
-        sut.applyOperations(mock(Session.class), null, null);
+        sut.applyOperations(mock(Session.class), null, null, null);
     }
 
     // https://issues.apache.org/jira/browse/SLING-11276
@@ -66,7 +66,7 @@ public class RepositoryInitializerFactoryTest {
         doThrow(new RepoInitException("some op failed", new Exception("root cause")))
             .when(processor).apply(ArgumentMatchers.any(), ArgumentMatchers.any());
         RetryableOperation retry = new RetryableOperation.Builder().withBackoffBaseMsec(1).withMaxRetries(3).build();
-        RetryableOperationResult result = sut.applyOperationInternal(mock(Session.class), null, null, retry);
+        RetryableOperationResult result = sut.applyOperationInternal(mock(Session.class), null, null, null, retry);
         assertEquals(3, retry.retryCount);
         assertFalse(result.isSuccessful());
     }
