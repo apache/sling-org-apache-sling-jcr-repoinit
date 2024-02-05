@@ -16,11 +16,13 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
 
 import javax.jcr.InvalidItemStateException;
+import javax.jcr.LoginException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
@@ -29,6 +31,7 @@ import org.apache.sling.jcr.api.SlingRepositoryInitializer;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.jcr.repoinit.impl.RetryableOperation.RetryableOperationResult;
 import org.apache.sling.repoinit.parser.RepoInitParser;
+import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.repoinit.parser.operations.Operation;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
@@ -47,7 +50,7 @@ import org.slf4j.LoggerFactory;
  * statements are read or inlined statements.
  */
 @Designate(ocd = RepositoryInitializerFactory.Config.class, factory=true)
-@Component(service = SlingRepositoryInitializer.class,
+@Component(service = {SlingRepositoryInitializer.class, RepoInitInitializer.class},
     configurationPolicy=ConfigurationPolicy.REQUIRE,
     configurationPid = "org.apache.sling.jcr.repoinit.RepositoryInitializer",
     property = {
@@ -56,7 +59,7 @@ import org.slf4j.LoggerFactory;
             // order of their service ranking
             Constants.SERVICE_RANKING + ":Integer=100"
     })
-public class RepositoryInitializerFactory implements SlingRepositoryInitializer {
+public class RepositoryInitializerFactory implements SlingRepositoryInitializer, RepoInitInitializer {
 
     @ObjectClassDefinition(name = "Apache Sling Repository Initializer Factory",
             description="Initializes the JCR content repository using repoinit statements.")
@@ -72,6 +75,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                     description=
                          "Contents of a repo init script.")
             String[] scripts() default {};
+            
     }
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -84,7 +88,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     private JcrRepoInitOpsProcessor processor;
 
     private RepositoryInitializerFactory.Config config;
-
+    
     @Activate
     public void activate(final RepositoryInitializerFactory.Config config) {
         this.config = config;
@@ -100,6 +104,12 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
 
     @Override
     public void processRepository(final SlingRepository repo) throws Exception {
+        processRepository(repo, Validationmode.NONE);
+    }
+
+    @Override
+    public void processRepository(final SlingRepository repo, final Validationmode validationMode)
+            throws Exception {
         if ( (config.references() != null && config.references().length > 0)
            || (config.scripts() != null && config.scripts().length > 0 )) {
 
@@ -120,7 +130,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                         }
                         String msg = String.format("Executing %s repoinit operations", ops.size());
                         log.info(msg);
-                        applyOperations(s,ops,msg);
+                        applyOperations(s,ops,msg,validationMode);
                     }
                 }
                 if ( config.scripts() != null ) {
@@ -134,7 +144,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                         }
                         String msg = String.format("Executing %s repoinit operations", ops.size());
                         log.info(msg);
-                        applyOperations(s,ops,msg);
+                        applyOperations(s,ops,msg,validationMode);
                     }
                 }
             } finally {
@@ -151,14 +161,18 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
      * @param logMessage the messages to print when retry
      * @throws Exception if the application fails despite the retry
      */
-    protected void applyOperations(Session session, List<Operation> ops, String logMessage) throws RepositoryException {
+    protected void applyOperations(Session session, List<Operation> ops, String logMessage, Validationmode validationMode) throws Exception {
 
         RetryableOperation retry = new RetryableOperation.Builder().withBackoffBaseMsec(1000).withMaxRetries(3).build();
-        RetryableOperation.RetryableOperationResult result = applyOperationInternal(session, ops, logMessage, retry);
+        RetryableOperation.RetryableOperationResult result = applyOperationInternal(session, ops, logMessage, retry, validationMode);
         if (!result.isSuccessful()) {
-            String msg = String.format("Applying repoinit operation failed despite retry; set loglevel to DEBUG to see all exceptions. "
-                    + "Last exception message was: %s", result.getFailureTrace().getMessage());
-            throw new RepositoryException(msg, result.getFailureTrace());
+            if (Validationmode.NONE.equals(validationMode)) {
+                String msg = String.format("Applying repoinit operation failed despite retry; set loglevel to DEBUG to see all exceptions. "
+                        + "Last exception message was: %s", result.getFailureTrace().getMessage());
+                throw new RepositoryException(msg, result.getFailureTrace());
+            } else {
+                throw result.getFailureTrace();
+            }
         }
     }
 
@@ -171,10 +185,16 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
      * @return
      */
     protected RetryableOperationResult applyOperationInternal(Session session, List<Operation> ops, String logMessage,
-            RetryableOperation retry) {
+            RetryableOperation retry, Validationmode validationMode) {
         return retry.apply(() -> {
             try {
                 processor.apply(session, ops);
+                if (!Validationmode.NONE.equals(validationMode) && session.hasPendingChanges()) {
+                    log.warn(RepositoryInitializer.WARNMESSAGE);
+                    if (Validationmode.STRICT.equals(validationMode)) {
+                        throw new RepoInitException(RepositoryInitializer.EXCEPTION_MESSAGE_VALIDATION_FAILED);
+                    }
+                }
                 session.save();
                 return new RetryableOperation.RetryableOperationResult(true,false,null);
             } catch (InvalidItemStateException|RepoInitException ex) {
