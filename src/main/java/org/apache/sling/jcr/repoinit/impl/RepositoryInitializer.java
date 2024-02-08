@@ -16,16 +16,19 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.api.SlingRepositoryInitializer;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.repoinit.parser.RepoInitParser;
+import org.apache.sling.repoinit.parser.RepoInitParsingException;
 import org.apache.sling.repoinit.parser.operations.Operation;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
@@ -86,7 +89,7 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
     }
 
     @Override
-    public void processRepository(SlingRepository repo) throws Exception {
+    public void processRepository(SlingRepository repo) throws RepositoryException {
         if ( config.references() != null && config.references().length > 0 ) {
             // loginAdministrative is ok here, definitely an admin operation
             @SuppressWarnings("deprecation")
@@ -94,14 +97,18 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
             try {
                 final RepoinitTextProvider p = new RepoinitTextProvider();
                 for(String reference : config.references()) {
-                    final String repoinitText = p.getRepoinitText(reference);
-                    final List<Operation> ops;
-                    try (StringReader sr = new StringReader(repoinitText)) {
-                        ops = parser.parse(sr);
+                    try {
+                        final String repoinitText = p.getRepoinitText(reference);
+                        final List<Operation> ops;
+                        try (StringReader sr = new StringReader(repoinitText)) {
+                            ops = parser.parse(sr);
+                        }
+                        log.info("Executing {} repoinit operations from {}", ops.size(), reference);
+                        processor.apply(s, ops);
+                        s.save();
+                    } catch (IOException|RuntimeException|RepositoryException|RepoInitParsingException e) {
+                        throw new RepoInitException("Error executing repoinit from " + reference, e);
                     }
-                    log.info("Executing {} repoinit operations", ops.size());
-                    processor.apply(s, ops);
-                    s.save();
                 }
             } finally {
                 s.logout();

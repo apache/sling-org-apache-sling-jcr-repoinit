@@ -82,20 +82,23 @@ public class RetryableOperation {
      */
     public static class RetryableOperationResult {
 
-        boolean successful;
-        boolean shouldRetry;
-        Exception failureTrace;
+        final boolean successful;
+        final boolean shouldRetry;
+        final String reference;
+        final Exception failureTrace;
 
         /**
          * simple constructor. If <code>succesful</code> is set to to true, all other
          * values are ignored and the operation is considered to be successful.
          * @param successful true if the operation was successful
          * @param shouldRetry true if it makes sense to retry the operation
+         * @param reference the reference identifying the source of the repoinit script
          * @param trace the exception trace (if any)
          */
-        RetryableOperationResult (boolean successful, boolean shouldRetry, Exception trace) {
+        RetryableOperationResult (boolean successful, boolean shouldRetry, String reference, Exception trace) {
             this.successful = successful;
             this.shouldRetry = shouldRetry;
+            this.reference = reference;
             this.failureTrace = trace;
         }
 
@@ -105,6 +108,10 @@ public class RetryableOperation {
 
         public boolean shouldRetry() {
             return shouldRetry;
+        }
+
+        public String getReference() {
+            return reference;
         }
 
         public Exception getFailureTrace() {

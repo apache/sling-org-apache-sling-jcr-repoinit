@@ -35,7 +35,7 @@ public class RetryableOperationTest {
 
         RetryableOperation ro = new RetryableOperation.Builder().build();
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
-            return new RetryableOperation.RetryableOperationResult(true,false,null);
+            return new RetryableOperation.RetryableOperationResult(true,false,null,null);
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
         assertEquals(0,ro.retryCount);
@@ -54,9 +54,9 @@ public class RetryableOperationTest {
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // 1 regular execution + 2 retries
             if (retries.getAndAdd(1) == 2) {
-                return new RetryableOperation.RetryableOperationResult(true,false,null);
+                return new RetryableOperation.RetryableOperationResult(true,false,null,null);
             } else {
-                return new RetryableOperation.RetryableOperationResult(false,true,new RuntimeException());
+                return new RetryableOperation.RetryableOperationResult(false,true,null,new RuntimeException());
             }
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
@@ -76,9 +76,9 @@ public class RetryableOperationTest {
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // 1 regular execution + 4 retries
             if (retries.getAndAdd(1) == 4) {
-                return new RetryableOperation.RetryableOperationResult(true,false,null);
+                return new RetryableOperation.RetryableOperationResult(true,false,null,null);
             } else {
-                return new RetryableOperation.RetryableOperationResult(false,true, new RuntimeException());
+                return new RetryableOperation.RetryableOperationResult(false,true,null,new RuntimeException());
             }
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
@@ -96,7 +96,7 @@ public class RetryableOperationTest {
                 .build();
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // indicate a permanent failure, where it doesn't make sense to retry
-            return new RetryableOperation.RetryableOperationResult(false,false, new RuntimeException());
+            return new RetryableOperation.RetryableOperationResult(false,false,null,new RuntimeException());
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
         assertEquals(0,ro.retryCount); // no retry

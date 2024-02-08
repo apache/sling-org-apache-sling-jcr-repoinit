@@ -17,6 +17,7 @@
 package org.apache.sling.jcr.repoinit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -27,6 +28,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -137,9 +139,17 @@ public class RepositoryInitializerTest {
             initializer.processRepository(context.getService(SlingRepository.class));
         } catch(Exception e) {
             if(expectedActivateException != null) {
-                assertEquals(
+                // check if the expected active exception is either the exception itself or in the root cause tree
+                Collection<Class<?>> actualExceptionClasses = new LinkedList<>();
+                actualExceptionClasses.add(e.getClass());
+                Throwable t = e.getCause();
+                while (t != null) {
+                    actualExceptionClasses.add(expectedActivateException);
+                    t = t.getCause();
+                }
+                assertTrue(
                     "Expecting a " + expectedActivateException.getName() + " but got " + withStackTrace(e),
-                    expectedActivateException, e.getClass());
+                    actualExceptionClasses.contains(expectedActivateException));
             } else {
                 fail("Unexpected Exception in activation: " + withStackTrace(e));
             }
