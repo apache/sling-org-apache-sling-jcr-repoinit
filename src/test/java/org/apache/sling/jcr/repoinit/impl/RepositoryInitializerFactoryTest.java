@@ -61,7 +61,7 @@ public class RepositoryInitializerFactoryTest {
     @Test
     public void successfulRun() throws RepositoryException {
         // doing nothing is also considered successful ...
-        sut.applyOperations(mock(Session.class), null, null);
+        sut.applyOperations(mock(Session.class), null, null, null);
         assertEquals(0,sut.failureStateAsMetric());
     }
 
@@ -70,7 +70,7 @@ public class RepositoryInitializerFactoryTest {
         doThrow(new RepoInitException("some op failed", new Exception("root cause")))
             .when(processor).apply(ArgumentMatchers.any(), ArgumentMatchers.any());
         try {
-            sut.applyOperations(mock(Session.class), null, null);
+            sut.applyOperations(mock(Session.class), null, null,null);
         } catch (RepositoryException re) {
             // expected
         } catch (Exception e) {
