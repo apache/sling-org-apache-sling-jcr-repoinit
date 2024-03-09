@@ -55,6 +55,8 @@ public abstract class RepoInitTestSupport extends TestSupport {
     public Option[] configuration() {
         SlingOptions.versionResolver.setVersionFromProject("org.apache.jackrabbit", "jackrabbit-api");
         SlingOptions.versionResolver.setVersionFromProject("org.apache.sling", "org.apache.sling.repoinit.parser");
+        SlingOptions.versionResolver.setVersionFromProject("org.apache.sling", "org.apache.sling.commons.metrics");
+        SlingOptions.versionResolver.setVersionFromProject("org.apache.commons","commons-lang3"); // for the metrics
         return options(
             composite(
                 super.baseConfiguration(),
