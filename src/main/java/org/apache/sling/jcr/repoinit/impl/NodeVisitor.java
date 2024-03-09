@@ -118,7 +118,9 @@ public class NodeVisitor extends DoNothingVisitor {
             npv.visitSetProperties(sp);
         }
         try {
-            session.save();
+            if (session.hasPendingChanges()) {
+                session.save();
+            }
         } catch (Exception e) {
             report(e, "Session.save failed: " + e);
         }

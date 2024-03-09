@@ -105,7 +105,9 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
                         }
                         log.info("Executing {} repoinit operations from {}", ops.size(), reference);
                         processor.apply(s, ops);
-                        s.save();
+                        if (s.hasPendingChanges()) {
+                            s.save();
+                        }
                     } catch (IOException|RuntimeException|RepositoryException|RepoInitParsingException e) {
                         throw new RepoInitException("Error executing repoinit from " + reference, e);
                     }
