@@ -209,8 +209,8 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     }
     
     /**
-     * 
-     * @return
+     * return the state of the repoinit execution usable for a simple gauge metric
+     * @return 1 if repoinit did not finish successfully, 0 otherwise
      */
     protected int failureStateAsMetric() {
         return aRepoInitStatementFailed ? 1 : 0;
