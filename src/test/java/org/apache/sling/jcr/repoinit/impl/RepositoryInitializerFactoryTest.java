@@ -16,6 +16,7 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.jcr.repoinit.impl.RetryableOperation.RetryableOperationResult;
 import org.apache.sling.repoinit.parser.RepoInitParser;
@@ -31,6 +32,7 @@ import javax.jcr.Session;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
@@ -48,16 +50,33 @@ public class RepositoryInitializerFactoryTest {
         context.registerService(RepoInitParser.class, parser);
         processor = mock(JcrRepoInitOpsProcessor.class);
         context.registerService(JcrRepoInitOpsProcessor.class, processor);
+        MetricsService metrics = mock(MetricsService.class);
+        context.registerService(MetricsService.class, metrics);
         
         sut = new RepositoryInitializerFactory();
         context.registerInjectActivateService(sut);
     }
+    
+    
+    @Test
+    public void successfulRun() throws RepositoryException {
+        // doing nothing is also considered successful ...
+        sut.applyOperations(mock(Session.class), null, null);
+        assertEquals(0,sut.failureStateAsMetric());
+    }
 
-    @Test(expected = RepositoryException.class)
+    @Test
     public void handleUncheckedErrorsInOperations() throws RepositoryException {
         doThrow(new RepoInitException("some op failed", new Exception("root cause")))
             .when(processor).apply(ArgumentMatchers.any(), ArgumentMatchers.any());
-        sut.applyOperations(mock(Session.class), null, null);
+        try {
+            sut.applyOperations(mock(Session.class), null, null);
+        } catch (RepositoryException re) {
+            // expected
+        } catch (Exception e) {
+            fail();
+        }
+        assertEquals(1,sut.failureStateAsMetric());
     }
 
     // https://issues.apache.org/jira/browse/SLING-11276

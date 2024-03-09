@@ -24,6 +24,7 @@ import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.api.SlingRepositoryInitializer;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
@@ -76,19 +77,28 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    private static final String METRIC_REPOINIT_FAILED = RepositoryInitializerFactory.class.getName() + ".failed";
 
     @Reference
     private RepoInitParser parser;
 
     @Reference
     private JcrRepoInitOpsProcessor processor;
+    
+    @Reference
+    MetricsService metrics;
 
     private RepositoryInitializerFactory.Config config;
+    
+    // assume that repoinit succeeds ... and just this to true if it fails
+    private boolean aRepoInitStatementFailed = false;
+    
 
     @Activate
     public void activate(final RepositoryInitializerFactory.Config config) {
         this.config = config;
         log.debug("Activated: {}", this);
+        metrics.gauge(METRIC_REPOINIT_FAILED, this::failureStateAsMetric);
     }
 
     @Override
@@ -152,12 +162,12 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
      * @throws Exception if the application fails despite the retry
      */
     protected void applyOperations(Session session, List<Operation> ops, String logMessage) throws RepositoryException {
-
         RetryableOperation retry = new RetryableOperation.Builder().withBackoffBaseMsec(1000).withMaxRetries(3).build();
         RetryableOperation.RetryableOperationResult result = applyOperationInternal(session, ops, logMessage, retry);
         if (!result.isSuccessful()) {
             String msg = String.format("Applying repoinit operation failed despite retry; set loglevel to DEBUG to see all exceptions. "
                     + "Last exception message was: %s", result.getFailureTrace().getMessage());
+            aRepoInitStatementFailed = true;
             throw new RepositoryException(msg, result.getFailureTrace());
         }
     }
@@ -197,6 +207,15 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
             }
         }, logMessage);
     }
+    
+    /**
+     * 
+     * @return
+     */
+    protected int failureStateAsMetric() {
+        return aRepoInitStatementFailed ? 1 : 0;
+    }
+    
 
 
 }
