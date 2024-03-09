@@ -29,7 +29,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
-import org.apache.sling.commons.testing.jcr.RepositoryUtil;
 import org.apache.sling.jcr.repoinit.impl.RepoInitException;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
@@ -73,7 +72,6 @@ public class CreatePathsTest {
     @Before
     public void setup() throws RepositoryException, IOException {
         U = new TestUtil(context);
-        RepositoryUtil.registerSlingNodeTypes(U.adminSession);
     }
 
     /**
