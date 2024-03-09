@@ -185,7 +185,9 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
         return retry.apply(() -> {
             try {
                 processor.apply(session, ops);
-                session.save();
+                if (session.hasPendingChanges()) {
+                    session.save();
+                }
                 return new RetryableOperation.RetryableOperationResult(true,false,reference,null);
             } catch (InvalidItemStateException|RepoInitException ex) {
                 // a retry makes sense, because this exception might be caused by an concurrent operation
