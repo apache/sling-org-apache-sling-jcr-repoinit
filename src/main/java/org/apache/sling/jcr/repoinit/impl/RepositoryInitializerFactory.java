@@ -20,6 +20,7 @@ import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
@@ -93,7 +94,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     private RepositoryInitializerFactory.Config config;
     
     // assume that repoinit succeeds ... and just this to true if it fails
-    private boolean aRepoInitStatementFailed = false;
+    private AtomicBoolean aRepoInitStatementFailed = new AtomicBoolean(false);
     
 
     private String componentId;
@@ -177,7 +178,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
         if (!result.isSuccessful()) {
             String msg = String.format("Applying repoinit operation failed despite retry; set loglevel to DEBUG to see all exceptions. "
                     + "Last exception message from \"%s\" was: %s", result.getReference(), result.getFailureTrace().getMessage());
-            aRepoInitStatementFailed = true;
+            aRepoInitStatementFailed.set(true);
             throw new RepositoryException(msg, result.getFailureTrace());
         }
     }
@@ -224,7 +225,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
      * @return 1 if repoinit did not finish successfully, 0 otherwise
      */
     protected int failureStateAsMetric() {
-        return aRepoInitStatementFailed ? 1 : 0;
+        return aRepoInitStatementFailed.get() ? 1 : 0;
     }
     
 
