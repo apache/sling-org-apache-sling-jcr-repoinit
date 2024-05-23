@@ -16,8 +16,6 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -103,7 +101,7 @@ class NodePropertiesVisitor extends DoNothingVisitor {
      * requiredType for the specified property
      *
      * @param propName the propertyName to check
-     * @param parentNode the parent node where the property will be set
+     * @param nodeType the node type to be searched for the property definition
      * @return the required type of the property or {@link PropertyType#UNDEFINED} if it could not be determined
      */
     private static @Nullable PropertyDefinition resolvePropertyDefinition(@NotNull String propName, @NotNull NodeType nodeType) {
@@ -118,23 +116,25 @@ class NodePropertiesVisitor extends DoNothingVisitor {
      * is the same as the autocreated default value
      *
      * @param n the node to check
-     * @param pRelPath the property relative path to check
+     * @param propertyPath the property relative path to check
      * @return true or false
      */
-    protected static boolean isUnchangedAutocreatedProperty(Node n, final String pRelPath)
+    protected static boolean isUnchangedAutocreatedProperty(Node n, final String propertyPath)
             throws RepositoryException {
         boolean sameAsDefault = false;
 
         // deal with the pRelPath nesting
-        Path path = Paths.get(pRelPath);
-        Path parentPath = path.getParent();
-        String name = path.getFileName().toString();
-        if (parentPath != null) {
-            String relPath = parentPath.toString();
-            if (n.hasNode(relPath)) {
-                n = n.getNode(relPath);
-            } else {
-                n = null;
+        final int pos = propertyPath.lastIndexOf("/");
+        String name = propertyPath;
+        if (pos > -1) {
+            String parentPath = propertyPath.substring(0, pos);
+            name = propertyPath.substring(pos + 1);
+            if (!parentPath.isEmpty()) {
+                if (n.hasNode(parentPath)) {
+                    n = n.getNode(parentPath);
+                } else {
+                    n = null;
+                }
             }
         }
 
