@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Stream;
 
 import javax.jcr.Node;
@@ -122,37 +121,20 @@ class NodePropertiesVisitor extends DoNothingVisitor {
      */
     protected static boolean isUnchangedAutocreatedProperty(Node n, final String propertyPath)
             throws RepositoryException {
-        boolean sameAsDefault = false;
-
-        // deal with the propertyPath nesting
-        final String name = Text.getName(propertyPath, true);
-        if (!Objects.equals(name, propertyPath)) {
-            final String parentPath = Text.getRelativeParent(propertyPath, 1, true);
-            if (!parentPath.isEmpty()) {
-                if (n.hasNode(parentPath)) {
-                    n = n.getNode(parentPath);
-                } else {
-                    n = null;
-                }
-            }
-        }
-
-        //  if the property has been set by being autocreated and the value is still
-        //  the same as the default values then also allow changing the value
-        if (n != null && n.hasProperty(name)) {
-            @Nullable
-            PropertyDefinition pd = resolvePropertyDefinition(name, n);
+        if (n.hasProperty(propertyPath)) {
+            final Property property = n.getProperty(propertyPath);
+            final String name = property.getName();
+            final PropertyDefinition pd = resolvePropertyDefinition(name, property.getParent());
             if (pd != null && pd.isAutoCreated()) {
                 // if the current value is the same as the autocreated default values
                 //  then allow the value to be changed.
-                if (pd.isMultiple()) {
-                    sameAsDefault = Arrays.equals(pd.getDefaultValues(), n.getProperty(name).getValues());
-                } else {
-                    sameAsDefault = Arrays.equals(pd.getDefaultValues(), new Value[] {n.getProperty(name).getValue()});
-                }
+                return Arrays.equals(
+                        pd.getDefaultValues(),
+                        property.isMultiple() ? property.getValues() : new Value[] {property.getValue()}
+                );
             }
         }
-        return sameAsDefault;
+        return false;
     }
 
     /**
