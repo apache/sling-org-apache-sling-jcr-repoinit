@@ -269,7 +269,7 @@ public class SetPropertiesTest {
             throws RepositoryException, RepoInitParsingException {
         U.assertNodeExists(testPath);
         // verify the initial autocreated property values
-        U.assertSVPropertyExists(testPath, "singleVal", vf.createValue("autocreated value"));
+        U.assertSVPropertyExists(testPath, "slingtest:singleVal", vf.createValue("autocreated value"));
         U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
                 vf.createValue("autocreated value1"),
                 vf.createValue("autocreated value2")
@@ -279,11 +279,11 @@ public class SetPropertiesTest {
         //  the same as the autocreated default values
         final String setPropsA =
                 "set properties on " + testPath + "\n" +
-                        "default singleVal to sChanged1a\n" +
+                        "default slingtest:singleVal to sChanged1a\n" +
                         "default multiVal to mChanged1a, mChanged2a\n" +
                 "end";
         U.parseAndExecute(setPropsA);
-        U.assertSVPropertyExists(testPath, "singleVal", vf.createValue("sChanged1a"));
+        U.assertSVPropertyExists(testPath, "slingtest:singleVal", vf.createValue("sChanged1a"));
         U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
                 vf.createValue("mChanged1a"),
                 vf.createValue("mChanged2a")
@@ -293,11 +293,11 @@ public class SetPropertiesTest {
         //  not the same as the autocreated default values
         final String setPropsB =
                 "set properties on " + testPath + "\n" +
-                        "default singleVal to sChanged1b\n" +
+                        "default slingtest:singleVal to sChanged1b\n" +
                         "default multiVal to mChanged1b, mChanged2b\n" +
                 "end";
         U.parseAndExecute(setPropsB);
-        U.assertSVPropertyExists(testPath, "singleVal", vf.createValue("sChanged1a"));
+        U.assertSVPropertyExists(testPath, "slingtest:singleVal", vf.createValue("sChanged1a"));
         U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
                 vf.createValue("mChanged1a"),
                 vf.createValue("mChanged2a")
@@ -328,7 +328,7 @@ public class SetPropertiesTest {
         String testPath = a.getPath() + "/" + name;
         U.assertNodeExists(testPath);
         // verify the initial autocreated property values
-        U.assertSVPropertyExists(testPath, "singleVal", vf.createValue("autocreated value"));
+        U.assertSVPropertyExists(testPath, "slingtest:singleVal", vf.createValue("autocreated value"));
         U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
                 vf.createValue("autocreated value1"),
                 vf.createValue("autocreated value2")
@@ -338,11 +338,11 @@ public class SetPropertiesTest {
         //  the same as the autocreated default values
         final String setPropsA =
                 "set properties on authorizable(" + userid + ")/" + name + "\n" +
-                        "default singleVal to sChanged1a\n" +
+                        "default slingtest:singleVal to sChanged1a\n" +
                         "default multiVal to mChanged1a, mChanged2a\n" +
                 "end";
         U.parseAndExecute(setPropsA);
-        U.assertAuthorizableSVPropertyExists(userid, name + "/singleVal", vf.createValue("sChanged1a"));
+        U.assertAuthorizableSVPropertyExists(userid, name + "/slingtest:singleVal", vf.createValue("sChanged1a"));
         U.assertAuthorizableMVPropertyExists(userid, name + "/multiVal", new Value[] {
                 vf.createValue("mChanged1a"),
                 vf.createValue("mChanged2a")
@@ -352,11 +352,11 @@ public class SetPropertiesTest {
         //  not the same as the autocreated default values
         final String setPropsB =
                 "set properties on authorizable(" + userid + ")/" + name + "\n" +
-                        "default singleVal to sChanged1b\n" +
+                        "default slingtest:singleVal to sChanged1b\n" +
                         "default multiVal to mChanged1b, mChanged2b\n" +
                 "end";
         U.parseAndExecute(setPropsB);
-        U.assertAuthorizableSVPropertyExists(userid, name + "/singleVal", vf.createValue("sChanged1a"));
+        U.assertAuthorizableSVPropertyExists(userid, name + "/slingtest:singleVal", vf.createValue("sChanged1a"));
         U.assertAuthorizableMVPropertyExists(userid, name + "/multiVal", new Value[] {
                 vf.createValue("mChanged1a"),
                 vf.createValue("mChanged2a")
@@ -370,13 +370,13 @@ public class SetPropertiesTest {
                 "<<===\n" +
                 "<< <slingtest='http://sling.apache.org/ns/test/repoinit-it/v1.0'>\n" +
                 "<< [slingtest:sling11293] > nt:unstructured\n" +
-                "<<    - singleVal (String) = 'autocreated value'\n" +
+                "<<    - slingtest:singleVal (String) = 'autocreated value'\n" +
                 "<<       autocreated\n" +
                 "<<    - multiVal (String) = 'autocreated value1', 'autocreated value2'\n" +
                 "<<       multiple autocreated\n" +
                 "<< [slingtest:sling11293mixin]\n" +
                 "<<    mixin\n" +
-                "<<    - singleVal (String) = 'autocreated value'\n" +
+                "<<    - slingtest:singleVal (String) = 'autocreated value'\n" +
                 "<<       autocreated\n" +
                 "<<    - multiVal (String) = 'autocreated value1', 'autocreated value2'\n" +
                 "<<       multiple autocreated\n" +
