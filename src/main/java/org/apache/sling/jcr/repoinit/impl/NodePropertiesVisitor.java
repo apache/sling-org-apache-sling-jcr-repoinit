@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import javax.jcr.Node;
@@ -123,12 +124,10 @@ class NodePropertiesVisitor extends DoNothingVisitor {
             throws RepositoryException {
         boolean sameAsDefault = false;
 
-        // deal with the pRelPath nesting
-        final int pos = propertyPath.lastIndexOf("/");
-        String name = propertyPath;
-        if (pos > -1) {
-            String parentPath = propertyPath.substring(0, pos);
-            name = propertyPath.substring(pos + 1);
+        // deal with the propertyPath nesting
+        final String name = Text.getName(propertyPath, true);
+        if (!Objects.equals(name, propertyPath)) {
+            final String parentPath = Text.getRelativeParent(propertyPath, 1, true);
             if (!parentPath.isEmpty()) {
                 if (n.hasNode(parentPath)) {
                     n = n.getNode(parentPath);
