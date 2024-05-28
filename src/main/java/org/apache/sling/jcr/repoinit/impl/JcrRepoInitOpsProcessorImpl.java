@@ -17,14 +17,20 @@
 package org.apache.sling.jcr.repoinit.impl;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
 import org.apache.sling.repoinit.parser.operations.Operation;
+import org.apache.sling.repoinit.parser.operations.OperationVisitor;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
@@ -38,28 +44,70 @@ import static java.util.Collections.singleton;
         })
 public class JcrRepoInitOpsProcessorImpl implements JcrRepoInitOpsProcessor {
 
+    private static final Logger log = LoggerFactory.getLogger(JcrRepoInitOpsProcessorImpl.class);
+
     /**
      * Apply the supplied operations: first the namespaces and nodetypes
      * registrations, then the service users, paths and ACLs.
      */
     @Override
     public void apply(Session session, List<Operation> ops) {
-        Stream.of(
-                // register namespaces first
-                singleton(new NamespacesVisitor(session)),
-                // then create node types and privileges, both use namespaces
-                asList(
+        AtomicReference<Operation> lastAttemptedOperation = new AtomicReference<>();
+        try {
+            Stream.of(
+                    // register namespaces first
+                    singleton(new NamespacesVisitor(session)),
+                    // then create node types and privileges, both use namespaces
+                    asList(
+                            new NodetypesVisitor(session),
+                            new PrivilegeVisitor(session)),
+                    // finally apply everything else
+                    asList(
+                            new UserVisitor(session),
+                            new NodeVisitor(session),
+                            new AclVisitor(session),
+                            new GroupMembershipVisitor(session),
+                            new NodePropertiesVisitor(session))
+            ).forEach(visitorGroup -> {
+                ops.forEach(op -> {
+                    lastAttemptedOperation.set(op);
+                    visitorGroup.forEach(op::accept);
+                });
+            });
+        } catch (RepoInitException originalFailure) {
+            // support legacy statement reordering for backwards compatibility
+            try {
+                session.refresh(false); // drop transient changes
+
+                final OperationVisitor[] visitors = {
+                        new NamespacesVisitor(session),
                         new NodetypesVisitor(session),
-                        new PrivilegeVisitor(session)),
-                // finally apply everything else
-                asList(
+                        new PrivilegeVisitor(session),
                         new UserVisitor(session),
                         new NodeVisitor(session),
                         new AclVisitor(session),
                         new GroupMembershipVisitor(session),
-                        new NodePropertiesVisitor(session))
-        ).forEach(visitorGroup -> {
-            ops.forEach(op -> visitorGroup.forEach(op::accept));
-        });
+                        new NodePropertiesVisitor(session)
+                };
+
+                for (OperationVisitor v : visitors) {
+                    for (Operation op : ops) {
+                        op.accept(v);
+                    }
+                }
+
+                log.warn("DEPRECATION - The repoinit script being executed relies on a bug causing repoinit " +
+                        "statements to be reordered. Please review and fix the ordering of your repoinit statements. " +
+                        "The code supporting the legacy order will be removed in a future release. The new code " +
+                        "failed on the statement \"{}\"",
+                        Optional.ofNullable(lastAttemptedOperation.get()).map(Operation::asRepoInitString).orElse("unknown"));
+            } catch (Exception legacyFailure) {
+                // rethrow the originalFailure if the legacy code also failed
+                throw originalFailure;
+            }
+        }
+
+
+
     }
 }
