@@ -31,9 +31,9 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 
-/** 
- * Capture logs for testing 
- * 
+/**
+ * Capture logs for testing
+ *
  * Initially cloned from: https://github.com/apache/sling-org-apache-sling-graphql-core/blob/0b1c1dd72ed04324ea84d2227c3223ec65b0b21e/src/test/java/org/apache/sling/graphql/core/util/LogCapture.java
  */
 class LogCapture extends ListAppender<ILoggingEvent> implements AutoCloseable {

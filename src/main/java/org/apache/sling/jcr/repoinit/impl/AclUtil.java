@@ -145,7 +145,7 @@ public class AclUtil {
 
         final String [] privArray = privileges.toArray(new String[privileges.size()]);
         final Privilege[] jcrPriv = AccessControlUtils.privilegesFromNames(acMgr, privArray);
-        
+
         JackrabbitAccessControlList acl = getAccessControlList(acMgr, jcrPath, true);
         checkState(acl != null, "No JackrabbitAccessControlList available for path {0}", jcrPath);
 
@@ -197,7 +197,7 @@ public class AclUtil {
 
     /**
      * Remove resource-based access control setup for the principal with the given name.
-     * 
+     *
      * @param session
      * @param principalName
      * @throws RepositoryException
@@ -210,7 +210,7 @@ public class AclUtil {
             // in case import-behavior is configured to be ABORT.
             principal = new PrincipalImpl(principalName);
         }
-        
+
         JackrabbitAccessControlManager acMgr = getJACM(session);
         for (JackrabbitAccessControlPolicy policy : acMgr.getPolicies(principal)) {
             // make sure not to remove the principal-based access control list but instead only drop
@@ -223,7 +223,7 @@ public class AclUtil {
 
     /**
      * Remove resource-based access control setup defined for the specified paths.
-     * 
+     *
      * @param session
      * @param paths
      * @throws RepositoryException
@@ -244,7 +244,7 @@ public class AclUtil {
             }
         }
     }
-    
+
     public static void removeEntries(@NotNull Session session, @NotNull List<String> principals, @NotNull List<String> paths) throws RepositoryException {
         Set<String> principalNames = new HashSet<>(principals);
         AccessControlManager acMgr = session.getAccessControlManager();
@@ -284,7 +284,7 @@ public class AclUtil {
 
                     LocalRestrictions restr = createLocalRestrictions(restrictionClauses, acl, session);
                     Privilege[] privs = AccessControlUtils.privilegesFromNames(acMgr, privileges.toArray(new String[0]));
-                    
+
                     for (AccessControlEntry ace : acl.getAccessControlEntries()) {
                         Principal principal = ace.getPrincipal();
                         if (!principalNames.contains(principal.getName())) {
@@ -407,7 +407,7 @@ public class AclUtil {
     }
 
     /**
-     * Remove principal-based access control setup for the principal with the given name. 
+     * Remove principal-based access control setup for the principal with the given name.
      *
      * @param session
      * @param principalName
@@ -428,13 +428,13 @@ public class AclUtil {
             acMgr.removePolicy(acl.getPath(), acl);
         }
     }
-    
+
     private static boolean isValidPath(@NotNull Session session, @Nullable String jcrPath) throws RepositoryException {
         return jcrPath == null || session.nodeExists(jcrPath);
     }
 
     /**
-     * 
+     *
      * @param acMgr the access control manager
      * @param principal the principal
      * @return the first available {@link PrincipalAccessControlList} bound to the given principal or {@code null} of <a href="https://jackrabbit.apache.org/oak/docs/security/authorization/principalbased.html">principal-based authorization</a> is not enabled for the given principal
@@ -456,7 +456,7 @@ public class AclUtil {
     }
 
     @Nullable
-    private static PrincipalAccessControlList getPrincipalAccessControlList(@NotNull JackrabbitAccessControlManager acMgr, 
+    private static PrincipalAccessControlList getPrincipalAccessControlList(@NotNull JackrabbitAccessControlManager acMgr,
                                                                             @NotNull Principal principal, boolean includeApplicable) throws RepositoryException {
         PrincipalAccessControlList acl = null;
         for (JackrabbitAccessControlPolicy policy : acMgr.getPolicies(principal)) {
@@ -567,7 +567,7 @@ public class AclUtil {
 
     private static void checkState(boolean expression, String msgPattern, Object... args) {
         if (!expression) {
-            if (args != null) {
+            if (args == null) {
                 throw new IllegalStateException(msgPattern);
             } else {
                 throw new IllegalStateException(MessageFormat.format(msgPattern, args));
@@ -635,7 +635,7 @@ public class AclUtil {
                 throw new IllegalStateException("Cannot verify equivalence of access control entries", e);
             }
         }
-        
+
         private Set<Privilege> expandPrivileges(Privilege[] privileges){
             Set<Privilege> expandedSet = new HashSet<>();
 
