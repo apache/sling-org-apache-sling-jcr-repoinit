@@ -100,8 +100,9 @@ public class JcrRepoInitOpsProcessorImpl implements JcrRepoInitOpsProcessor {
                 }
             }
 
-            log.warn("DEPRECATION - The repoinit script being executed relies on a bug causing repoinit " +
-                    "statements to be reordered. Please review and fix the ordering of your repoinit statements. " +
+            log.warn("DEPRECATION - The repoinit script being executed relies on a bug causing repoinit statements " +
+                    "to be reordered (SLING-12107). For now your repoinit script was applied successfully in legacy " +
+                    "mode. Please review and fix the ordering of your repoinit statements to avoid future issues. " +
                     "The code supporting the legacy order will be removed in a future release. The new code " +
                     "failed on the statement \"{}\". The original exception message was: {}",
                     Optional.ofNullable(lastAttemptedOperation.get()).map(Operation::asRepoInitString).orElse("unknown"),
