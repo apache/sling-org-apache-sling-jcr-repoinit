@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
@@ -75,39 +74,41 @@ public class JcrRepoInitOpsProcessorImpl implements JcrRepoInitOpsProcessor {
                 });
             });
         } catch (RepoInitException originalFailure) {
-            // support legacy statement reordering for backwards compatibility
-            try {
-                session.refresh(false); // drop transient changes
-
-                final OperationVisitor[] visitors = {
-                        new NamespacesVisitor(session),
-                        new NodetypesVisitor(session),
-                        new PrivilegeVisitor(session),
-                        new UserVisitor(session),
-                        new NodeVisitor(session),
-                        new AclVisitor(session),
-                        new GroupMembershipVisitor(session),
-                        new NodePropertiesVisitor(session)
-                };
-
-                for (OperationVisitor v : visitors) {
-                    for (Operation op : ops) {
-                        op.accept(v);
-                    }
-                }
-
-                log.warn("DEPRECATION - The repoinit script being executed relies on a bug causing repoinit " +
-                        "statements to be reordered. Please review and fix the ordering of your repoinit statements. " +
-                        "The code supporting the legacy order will be removed in a future release. The new code " +
-                        "failed on the statement \"{}\"",
-                        Optional.ofNullable(lastAttemptedOperation.get()).map(Operation::asRepoInitString).orElse("unknown"));
-            } catch (Exception legacyFailure) {
-                // rethrow the originalFailure if the legacy code also failed
-                throw originalFailure;
-            }
+            handleLegacyOrderingSupport(session, ops, originalFailure, lastAttemptedOperation);
         }
+    }
 
+    // support legacy statement reordering for backwards compatibility
+    private static void handleLegacyOrderingSupport(Session session, List<Operation> ops, RepoInitException originalFailure, AtomicReference<Operation> lastAttemptedOperation) {
+        try {
+            session.refresh(false); // drop transient changes
 
+            final OperationVisitor[] visitors = {
+                    new NamespacesVisitor(session),
+                    new NodetypesVisitor(session),
+                    new PrivilegeVisitor(session),
+                    new UserVisitor(session),
+                    new NodeVisitor(session),
+                    new AclVisitor(session),
+                    new GroupMembershipVisitor(session),
+                    new NodePropertiesVisitor(session)
+            };
 
+            for (OperationVisitor v : visitors) {
+                for (Operation op : ops) {
+                    op.accept(v);
+                }
+            }
+
+            log.warn("DEPRECATION - The repoinit script being executed relies on a bug causing repoinit " +
+                    "statements to be reordered. Please review and fix the ordering of your repoinit statements. " +
+                    "The code supporting the legacy order will be removed in a future release. The new code " +
+                    "failed on the statement \"{}\". The original exception message was: {}",
+                    Optional.ofNullable(lastAttemptedOperation.get()).map(Operation::asRepoInitString).orElse("unknown"),
+                    originalFailure.getMessage());
+        } catch (Exception legacyFailure) {
+            // rethrow the originalFailure if the legacy code also failed
+            throw originalFailure;
+        }
     }
 }
