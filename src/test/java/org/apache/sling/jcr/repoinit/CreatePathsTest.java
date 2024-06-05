@@ -1,33 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
 
 import org.apache.sling.jcr.repoinit.impl.RepoInitException;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
@@ -41,15 +39,17 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 /** Test the creation of paths with specific node types */
 @RunWith(Parameterized.class)
 public class CreatePathsTest {
 
     @Parameters(name = "{1}")
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][] { 
-                 { Boolean.TRUE, "ensure nodes" }, { Boolean.FALSE, "create path" }
-           });
+        return Arrays.asList(new Object[][] {{Boolean.TRUE, "ensure nodes"}, {Boolean.FALSE, "create path"}});
     }
 
     private final String baseCreateNodesStatement;
@@ -62,7 +62,7 @@ public class CreatePathsTest {
 
     @Rule
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
-    
+
     private TestUtil U;
 
     private static final String TEST_ID = UUID.randomUUID().toString();
@@ -148,18 +148,19 @@ public class CreatePathsTest {
 
     @Test
     public void createPathWithJcrTypeAndMixins() throws Exception {
-        final String path = "/thirteen(nt:unstructured)/fourteen(nt:unstructured mixin mix:lockable)/fifteen(mixin mix:lockable)";
+        final String path =
+                "/thirteen(nt:unstructured)/fourteen(nt:unstructured mixin mix:lockable)/fifteen(mixin mix:lockable)";
         U.parseAndExecute(baseCreateNodesStatement + path);
         U.assertNodeExists("/thirteen", "nt:unstructured", Collections.<String>emptyList());
         U.assertNodeExists("/thirteen/fourteen", "nt:unstructured", Collections.singletonList("mix:lockable"));
         U.assertNodeExists("/thirteen/fourteen/fifteen", "nt:unstructured", Collections.singletonList("mix:lockable"));
     }
-    
+
     @Test
     public void createPathNoDefaultPrimaryType() throws Exception {
         U.adminSession.getRootNode().addNode("folder", "nt:folder");
         U.parseAndExecute(baseCreateNodesStatement + "/folder/subfolder/subfolder2");
-        
+
         Node subFolder = U.adminSession.getNode("/folder/subfolder");
         assertEquals("sling:Folder", subFolder.getPrimaryNodeType().getName());
 
@@ -178,14 +179,15 @@ public class CreatePathsTest {
                 U.parseAndExecute(baseCreateNodesStatement + fullPath);
                 fail("Creating a node at a path where a property exists already should have thrown an exception");
             } catch (RepoInitException e) {
-                assertTrue(e.getMessage().contains("There is a property with the name of the to be created node already at"));
+                assertTrue(e.getMessage()
+                        .contains("There is a property with the name of the to be created node already at"));
             }
         } else {
             U.parseAndExecute("create path " + fullPath);
             assertTrue(U.adminSession.propertyExists(fullPath));
         }
     }
- 
+
     /**
      * SLING-11736 adjust existing node types
      */
@@ -226,10 +228,9 @@ public class CreatePathsTest {
                 + "end\n";
         U.parseAndExecute(createPathCndStatement);
 
-        //verify it worked
+        // verify it worked
         U.assertNodeExists("/one");
         ValueFactory vf = U.adminSession.getValueFactory();
         U.assertSVPropertyExists("/one", "displayName", vf.createValue("Hello"));
     }
-
 }

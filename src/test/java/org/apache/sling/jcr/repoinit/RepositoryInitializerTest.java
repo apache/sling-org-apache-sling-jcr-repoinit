@@ -1,24 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -33,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.repoinit.impl.JcrRepoInitOpsProcessorImpl;
 import org.apache.sling.jcr.repoinit.impl.RepoinitTextProvider.TextFormat;
@@ -49,6 +46,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /** Test the two ways in which our RepositoryInitializer
  *  can read repoinit statements: either from a provisioning
@@ -71,35 +71,51 @@ public class RepositoryInitializerTest {
     private final String serviceUser;
     private final Class<?> expectedActivateException;
 
-    @Parameters(name="{0}")
+    @Parameters(name = "{0}")
     public static Collection<Object[]> data() {
-        final List<Object []> result = new ArrayList<Object[]>();
+        final List<Object[]> result = new ArrayList<Object[]>();
 
         // Realistic cases
-        result.add(new Object[] { "Using provisioning model", "SECTION_" + UUID.randomUUID(), TextFormat.MODEL.toString(), true, true, null });
-        result.add(new Object[] { "Default value of model section config", null, TextFormat.MODEL.toString(), true, true, null });
-        result.add(new Object[] { "Raw repoinit/empty section", "", TextFormat.RAW.toString(), false, true, null });
-        result.add(new Object[] { "Raw repoinit/ignored section name", "IGNORED_SectionName", TextFormat.RAW.toString(), false, true, null });
+        result.add(new Object[] {
+            "Using provisioning model", "SECTION_" + UUID.randomUUID(), TextFormat.MODEL.toString(), true, true, null
+        });
+        result.add(new Object[] {
+            "Default value of model section config", null, TextFormat.MODEL.toString(), true, true, null
+        });
+        result.add(new Object[] {"Raw repoinit/empty section", "", TextFormat.RAW.toString(), false, true, null});
+        result.add(new Object[] {
+            "Raw repoinit/ignored section name", "IGNORED_SectionName", TextFormat.RAW.toString(), false, true, null
+        });
 
         // Edge and failure cases
-        result.add(new Object[] { "All empty, just setup + parsing", "", TextFormat.RAW.toString(), false, false, null });
-        result.add(new Object[] { "Raw repoinit/null format", null, null, true, false, RepoInitParsingException.class });
-        result.add(new Object[] { "With model/null format", null, null, false, false, RuntimeException.class });
-        result.add(new Object[] { "Invalid format", null, "invalidFormat", false, false, RuntimeException.class });
-        result.add(new Object[] { "Empty model section", "", TextFormat.MODEL.toString(), false, false, IllegalArgumentException.class });
-        result.add(new Object[] { "Null model section", null, TextFormat.MODEL.toString(), false, false, IOException.class });
+        result.add(new Object[] {"All empty, just setup + parsing", "", TextFormat.RAW.toString(), false, false, null});
+        result.add(new Object[] {"Raw repoinit/null format", null, null, true, false, RepoInitParsingException.class});
+        result.add(new Object[] {"With model/null format", null, null, false, false, RuntimeException.class});
+        result.add(new Object[] {"Invalid format", null, "invalidFormat", false, false, RuntimeException.class});
+        result.add(new Object[] {
+            "Empty model section", "", TextFormat.MODEL.toString(), false, false, IllegalArgumentException.class
+        });
+        result.add(
+                new Object[] {"Null model section", null, TextFormat.MODEL.toString(), false, false, IOException.class
+                });
 
         return result;
     }
 
-    public RepositoryInitializerTest(String description, String modelSection, String textFormat,
-            boolean useProvisioningModel, boolean testLogin, Class<?> expectedException) throws IOException {
+    public RepositoryInitializerTest(
+            String description,
+            String modelSection,
+            String textFormat,
+            boolean useProvisioningModel,
+            boolean testLogin,
+            Class<?> expectedException)
+            throws IOException {
         serviceUser = getClass().getSimpleName() + "-" + UUID.randomUUID();
 
         String txt = "create service user " + serviceUser;
-        if(useProvisioningModel && modelSection == null) {
+        if (useProvisioningModel && modelSection == null) {
             txt = "[feature name=foo]\n[:repoinit]\n" + txt;
-        } else if(useProvisioningModel) {
+        } else if (useProvisioningModel) {
             txt = "[feature name=bar]\n[:" + modelSection + "]\n" + txt;
         }
         this.repoInitText = txt + "\n";
@@ -115,8 +131,8 @@ public class RepositoryInitializerTest {
         U = new TestUtil(context);
 
         final String ref;
-        if(TextFormat.MODEL.toString().equals(textFormat)) {
-            if(modelSection != null) {
+        if (TextFormat.MODEL.toString().equals(textFormat)) {
+            if (modelSection != null) {
                 ref = "model@" + modelSection + ":" + url;
             } else {
                 ref = "model:" + url;
@@ -127,7 +143,7 @@ public class RepositoryInitializerTest {
 
         initializer = new RepositoryInitializer();
         config = new HashMap<String, Object>();
-        config.put("references", new String[] { ref });
+        config.put("references", new String[] {ref});
 
         context.registerInjectActivateService(new RepoInitParserService());
         context.registerInjectActivateService(new JcrRepoInitOpsProcessorImpl());
@@ -137,8 +153,8 @@ public class RepositoryInitializerTest {
 
             // Mock environment doesn't cause this to be called
             initializer.processRepository(context.getService(SlingRepository.class));
-        } catch(Exception e) {
-            if(expectedActivateException != null) {
+        } catch (Exception e) {
+            if (expectedActivateException != null) {
                 // check if the expected active exception is either the exception itself or in the root cause tree
                 Collection<Class<?>> actualExceptionClasses = new LinkedList<>();
                 actualExceptionClasses.add(e.getClass());
@@ -148,13 +164,12 @@ public class RepositoryInitializerTest {
                     t = t.getCause();
                 }
                 assertTrue(
-                    "Expecting a " + expectedActivateException.getName() + " but got " + withStackTrace(e),
-                    actualExceptionClasses.contains(expectedActivateException));
+                        "Expecting a " + expectedActivateException.getName() + " but got " + withStackTrace(e),
+                        actualExceptionClasses.contains(expectedActivateException));
             } else {
                 fail("Unexpected Exception in activation: " + withStackTrace(e));
             }
         }
-
     }
 
     public static String withStackTrace(Throwable t) {
@@ -165,10 +180,10 @@ public class RepositoryInitializerTest {
 
     @Test
     public void testLogin() throws Exception {
-        if(testLogin) {
+        if (testLogin) {
             try {
                 U.loginService(serviceUser);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 fail("Login failed for " + serviceUser + " repoinit statements (" + repoInitText + ") not applied?");
             }
         }

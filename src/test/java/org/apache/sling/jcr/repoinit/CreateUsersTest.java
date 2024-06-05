@@ -1,25 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit;
 
+import javax.jcr.RepositoryException;
+
 import java.util.Collections;
 import java.util.Random;
-
-import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
@@ -111,14 +113,16 @@ public class CreateUsersTest {
         final String path = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId;
         U.parseAndExecute("create user " + userId + " with path " + path);
         U.assertUser("after creating user " + userId, userId, true, path);
-        final String forcedPath = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId + "_forced";
+        final String forcedPath =
+                "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId + "_forced";
         U.parseAndExecute("create user " + userId + " with forced path " + forcedPath);
         U.assertUser("after creating user " + userId, userId, true, forcedPath);
     }
 
     @Test
     public void createUserWithForcedPathNoClashTest() throws Exception {
-        final String forcedPath = "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId + "_forced";
+        final String forcedPath =
+                "/rep:security/rep:authorizables/rep:users/testusers/folder_for_" + userId + "_forced";
         U.parseAndExecute("create user " + userId + " with forced path " + forcedPath);
         U.assertUser("after creating user " + userId, userId, true, forcedPath);
     }
@@ -141,7 +145,7 @@ public class CreateUsersTest {
     public void createUserMultipleTimes() throws Exception {
         U.assertUser("before test", userId, false);
         final String input = "create user " + userId;
-        for(int i=0; i < 50; i++) {
+        for (int i = 0; i < 50; i++) {
             U.parseAndExecute(input);
         }
         U.assertUser("after creating it multiple times", userId, true);
@@ -153,7 +157,7 @@ public class CreateUsersTest {
 
         {
             final StringBuilder input = new StringBuilder();
-            for(int i=0; i < n; i++) {
+            for (int i = 0; i < n; i++) {
                 U.assertUser("at start of test", user(i), false);
                 input.append("create user ").append(user(i)).append("\n");
             }
@@ -162,15 +166,14 @@ public class CreateUsersTest {
 
         {
             final StringBuilder input = new StringBuilder();
-            for(int i=0; i < n; i++) {
+            for (int i = 0; i < n; i++) {
                 U.assertUser("before deleting user", user(i), true);
                 input.append("delete user ").append(user(i)).append("\n");
             }
             U.parseAndExecute(input.toString());
         }
 
-
-        for(int i=0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
             U.assertUser("after deleting users", user(i), false);
         }
     }
@@ -194,7 +197,8 @@ public class CreateUsersTest {
         U.adminSession.save();
         // creating service user with repoinit must fail
         try {
-            U.parseAndExecute("create user " + userId + " with forced path /rep:security/rep:authorizables/rep:users/intermediate/path");
+            U.parseAndExecute("create user " + userId
+                    + " with forced path /rep:security/rep:authorizables/rep:users/intermediate/path");
             fail("User creation with conflicting group must fail.");
         } catch (RuntimeException e) {
             assertTrue(e.getCause() instanceof AuthorizableTypeException);

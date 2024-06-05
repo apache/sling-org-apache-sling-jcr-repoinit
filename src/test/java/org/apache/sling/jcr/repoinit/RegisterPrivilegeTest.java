@@ -1,20 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.security.Privilege;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
@@ -24,11 +32,6 @@ import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.security.Privilege;
-import java.util.HashSet;
-import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
@@ -48,13 +51,17 @@ public class RegisterPrivilegeTest {
         U.parseAndExecute("register privilege withoutabstract_withoutaggregates2");
         U.parseAndExecute("register privilege withoutabstract_withoutaggregates3");
         U.parseAndExecute("register abstract privilege withabstract_withoutaggregates");
-        U.parseAndExecute("register privilege withoutabstract_withaggregates with withoutabstract_withoutaggregates1,withoutabstract_withoutaggregates2");
-        U.parseAndExecute("register abstract privilege withabstract_withaggregates with withoutabstract_withoutaggregates1,withoutabstract_withoutaggregates3");
+        U.parseAndExecute(
+                "register privilege withoutabstract_withaggregates with withoutabstract_withoutaggregates1,withoutabstract_withoutaggregates2");
+        U.parseAndExecute(
+                "register abstract privilege withabstract_withaggregates with withoutabstract_withoutaggregates1,withoutabstract_withoutaggregates3");
     }
 
     @Test
     public void testRegisterPrivilegeWithoutAbstractWithoutAggregates() throws Exception {
-        Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace()).getPrivilegeManager().getPrivilege("withoutabstract_withoutaggregates1");
+        Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace())
+                .getPrivilegeManager()
+                .getPrivilege("withoutabstract_withoutaggregates1");
 
         assertFalse(privilege.isAbstract());
         assertEquals(0, privilege.getDeclaredAggregatePrivileges().length);
@@ -62,7 +69,9 @@ public class RegisterPrivilegeTest {
 
     @Test
     public void testRegisterPrivilegeWitAbstractWithoutAggregates() throws Exception {
-        Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace()).getPrivilegeManager().getPrivilege("withabstract_withoutaggregates");
+        Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace())
+                .getPrivilegeManager()
+                .getPrivilege("withabstract_withoutaggregates");
 
         assertTrue(privilege.isAbstract());
         assertEquals(0, privilege.getDeclaredAggregatePrivileges().length);
@@ -70,7 +79,9 @@ public class RegisterPrivilegeTest {
 
     @Test
     public void testRegisterPrivilegeWithoutAbstractWithAggregates() throws Exception {
-        Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace()).getPrivilegeManager().getPrivilege("withoutabstract_withaggregates");
+        Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace())
+                .getPrivilegeManager()
+                .getPrivilege("withoutabstract_withaggregates");
 
         assertFalse(privilege.isAbstract());
         assertEquals(2, privilege.getDeclaredAggregatePrivileges().length);
@@ -79,12 +90,17 @@ public class RegisterPrivilegeTest {
         for (Privilege p : privilege.getDeclaredAggregatePrivileges()) {
             names.add(p.getName());
         }
-        assertEquals(names, new HashSet<String>(asList("withoutabstract_withoutaggregates1","withoutabstract_withoutaggregates2")));
+        assertEquals(
+                names,
+                new HashSet<String>(
+                        asList("withoutabstract_withoutaggregates1", "withoutabstract_withoutaggregates2")));
     }
 
     @Test
     public void testRegisterPrivilegeWitAbstractWithAggregates() throws Exception {
-        Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace()).getPrivilegeManager().getPrivilege("withabstract_withaggregates");
+        Privilege privilege = ((JackrabbitWorkspace) U.getAdminSession().getWorkspace())
+                .getPrivilegeManager()
+                .getPrivilege("withabstract_withaggregates");
 
         assertTrue(privilege.isAbstract());
         assertEquals(2, privilege.getDeclaredAggregatePrivileges().length);
@@ -93,7 +109,9 @@ public class RegisterPrivilegeTest {
         for (Privilege p : privilege.getDeclaredAggregatePrivileges()) {
             names.add(p.getName());
         }
-        assertEquals(names, new HashSet<String>(asList("withoutabstract_withoutaggregates1","withoutabstract_withoutaggregates3")));
+        assertEquals(
+                names,
+                new HashSet<String>(
+                        asList("withoutabstract_withoutaggregates1", "withoutabstract_withoutaggregates3")));
     }
-
 }

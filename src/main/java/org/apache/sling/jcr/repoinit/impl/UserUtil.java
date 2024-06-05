@@ -1,20 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit.impl;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
+
+import java.security.Principal;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -23,11 +31,6 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import java.security.Principal;
 
 /** Utilities for User management */
 public class UserUtil {
@@ -41,7 +44,7 @@ public class UserUtil {
         private final String name;
 
         SameNamePrincipal(String name) {
-            if(name == null) {
+            if (name == null) {
                 throw new IllegalArgumentException("Name cannot be null");
             }
             this.name = name;
@@ -54,9 +57,7 @@ public class UserUtil {
 
         @Override
         public boolean equals(Object other) {
-            return (
-                    other instanceof SameNamePrincipal)
-                    && (this.name.equals(((SameNamePrincipal)other).name));
+            return (other instanceof SameNamePrincipal) && (this.name.equals(((SameNamePrincipal) other).name));
         }
 
         @Override
@@ -66,17 +67,17 @@ public class UserUtil {
     }
 
     public static PrincipalManager getPrincipalManager(Session session) throws RepositoryException {
-        if(!(session instanceof JackrabbitSession)) {
+        if (!(session instanceof JackrabbitSession)) {
             throw new IllegalArgumentException("Session is not a JackrabbitSession");
         }
-        return ((JackrabbitSession)session).getPrincipalManager();
+        return ((JackrabbitSession) session).getPrincipalManager();
     }
 
     public static UserManager getUserManager(Session session) throws RepositoryException {
-        if(!(session instanceof JackrabbitSession)) {
+        if (!(session instanceof JackrabbitSession)) {
             throw new IllegalArgumentException("Session is not a JackrabbitSession");
         }
-        return ((JackrabbitSession)session).getUserManager();
+        return ((JackrabbitSession) session).getUserManager();
     }
 
     public static Authorizable getAuthorizable(Session session, String id) throws RepositoryException {
@@ -94,11 +95,10 @@ public class UserUtil {
 
     public static boolean deleteAuthorizable(Session session, String id) throws RepositoryException {
         final Authorizable authorizable = getUserManager(session).getAuthorizable(id);
-        if(authorizable != null) {
+        if (authorizable != null) {
             authorizable.remove();
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
@@ -112,16 +112,16 @@ public class UserUtil {
             if (authorizable.isGroup()) {
                 throw new IllegalStateException("Can't disable a group: " + id);
             }
-            ((User)authorizable).disable(reason);
+            ((User) authorizable).disable(reason);
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
 
     /** Create a user - fails if it already exists */
-    public static void createUser(Session session, String username, String password, String path) throws RepositoryException {
+    public static void createUser(Session session, String username, String password, String path)
+            throws RepositoryException {
         if (path == null) {
             getUserManager(session).createUser(username, password);
         } else {

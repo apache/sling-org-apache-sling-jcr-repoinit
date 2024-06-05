@@ -1,20 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+
+import java.util.UUID;
 
 import ch.qos.logback.classic.Level;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
@@ -24,10 +31,6 @@ import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -60,9 +63,8 @@ public class ExecutionOrderTest {
                 "register nodetypes",
                 "<<===",
                 "[" + NS_PREFIX + ":foo] > nt:unstructured",
-                "===>>"
-                ,"register namespace (" + NS_PREFIX + ") " + NS_URI
-        );
+                "===>>",
+                "register namespace (" + NS_PREFIX + ") " + NS_URI);
         final Node n = U.getAdminSession().getNode(PATH);
         assertEquals(NS_PREFIX + ":foo", n.getProperty("jcr:primaryType").getString());
     }
@@ -76,8 +78,7 @@ public class ExecutionOrderTest {
                 "  allow jcr:read on " + PATH,
                 "  deny jcr:write on " + PATH,
                 "end",
-                "delete group " + GROUP_NAME
-        );
+                "delete group " + GROUP_NAME);
 
         U.assertGroup("Group " + GROUP_NAME + " should have been deleted", GROUP_NAME, false);
 
@@ -88,15 +89,15 @@ public class ExecutionOrderTest {
 
     @Test
     public void legacySetAclBeforeCreatingGroupTest() throws Exception {
-        try (LogCapture capture = new LogCapture("org.apache.sling.jcr.repoinit.impl.JcrRepoInitOpsProcessorImpl", true)) {
+        try (LogCapture capture =
+                new LogCapture("org.apache.sling.jcr.repoinit.impl.JcrRepoInitOpsProcessorImpl", true)) {
             U.parseAndExecute(
                     "create path (nt:folder) " + PATH,
                     "set ACL for " + GROUP_NAME,
                     "  allow jcr:read on " + PATH,
                     "  deny jcr:write on " + PATH,
                     "end",
-                    "create group " + GROUP_NAME
-            );
+                    "create group " + GROUP_NAME);
 
             capture.assertContains(Level.WARN, "DEPRECATION", "set ACL for " + GROUP_NAME);
         } catch (RuntimeException e) {
@@ -106,12 +107,13 @@ public class ExecutionOrderTest {
 
     @Test
     public void legacyAddMemberBeforeCreatingGroupTest() throws Exception {
-        try (LogCapture capture = new LogCapture("org.apache.sling.jcr.repoinit.impl.JcrRepoInitOpsProcessorImpl", true)) {
+        try (LogCapture capture =
+                new LogCapture("org.apache.sling.jcr.repoinit.impl.JcrRepoInitOpsProcessorImpl", true)) {
             U.parseAndExecute(
                     "create group " + GROUP_NAME + "_1",
                     "add " + GROUP_NAME + "_1 to group " + GROUP_NAME,
                     "create group " + GROUP_NAME // reordered by legacy code
-            );
+                    );
 
             capture.assertContains(Level.WARN, "DEPRECATION", "add " + GROUP_NAME + "_1 to group ");
         } catch (RuntimeException e) {

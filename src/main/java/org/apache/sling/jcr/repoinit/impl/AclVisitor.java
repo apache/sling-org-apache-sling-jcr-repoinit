@@ -1,42 +1,44 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit.impl;
-
-import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PATHS;
-import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PRINCIPALS;
-import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PRIVILEGES;
-
-import java.util.Collections;
-import java.util.List;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.sling.repoinit.parser.operations.AclLine;
+import org.apache.sling.repoinit.parser.operations.DeleteAclPaths;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.DeleteAclPrincipals;
 import org.apache.sling.repoinit.parser.operations.EnsureAclPrincipalBased;
-import org.apache.sling.repoinit.parser.operations.DeleteAclPaths;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePaths;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipalBased;
 import org.apache.sling.repoinit.parser.operations.RemoveAcePrincipals;
 import org.apache.sling.repoinit.parser.operations.SetAclPaths;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipalBased;
 import org.apache.sling.repoinit.parser.operations.SetAclPrincipals;
+
+import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PATHS;
+import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PRINCIPALS;
+import static org.apache.sling.repoinit.parser.operations.AclLine.PROP_PRIVILEGES;
 
 /**
  * OperationVisitor which processes only operations related to ACLs.
@@ -54,7 +56,8 @@ class AclVisitor extends DoNothingVisitor {
     public static final String OPTION_IGNORE_MISSING_PRINCIPAL = "ignoreMissingPrincipal";
 
     private enum Instruction {
-        SET, REMOVE
+        SET,
+        REMOVE
     }
 
     /**
@@ -67,7 +70,8 @@ class AclVisitor extends DoNothingVisitor {
         super(s);
     }
 
-    private void handleAclLine(AclLine line, Instruction instruction, List<String> principals, List<String> paths, List<String> options)
+    private void handleAclLine(
+            AclLine line, Instruction instruction, List<String> principals, List<String> paths, List<String> options)
             throws RepositoryException {
         final AclLine.Action action = line.getAction();
         if (action == AclLine.Action.REMOVE) {
@@ -81,7 +85,7 @@ class AclVisitor extends DoNothingVisitor {
             if (instruction == Instruction.SET) {
                 log.info("Adding ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
                 AclUtil.setAcl(session, principals, paths, privileges, isAllow, line.getRestrictions(), options);
-            } else if(instruction == Instruction.REMOVE) {
+            } else if (instruction == Instruction.REMOVE) {
                 log.info("Removing ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
                 AclUtil.removeEntries(session, principals, paths, privileges, isAllow, line.getRestrictions());
             }
@@ -152,7 +156,7 @@ class AclVisitor extends DoNothingVisitor {
             try {
                 handleAclLine(line, Instruction.REMOVE, principals, line.getProperty(PROP_PATHS), s.getOptions());
             } catch (Exception e) {
-                report(e,"Failed to remove access control entries (" + e.toString() + ") " + line);
+                report(e, "Failed to remove access control entries (" + e.toString() + ") " + line);
             }
         }
     }
@@ -164,7 +168,7 @@ class AclVisitor extends DoNothingVisitor {
             try {
                 handleAclLine(line, Instruction.REMOVE, line.getProperty(PROP_PRINCIPALS), paths, s.getOptions());
             } catch (Exception e) {
-                report(e,"Failed to remove access control entries (" + e.toString() + ") " + line);
+                report(e, "Failed to remove access control entries (" + e.toString() + ") " + line);
             }
         }
     }
