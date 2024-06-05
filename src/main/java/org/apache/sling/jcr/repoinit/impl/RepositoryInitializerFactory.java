@@ -20,11 +20,13 @@ import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.sling.commons.metrics.MetricsService;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.api.SlingRepositoryInitializer;
 import org.apache.sling.jcr.repoinit.JcrRepoInitOpsProcessor;
@@ -78,14 +80,22 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    private static final String METRIC_REPOINIT_FAILED = RepositoryInitializerFactory.class.getName() + ".failed";
 
     @Reference
     private RepoInitParser parser;
 
     @Reference
     private JcrRepoInitOpsProcessor processor;
+    
+    @Reference
+    MetricsService metrics;
 
     private RepositoryInitializerFactory.Config config;
+    
+    // assume that repoinit succeeds ... and just this to true if it fails
+    private AtomicBoolean aRepoInitStatementFailed = new AtomicBoolean(false);
+    
 
     private String componentId;
 
@@ -94,6 +104,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
         this.config = config;
         this.componentId = properties.getOrDefault(ComponentConstants.COMPONENT_ID, "").toString();
         log.debug("Activated: {}", this);
+        metrics.gauge(METRIC_REPOINIT_FAILED, this::failureStateAsMetric);
     }
 
     @Override
@@ -167,6 +178,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
         if (!result.isSuccessful()) {
             String msg = String.format("Applying repoinit operation failed despite retry; set loglevel to DEBUG to see all exceptions. "
                     + "Last exception message from \"%s\" was: %s", result.getReference(), result.getFailureTrace().getMessage());
+            aRepoInitStatementFailed.set(true);
             throw new RepositoryException(msg, result.getFailureTrace());
         }
     }
@@ -207,6 +219,15 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
             }
         }, logMessage);
     }
+    
+    /**
+     * return the state of the repoinit execution usable for a simple gauge metric
+     * @return 1 if repoinit did not finish successfully, 0 otherwise
+     */
+    protected int failureStateAsMetric() {
+        return aRepoInitStatementFailed.get() ? 1 : 0;
+    }
+    
 
 
 }
