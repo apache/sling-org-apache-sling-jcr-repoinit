@@ -1,28 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.util.UUID;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -31,6 +25,9 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeType;
+
+import java.io.IOException;
+import java.util.UUID;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.util.Text;
@@ -44,12 +41,17 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 /** Test the setting of properties on nodes */
 public class SetPropertiesTest {
-    
+
     @Rule
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
-    
+
     private TestUtil U;
     private ValueFactory vf;
     private static final String pathPrefix = "/one/two/";
@@ -62,7 +64,7 @@ public class SetPropertiesTest {
     public void setup() throws RepositoryException, IOException, RepoInitParsingException {
         U = new TestUtil(context);
         vf = U.adminSession.getValueFactory();
-        for(String p : new String[] { path1, path2, path3, path4 }) {
+        for (String p : new String[] {path1, path2, path3, path4}) {
             U.parseAndExecute("create path " + p);
             U.assertNodeExists(p);
         }
@@ -77,16 +79,14 @@ public class SetPropertiesTest {
 
     @Test
     public void setMultiplePropertiesTest() throws Exception {
-        final String setProps =
-                "set properties on " + path2 + "\n"
-                        + "set sling:ResourceType{String} to /x/y/z \n"
-                        + "set allowedTemplates to /d/e/f/*, m/n/* \n"
-                        + "set someInteger{Long} to 42 \n"
-                        + "set someFlag{Boolean} to true \n"
-                        + "set someDate{Date} to \"2020-03-19T11:39:33.437+05:30\" \n"
-                        + "set customSingleValueQuotedStringProp to \"hello, you!\" \n"
-                + "end"
-                ;
+        final String setProps = "set properties on " + path2 + "\n"
+                + "set sling:ResourceType{String} to /x/y/z \n"
+                + "set allowedTemplates to /d/e/f/*, m/n/* \n"
+                + "set someInteger{Long} to 42 \n"
+                + "set someFlag{Boolean} to true \n"
+                + "set someDate{Date} to \"2020-03-19T11:39:33.437+05:30\" \n"
+                + "set customSingleValueQuotedStringProp to \"hello, you!\" \n"
+                + "end";
         U.parseAndExecute(setProps);
         Value expectedValue1 = vf.createValue("/x/y/z");
         U.assertSVPropertyExists(path2, "sling:ResourceType", expectedValue1);
@@ -106,33 +106,28 @@ public class SetPropertiesTest {
 
     @Test
     public void setPropertyOnNonExistentPathTest() throws Exception {
-        String nonExistingPath =  "/someNonExistingPath/A/B";
+        String nonExistingPath = "/someNonExistingPath/A/B";
         try {
-            U.parseAndExecute("set properties on " + nonExistingPath + " \n set sling:ResourceType{String} to /x/y/z \n end");
+            U.parseAndExecute(
+                    "set properties on " + nonExistingPath + " \n set sling:ResourceType{String} to /x/y/z \n end");
             Assert.fail();
         } catch (RuntimeException e) {
-            Assert.assertTrue("expected repository exception",  e.getMessage().contains("Unable to set properties on path [" + nonExistingPath + "]:"));
+            Assert.assertTrue(
+                    "expected repository exception",
+                    e.getMessage().contains("Unable to set properties on path [" + nonExistingPath + "]:"));
         }
     }
 
     @Test
     public void setDefaultProperties() throws Exception {
         final String setPropsA =
-                "set properties on " + path3 + "\n"
-                        + "set one to oneA\n"
-                        + "default two to twoA\n"
-                + "end"
-                ;
+                "set properties on " + path3 + "\n" + "set one to oneA\n" + "default two to twoA\n" + "end";
         U.parseAndExecute(setPropsA);
         U.assertSVPropertyExists(path3, "one", vf.createValue("oneA"));
         U.assertSVPropertyExists(path3, "two", vf.createValue("twoA"));
 
         final String setPropsB =
-                "set properties on " + path3 + "\n"
-                        + "set one to oneB\n"
-                        + "default two to twoB\n"
-                + "end"
-                ;
+                "set properties on " + path3 + "\n" + "set one to oneB\n" + "default two to twoB\n" + "end";
 
         U.parseAndExecute(setPropsB);
         U.assertSVPropertyExists(path3, "one", vf.createValue("oneB"));
@@ -189,15 +184,11 @@ public class SetPropertiesTest {
 
     @Test
     public void unknownAuthorizable() throws Exception {
-        final String setProps =
-            "set properties on authorizable(nonExistingUser)\n"
-            + "set one to oneA\n"
-            + "end"
-        ;
+        final String setProps = "set properties on authorizable(nonExistingUser)\n" + "set one to oneA\n" + "end";
         try {
             U.parseAndExecute(setProps);
             fail("Expecting execution to fail");
-        } catch(RuntimeException asExpected) {
+        } catch (RuntimeException asExpected) {
             // all good
         }
     }
@@ -209,30 +200,28 @@ public class SetPropertiesTest {
 
         // The parser accepts any function name in paths,
         // make sure we fail in the right way
-        final String setProps =
-            "set properties on UNauthorizable(" + userid + ")\n"
-            + "set one to oneA\n"
-            + "end"
-        ;
+        final String setProps = "set properties on UNauthorizable(" + userid + ")\n" + "set one to oneA\n" + "end";
         try {
             U.parseAndExecute(setProps);
             fail("Expecting execution to fail");
-        } catch(RuntimeException asExpected) {
+        } catch (RuntimeException asExpected) {
             // all good
         }
     }
-    
+
     @Test
     public void noChangeOnSameProps() throws Exception {
         String testRT = "/my/props/test";
-        String repoinitStr = "set properties on " + path4 + " \n set sling:ResourceType{String} to "+testRT+" \n end";
+        String repoinitStr =
+                "set properties on " + path4 + " \n set sling:ResourceType{String} to " + testRT + " \n end";
         boolean hasChanges = U.parseAndExecute(repoinitStr);
         assertTrue("No changes first attempt - session should contain changes.", hasChanges);
         hasChanges = U.parseAndExecute(repoinitStr);
-        assertFalse("Returning changes on second execution with same values - session should NOT contain changes.", hasChanges);
+        assertFalse(
+                "Returning changes on second execution with same values - session should NOT contain changes.",
+                hasChanges);
         Value expectedValue = vf.createValue(testRT);
         U.assertSVPropertyExists(path4, "sling:ResourceType", expectedValue);
-        
     }
 
     /**
@@ -271,37 +260,28 @@ public class SetPropertiesTest {
         // verify the initial autocreated property values
         U.assertSVPropertyExists(testPath, "slingtest:singleVal", vf.createValue("autocreated value"));
         U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
-                vf.createValue("autocreated value1"),
-                vf.createValue("autocreated value2")
+            vf.createValue("autocreated value1"), vf.createValue("autocreated value2")
         });
 
         // setting "default" the first time should change the value as the value is now
         //  the same as the autocreated default values
-        final String setPropsA =
-                "set properties on " + testPath + "\n" +
-                        "default slingtest:singleVal to sChanged1a\n" +
-                        "default multiVal to mChanged1a, mChanged2a\n" +
-                "end";
+        final String setPropsA = "set properties on " + testPath + "\n" + "default slingtest:singleVal to sChanged1a\n"
+                + "default multiVal to mChanged1a, mChanged2a\n"
+                + "end";
         U.parseAndExecute(setPropsA);
         U.assertSVPropertyExists(testPath, "slingtest:singleVal", vf.createValue("sChanged1a"));
-        U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
-                vf.createValue("mChanged1a"),
-                vf.createValue("mChanged2a")
-        });
+        U.assertMVPropertyExists(
+                testPath, "multiVal", new Value[] {vf.createValue("mChanged1a"), vf.createValue("mChanged2a")});
 
         // setting again should do nothing as the value is now
         //  not the same as the autocreated default values
-        final String setPropsB =
-                "set properties on " + testPath + "\n" +
-                        "default slingtest:singleVal to sChanged1b\n" +
-                        "default multiVal to mChanged1b, mChanged2b\n" +
-                "end";
+        final String setPropsB = "set properties on " + testPath + "\n" + "default slingtest:singleVal to sChanged1b\n"
+                + "default multiVal to mChanged1b, mChanged2b\n"
+                + "end";
         U.parseAndExecute(setPropsB);
         U.assertSVPropertyExists(testPath, "slingtest:singleVal", vf.createValue("sChanged1a"));
-        U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
-                vf.createValue("mChanged1a"),
-                vf.createValue("mChanged2a")
-        });
+        U.assertMVPropertyExists(
+                testPath, "multiVal", new Value[] {vf.createValue("mChanged1a"), vf.createValue("mChanged2a")});
     }
 
     /**
@@ -322,69 +302,60 @@ public class SetPropertiesTest {
 
         // create the test node
         String name = UUID.randomUUID().toString();
-        U.getAdminSession()
-            .getNode(a.getPath())
-            .addNode(name, "slingtest:sling11293");
+        U.getAdminSession().getNode(a.getPath()).addNode(name, "slingtest:sling11293");
         String testPath = a.getPath() + "/" + name;
         U.assertNodeExists(testPath);
         // verify the initial autocreated property values
         U.assertSVPropertyExists(testPath, "slingtest:singleVal", vf.createValue("autocreated value"));
         U.assertMVPropertyExists(testPath, "multiVal", new Value[] {
-                vf.createValue("autocreated value1"),
-                vf.createValue("autocreated value2")
+            vf.createValue("autocreated value1"), vf.createValue("autocreated value2")
         });
 
         // setting "default" the first time should change the value as the value is now
         //  the same as the autocreated default values
-        final String setPropsA =
-                "set properties on authorizable(" + userid + ")/" + name + "\n" +
-                        "default slingtest:singleVal to sChanged1a\n" +
-                        "default multiVal to mChanged1a, mChanged2a\n" +
-                "end";
+        final String setPropsA = "set properties on authorizable(" + userid + ")/" + name + "\n"
+                + "default slingtest:singleVal to sChanged1a\n"
+                + "default multiVal to mChanged1a, mChanged2a\n"
+                + "end";
         U.parseAndExecute(setPropsA);
         U.assertAuthorizableSVPropertyExists(userid, name + "/slingtest:singleVal", vf.createValue("sChanged1a"));
-        U.assertAuthorizableMVPropertyExists(userid, name + "/multiVal", new Value[] {
-                vf.createValue("mChanged1a"),
-                vf.createValue("mChanged2a")
-        });
+        U.assertAuthorizableMVPropertyExists(
+                userid, name + "/multiVal", new Value[] {vf.createValue("mChanged1a"), vf.createValue("mChanged2a")});
 
         // setting again should do nothing as the value is now
         //  not the same as the autocreated default values
-        final String setPropsB =
-                "set properties on authorizable(" + userid + ")/" + name + "\n" +
-                        "default slingtest:singleVal to sChanged1b\n" +
-                        "default multiVal to mChanged1b, mChanged2b\n" +
-                "end";
+        final String setPropsB = "set properties on authorizable(" + userid + ")/" + name + "\n"
+                + "default slingtest:singleVal to sChanged1b\n"
+                + "default multiVal to mChanged1b, mChanged2b\n"
+                + "end";
         U.parseAndExecute(setPropsB);
         U.assertAuthorizableSVPropertyExists(userid, name + "/slingtest:singleVal", vf.createValue("sChanged1a"));
-        U.assertAuthorizableMVPropertyExists(userid, name + "/multiVal", new Value[] {
-                vf.createValue("mChanged1a"),
-                vf.createValue("mChanged2a")
-        });
+        U.assertAuthorizableMVPropertyExists(
+                userid, name + "/multiVal", new Value[] {vf.createValue("mChanged1a"), vf.createValue("mChanged2a")});
     }
 
     protected void registerSling11293NodeType()
             throws RepositoryException, RepoInitParsingException, NoSuchNodeTypeException {
-        final String registerNodeTypes =
-                "register nodetypes\n" +
-                "<<===\n" +
-                "<< <slingtest='http://sling.apache.org/ns/test/repoinit-it/v1.0'>\n" +
-                "<< [slingtest:sling11293] > nt:unstructured\n" +
-                "<<    - slingtest:singleVal (String) = 'autocreated value'\n" +
-                "<<       autocreated\n" +
-                "<<    - multiVal (String) = 'autocreated value1', 'autocreated value2'\n" +
-                "<<       multiple autocreated\n" +
-                "<< [slingtest:sling11293mixin]\n" +
-                "<<    mixin\n" +
-                "<<    - slingtest:singleVal (String) = 'autocreated value'\n" +
-                "<<       autocreated\n" +
-                "<<    - multiVal (String) = 'autocreated value1', 'autocreated value2'\n" +
-                "<<       multiple autocreated\n" +
-                "===>>";
+        final String registerNodeTypes = "register nodetypes\n" + "<<===\n"
+                + "<< <slingtest='http://sling.apache.org/ns/test/repoinit-it/v1.0'>\n"
+                + "<< [slingtest:sling11293] > nt:unstructured\n"
+                + "<<    - slingtest:singleVal (String) = 'autocreated value'\n"
+                + "<<       autocreated\n"
+                + "<<    - multiVal (String) = 'autocreated value1', 'autocreated value2'\n"
+                + "<<       multiple autocreated\n"
+                + "<< [slingtest:sling11293mixin]\n"
+                + "<<    mixin\n"
+                + "<<    - slingtest:singleVal (String) = 'autocreated value'\n"
+                + "<<       autocreated\n"
+                + "<<    - multiVal (String) = 'autocreated value1', 'autocreated value2'\n"
+                + "<<       multiple autocreated\n"
+                + "===>>";
         U.parseAndExecute(registerNodeTypes);
-        NodeType nodeType = U.getAdminSession().getWorkspace().getNodeTypeManager().getNodeType("slingtest:sling11293");
+        NodeType nodeType =
+                U.getAdminSession().getWorkspace().getNodeTypeManager().getNodeType("slingtest:sling11293");
         assertNotNull(nodeType);
-        NodeType mixinType = U.getAdminSession().getWorkspace().getNodeTypeManager().getNodeType("slingtest:sling11293mixin");
+        NodeType mixinType =
+                U.getAdminSession().getWorkspace().getNodeTypeManager().getNodeType("slingtest:sling11293mixin");
         assertNotNull(mixinType);
     }
 
@@ -392,17 +363,16 @@ public class SetPropertiesTest {
      * Set properties on an authorizable and then verify that the values were set
      */
     protected void assertAuthorizableProperties(String id) throws RepositoryException, RepoInitParsingException {
-        final String setPropsA =
-                "set properties on authorizable(" +id + ")\n"
-                        + "set one to oneA\n"
-                        + "set dbl{Double} to 3.14\n"
-                        + "default two to twoA\n"
-                        + "set nested/one to oneA\n"
-                        + "default nested/two to twoA\n"
-                        + "set three to threeA, \"threeB\", threeC\n"
-                        + "default four to fourA, \"fourB\"\n"
-                        + "set nested/three to threeA, \"threeB\", threeC\n"
-                        + "default nested/four to fourA, \"fourB\"\n"
+        final String setPropsA = "set properties on authorizable(" + id + ")\n"
+                + "set one to oneA\n"
+                + "set dbl{Double} to 3.14\n"
+                + "default two to twoA\n"
+                + "set nested/one to oneA\n"
+                + "default nested/two to twoA\n"
+                + "set three to threeA, \"threeB\", threeC\n"
+                + "default four to fourA, \"fourB\"\n"
+                + "set nested/three to threeA, \"threeB\", threeC\n"
+                + "default nested/four to fourA, \"fourB\"\n"
                 + "end";
 
         U.parseAndExecute(setPropsA);
@@ -412,24 +382,16 @@ public class SetPropertiesTest {
         U.assertAuthorizableSVPropertyExists(id, "nested/one", vf.createValue("oneA"));
         U.assertAuthorizableSVPropertyExists(id, "two", vf.createValue("twoA"));
         U.assertAuthorizableSVPropertyExists(id, "nested/two", vf.createValue("twoA"));
-        U.assertAuthorizableMVPropertyExists(id, "three", new Value[] {
-                vf.createValue("threeA"),
-                vf.createValue("threeB"),
-                vf.createValue("threeC")
+        U.assertAuthorizableMVPropertyExists(
+                id, "three", new Value[] {vf.createValue("threeA"), vf.createValue("threeB"), vf.createValue("threeC")
                 });
         U.assertAuthorizableMVPropertyExists(id, "nested/three", new Value[] {
-                vf.createValue("threeA"),
-                vf.createValue("threeB"),
-                vf.createValue("threeC")
-                });
-        U.assertAuthorizableMVPropertyExists(id, "four", new Value[] {
-                vf.createValue("fourA"),
-                vf.createValue("fourB")
-                });
-        U.assertAuthorizableMVPropertyExists(id, "nested/four", new Value[] {
-                vf.createValue("fourA"),
-                vf.createValue("fourB")
-                });
+            vf.createValue("threeA"), vf.createValue("threeB"), vf.createValue("threeC")
+        });
+        U.assertAuthorizableMVPropertyExists(
+                id, "four", new Value[] {vf.createValue("fourA"), vf.createValue("fourB")});
+        U.assertAuthorizableMVPropertyExists(
+                id, "nested/four", new Value[] {vf.createValue("fourA"), vf.createValue("fourB")});
     }
 
     /**
@@ -437,16 +399,15 @@ public class SetPropertiesTest {
      * or not as appropriate
      */
     protected void assertAuthorizablePropertiesAgain(String id) throws RepositoryException, RepoInitParsingException {
-        final String setPropsA =
-                "set properties on authorizable(" + id + ")\n"
-                        + "set one to changed_oneA\n"
-                        + "default two to changed_twoA\n"
-                        + "set nested/one to changed_oneA\n"
-                        + "default nested/two to changed_twoA\n"
-                        + "set three to changed_threeA, \"changed_threeB\", changed_threeC\n"
-                        + "default four to changed_fourA, \"changed_fourB\"\n"
-                        + "set nested/three to changed_threeA, \"changed_threeB\", changed_threeC\n"
-                        + "default nested/four to changed_fourA, \"changed_fourB\"\n"
+        final String setPropsA = "set properties on authorizable(" + id + ")\n"
+                + "set one to changed_oneA\n"
+                + "default two to changed_twoA\n"
+                + "set nested/one to changed_oneA\n"
+                + "default nested/two to changed_twoA\n"
+                + "set three to changed_threeA, \"changed_threeB\", changed_threeC\n"
+                + "default four to changed_fourA, \"changed_fourB\"\n"
+                + "set nested/three to changed_threeA, \"changed_threeB\", changed_threeC\n"
+                + "default nested/four to changed_fourA, \"changed_fourB\"\n"
                 + "end";
 
         U.parseAndExecute(setPropsA);
@@ -456,34 +417,24 @@ public class SetPropertiesTest {
         U.assertAuthorizableSVPropertyExists(id, "two", vf.createValue("twoA"));
         U.assertAuthorizableSVPropertyExists(id, "nested/two", vf.createValue("twoA"));
         U.assertAuthorizableMVPropertyExists(id, "three", new Value[] {
-                vf.createValue("changed_threeA"),
-                vf.createValue("changed_threeB"),
-                vf.createValue("changed_threeC")
-                });
+            vf.createValue("changed_threeA"), vf.createValue("changed_threeB"), vf.createValue("changed_threeC")
+        });
         U.assertAuthorizableMVPropertyExists(id, "nested/three", new Value[] {
-                vf.createValue("changed_threeA"),
-                vf.createValue("changed_threeB"),
-                vf.createValue("changed_threeC")
-                });
-        U.assertAuthorizableMVPropertyExists(id, "four", new Value[] {
-                vf.createValue("fourA"),
-                vf.createValue("fourB")
-                });
-        U.assertAuthorizableMVPropertyExists(id, "nested/four", new Value[] {
-                vf.createValue("fourA"),
-                vf.createValue("fourB")
-                });
+            vf.createValue("changed_threeA"), vf.createValue("changed_threeB"), vf.createValue("changed_threeC")
+        });
+        U.assertAuthorizableMVPropertyExists(
+                id, "four", new Value[] {vf.createValue("fourA"), vf.createValue("fourB")});
+        U.assertAuthorizableMVPropertyExists(
+                id, "nested/four", new Value[] {vf.createValue("fourA"), vf.createValue("fourB")});
     }
 
     /**
      * Set properties on a subtree of an authorizable and then verify that the values were set
      */
-    protected void assertAuthorizableSubTreeProperties(String id)
-            throws RepositoryException, RepoInitParsingException {
-        final String setPropsA =
-                "set properties on authorizable(" + id + ")/nested\n"
-                        + "set one to oneA\n"
-                        + "default two to twoA\n"
+    protected void assertAuthorizableSubTreeProperties(String id) throws RepositoryException, RepoInitParsingException {
+        final String setPropsA = "set properties on authorizable(" + id + ")/nested\n"
+                + "set one to oneA\n"
+                + "default two to twoA\n"
                 + "end";
 
         U.parseAndExecute(setPropsA);
@@ -493,15 +444,14 @@ public class SetPropertiesTest {
     }
 
     /**
-     * Change values for existing properties on a subtree of an authorizable and then verify 
+     * Change values for existing properties on a subtree of an authorizable and then verify
      * that the values were set or not as appropriate
      */
     protected void assertAuthorizableSubTreePropertiesAgain(String id)
             throws RepositoryException, RepoInitParsingException {
-        final String setPropsA =
-                "set properties on authorizable(" + id + ")/nested\n"
-                        + "set one to changed_oneA\n"
-                        + "default two to changed_twoA\n"
+        final String setPropsA = "set properties on authorizable(" + id + ")/nested\n"
+                + "set one to changed_oneA\n"
+                + "default two to changed_twoA\n"
                 + "end";
 
         U.parseAndExecute(setPropsA);
@@ -509,5 +459,4 @@ public class SetPropertiesTest {
         U.assertAuthorizableSVPropertyExists(id, "nested/one", vf.createValue("changed_oneA"));
         U.assertAuthorizableSVPropertyExists(id, "nested/two", vf.createValue("twoA"));
     }
-
 }

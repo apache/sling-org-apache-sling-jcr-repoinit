@@ -18,18 +18,17 @@
  */
 package org.apache.sling.jcr.repoinit;
 
-import static org.junit.Assert.fail;
-
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-
-import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
+
+import static org.junit.Assert.fail;
 
 /**
  * Capture logs for testing
@@ -60,10 +59,11 @@ class LogCapture extends ListAppender<ILoggingEvent> implements AutoCloseable {
         return this.list.stream().anyMatch(p);
     }
 
-    public void assertContains(Level atLevel, String ... substrings) {
+    public void assertContains(Level atLevel, String... substrings) {
         Stream.of(substrings).forEach(substring -> {
-            if(!anyMatch(event -> event.getLevel() == atLevel && event.getFormattedMessage().contains(substring))) {
-                if(verboseFailure) {
+            if (!anyMatch(event ->
+                    event.getLevel() == atLevel && event.getFormattedMessage().contains(substring))) {
+                if (verboseFailure) {
                     fail(String.format("No log message contains [%s] in log\n%s", substring, this.list.toString()));
                 } else {
                     fail(String.format("No log message contains [%s]", substring));

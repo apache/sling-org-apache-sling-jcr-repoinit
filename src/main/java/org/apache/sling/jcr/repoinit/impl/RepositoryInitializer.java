@@ -1,28 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit.impl;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import org.apache.sling.jcr.api.SlingRepository;
 import org.apache.sling.jcr.api.SlingRepositoryInitializer;
@@ -45,29 +47,30 @@ import org.slf4j.LoggerFactory;
  *  from a configurable URL.
  */
 @Designate(ocd = RepositoryInitializer.Config.class)
-@Component(service = SlingRepositoryInitializer.class,
-    configurationPolicy=ConfigurationPolicy.REQUIRE,
-    property = {
+@Component(
+        service = SlingRepositoryInitializer.class,
+        configurationPolicy = ConfigurationPolicy.REQUIRE,
+        property = {
             Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
             // SlingRepositoryInitializers are executed in ascending
             // order of their service ranking
             Constants.SERVICE_RANKING + ":Integer=100"
-    })
+        })
 public class RepositoryInitializer implements SlingRepositoryInitializer {
 
-    @ObjectClassDefinition(name = "Apache Sling Repository Initializer",
-        description="Initializes the JCR content repository using repoinit statements")
+    @ObjectClassDefinition(
+            name = "Apache Sling Repository Initializer",
+            description = "Initializes the JCR content repository using repoinit statements")
     public @interface Config {
 
-        @AttributeDefinition(name="Repoinit references",
-            description=
-                 "References to the source text that provides repoinit statements."
-                + " format is either model@repoinit:<provisioning model URL> or raw:<raw URL>")
+        @AttributeDefinition(
+                name = "Repoinit references",
+                description = "References to the source text that provides repoinit statements."
+                        + " format is either model@repoinit:<provisioning model URL> or raw:<raw URL>")
         String[] references() default {};
     }
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-
 
     @Reference
     private RepoInitParser parser;
@@ -90,13 +93,13 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
 
     @Override
     public void processRepository(SlingRepository repo) throws RepositoryException {
-        if ( config.references() != null && config.references().length > 0 ) {
+        if (config.references() != null && config.references().length > 0) {
             // loginAdministrative is ok here, definitely an admin operation
             @SuppressWarnings("deprecation")
             final Session s = repo.loginAdministrative(null);
             try {
                 final RepoinitTextProvider p = new RepoinitTextProvider();
-                for(String reference : config.references()) {
+                for (String reference : config.references()) {
                     try {
                         final String repoinitText = p.getRepoinitText(reference);
                         final List<Operation> ops;
@@ -108,7 +111,7 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
                         if (s.hasPendingChanges()) {
                             s.save();
                         }
-                    } catch (IOException|RuntimeException|RepositoryException|RepoInitParsingException e) {
+                    } catch (IOException | RuntimeException | RepositoryException | RepoInitParsingException e) {
                         throw new RepoInitException("Error executing repoinit from " + reference, e);
                     }
                 }

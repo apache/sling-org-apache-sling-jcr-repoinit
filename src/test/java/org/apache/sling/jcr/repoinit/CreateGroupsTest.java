@@ -1,25 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit;
 
+import javax.jcr.RepositoryException;
+
 import java.util.Collections;
 import java.util.Random;
-
-import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
@@ -60,7 +62,7 @@ public class CreateGroupsTest {
         U.parseAndExecute("create group " + groupId);
         U.assertGroup("after creating group " + groupId, groupId, true);
     }
-    
+
     @Test
     public void createDeleteSingleTest() throws Exception {
         U.assertGroup("at start of test", groupId, false);
@@ -97,7 +99,8 @@ public class CreateGroupsTest {
     @Test
     public void createGroupWithForcedAbsolutePathTest() throws Exception {
         final String path = "/rep:security/rep:authorizables/rep:groups/testgroup/folder_for_" + groupId;
-        final String forcedPath = "/rep:security/rep:authorizables/rep:groups/testgroup/folder_for_" + groupId + "_forced";
+        final String forcedPath =
+                "/rep:security/rep:authorizables/rep:groups/testgroup/folder_for_" + groupId + "_forced";
         U.parseAndExecute("create group " + groupId + " with path " + path);
         U.assertGroup("after creating group " + groupId, groupId, true, path);
         U.parseAndExecute("create group " + groupId + " with forced path " + forcedPath);
@@ -106,7 +109,8 @@ public class CreateGroupsTest {
 
     @Test
     public void createGroupWithForcedPathNoClashTest() throws Exception {
-        final String forcedPath = "/rep:security/rep:authorizables/rep:groups/testgroup/folder_for_" + groupId + "_forced";
+        final String forcedPath =
+                "/rep:security/rep:authorizables/rep:groups/testgroup/folder_for_" + groupId + "_forced";
         U.parseAndExecute("create group " + groupId + " with forced path " + forcedPath);
         U.assertGroup("after creating group " + groupId, groupId, true, forcedPath);
     }
@@ -140,7 +144,8 @@ public class CreateGroupsTest {
         U.adminSession.save();
         // creating group with repoinit must fail
         try {
-            U.parseAndExecute("create group " + groupId + " with forced path /rep:security/rep:authorizables/rep:users/intermediate/path");
+            U.parseAndExecute("create group " + groupId
+                    + " with forced path /rep:security/rep:authorizables/rep:users/intermediate/path");
             fail("Group creation with conflicting user must fail.");
         } catch (RuntimeException e) {
             assertTrue(e.getCause() instanceof AuthorizableTypeException);

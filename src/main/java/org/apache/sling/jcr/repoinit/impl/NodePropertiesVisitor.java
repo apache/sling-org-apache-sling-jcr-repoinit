@@ -1,26 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit.impl;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
-import java.util.stream.Stream;
 
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -31,6 +27,12 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.util.Text;
@@ -44,7 +46,6 @@ import org.apache.sling.repoinit.parser.operations.SetProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
 /**
  * OperationVisitor which processes only operations related to setting node
  * properties. Having several such specialized visitors makes it easy to control
@@ -54,12 +55,13 @@ import org.jetbrains.annotations.Nullable;
 class NodePropertiesVisitor extends DoNothingVisitor {
     /**
      * The repoinit.parser transforms the authorizable(ids)[/relative_path] path
-     * syntax from the original source into ":authorizable:ids#/relative_path" in the 
+     * syntax from the original source into ":authorizable:ids#/relative_path" in the
      * values provided from {@link SetProperties#getPaths()}
-     * 
+     *
      * These constants are used to unwind those values into the parts for processing
      */
     private static final String PATH_AUTHORIZABLE = ":authorizable:";
+
     private static final char ID_DELIMINATOR = ',';
     private static final char SUBTREE_DELIMINATOR = '#';
 
@@ -79,7 +81,8 @@ class NodePropertiesVisitor extends DoNothingVisitor {
      * @param parentNode the parent node where the property will be set
      * @return the property definition of the property or null if it could not be determined
      */
-    private static @Nullable PropertyDefinition resolvePropertyDefinition(@NotNull String propName, @NotNull Node parentNode) throws RepositoryException {
+    private static @Nullable PropertyDefinition resolvePropertyDefinition(
+            @NotNull String propName, @NotNull Node parentNode) throws RepositoryException {
         NodeType primaryNodeType = parentNode.getPrimaryNodeType();
         // try the primary type
         PropertyDefinition propDef = resolvePropertyDefinition(propName, primaryNodeType);
@@ -104,11 +107,12 @@ class NodePropertiesVisitor extends DoNothingVisitor {
      * @param nodeType the node type to be searched for the property definition
      * @return the required type of the property or {@link PropertyType#UNDEFINED} if it could not be determined
      */
-    private static @Nullable PropertyDefinition resolvePropertyDefinition(@NotNull String propName, @NotNull NodeType nodeType) {
+    private static @Nullable PropertyDefinition resolvePropertyDefinition(
+            @NotNull String propName, @NotNull NodeType nodeType) {
         return Stream.of(nodeType.getPropertyDefinitions())
-            .filter(pd -> propName.equals(pd.getName()))
-            .findFirst()
-            .orElse(null);
+                .filter(pd -> propName.equals(pd.getName()))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -130,8 +134,7 @@ class NodePropertiesVisitor extends DoNothingVisitor {
                 //  then allow the value to be changed.
                 return Arrays.equals(
                         pd.getDefaultValues(),
-                        property.isMultiple() ? property.getValues() : new Value[] {property.getValue()}
-                );
+                        property.isMultiple() ? property.getValues() : new Value[] {property.getValue()});
             }
         }
         return false;
@@ -170,7 +173,8 @@ class NodePropertiesVisitor extends DoNothingVisitor {
      * @throws RepositoryException
      * @throws PathNotFoundException
      */
-    private static boolean needToSetProperty(Session session, Authorizable a, String pRelPath, PropertyLine line) throws RepositoryException {
+    private static boolean needToSetProperty(Session session, Authorizable a, String pRelPath, PropertyLine line)
+            throws RepositoryException {
         if (!line.isDefault()) {
             // It's a "set" line -> overwrite existing value if any
             return true;
@@ -216,7 +220,8 @@ class NodePropertiesVisitor extends DoNothingVisitor {
      * @return iterator over the found authorizables
      */
     @NotNull
-    private static Iterable<Authorizable> getAuthorizables(@NotNull Session session, @NotNull String ids) throws RepositoryException {
+    private static Iterable<Authorizable> getAuthorizables(@NotNull Session session, @NotNull String ids)
+            throws RepositoryException {
         List<Authorizable> authorizables = new ArrayList<>();
         for (String id : Text.explode(ids, ID_DELIMINATOR)) {
             Authorizable a = UserUtil.getAuthorizable(session, id);
@@ -230,11 +235,12 @@ class NodePropertiesVisitor extends DoNothingVisitor {
 
     /**
      * Set properties on a user or group
-     * 
+     *
      * @param nodePath the target path
      * @param propertyLines the property lines to process to set the properties
      */
-    private void setAuthorizableProperties(String nodePath, List<PropertyLine> propertyLines) throws RepositoryException {
+    private void setAuthorizableProperties(String nodePath, List<PropertyLine> propertyLines)
+            throws RepositoryException {
         int lastHashIndex = nodePath.lastIndexOf(SUBTREE_DELIMINATOR);
         if (lastHashIndex == -1) {
             throw new IllegalStateException("Invalid format of authorizable path: # deliminator expected.");
@@ -256,8 +262,10 @@ class NodePropertiesVisitor extends DoNothingVisitor {
                         a.setProperty(pRelPath, pValue);
                     }
                 } else {
-                    log.info("Property '{}' already set on authorizable '{}', existing value will not be overwritten in 'default' mode",
-                        pRelPath, a.getID());
+                    log.info(
+                            "Property '{}' already set on authorizable '{}', existing value will not be overwritten in 'default' mode",
+                            pRelPath,
+                            a.getID());
                 }
             }
         }
@@ -265,7 +273,7 @@ class NodePropertiesVisitor extends DoNothingVisitor {
 
     /**
      * Set properties on a JCR node
-     * 
+     *
      * @param nodePath the target path
      * @param propertyLines the property lines to process to set the properties
      */
@@ -275,13 +283,14 @@ class NodePropertiesVisitor extends DoNothingVisitor {
         for (PropertyLine pl : propertyLines) {
             final String pName = pl.getPropertyName();
             if (needToSetProperty(n, pl)) {
-                final int newType = PropertyType.valueFromName(pl.getPropertyType().name());
+                final int newType =
+                        PropertyType.valueFromName(pl.getPropertyType().name());
                 Value[] newValues = convertToValues(pl.getPropertyValues());
-                Property oldProperty = n.hasProperty(pName) ? n.getProperty(pName)  : null;
+                Property oldProperty = n.hasProperty(pName) ? n.getProperty(pName) : null;
                 // only set property if type and/or values change
                 // note: Node#setProperty() touches the node even if the property value is unchanged
                 //       and thus needs to be explicitly avoided
-                if(hasPropertyChange(oldProperty, newType, newValues)) {
+                if (hasPropertyChange(oldProperty, newType, newValues)) {
                     if (newValues.length == 1) {
                         n.setProperty(pName, newValues[0], newType);
                     } else {
@@ -289,18 +298,22 @@ class NodePropertiesVisitor extends DoNothingVisitor {
                     }
                 }
             } else {
-                log.info("Property '{}' already set on path '{}', existing value will not be overwritten in 'default' mode",
-                    pName, nodePath);
+                log.info(
+                        "Property '{}' already set on path '{}', existing value will not be overwritten in 'default' mode",
+                        pName,
+                        nodePath);
             }
         }
     }
 
-    private boolean hasPropertyChange(Property oldProperty, int newType, Value... newValues) throws RepositoryException {
+    private boolean hasPropertyChange(Property oldProperty, int newType, Value... newValues)
+            throws RepositoryException {
         if (oldProperty == null || oldProperty.getType() != newType) {
             return true;
         }
 
-        final Value[] oldValues = oldProperty.isMultiple() ? oldProperty.getValues() : new Value[]{ oldProperty.getValue() };
+        final Value[] oldValues =
+                oldProperty.isMultiple() ? oldProperty.getValues() : new Value[] {oldProperty.getValue()};
         if (oldValues.length != newValues.length) {
             return true;
         }
@@ -316,8 +329,7 @@ class NodePropertiesVisitor extends DoNothingVisitor {
     }
 
     private static boolean valueEquals(Value oldValue, Value newValue) throws RepositoryException {
-        return oldValue.getType() == newValue.getType()
-                && oldValue.getString().equals(newValue.getString());
+        return oldValue.getType() == newValue.getType() && oldValue.getString().equals(newValue.getString());
     }
 
     @Override
@@ -339,8 +351,8 @@ class NodePropertiesVisitor extends DoNothingVisitor {
     private Value[] convertToValues(List<Object> values) {
         int size = values.size();
         Value[] valueArray = new Value[size];
-        for(int i = 0; i < size; i++) {
-           valueArray[i] = convertToValue(values.get(i));
+        for (int i = 0; i < size; i++) {
+            valueArray[i] = convertToValue(values.get(i));
         }
         return valueArray;
     }
