@@ -22,6 +22,8 @@ import javax.inject.Inject;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlPolicy;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -40,6 +42,7 @@ import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -127,6 +130,20 @@ public class RepoInitTextIT extends RepoInitTestSupport {
             public Void call() throws Exception {
                 assertTrue("Expecting write access to A", U.canWrite(session, ANOTHER, "/acltest/A"));
                 assertFalse("Expecting no write access to B", U.canWrite(session, ANOTHER, "/acltest/A/B"));
+                return null;
+            }
+        };
+    }
+
+    @Test
+    public void valuelessRestrictionsAreNotEquivalent() throws Exception {
+        new Retry() {
+            @Override
+            public Void call() throws Exception {
+                AccessControlPolicy[] policies = session.getAccessControlManager().getPolicies("/acltest/C");
+                assertEquals("Expecting one policy", 1, policies.length);
+                AccessControlList acl = (AccessControlList) policies[0];
+                assertEquals("Expecting two ACL entries", 2, acl.getAccessControlEntries().length);
                 return null;
             }
         };
