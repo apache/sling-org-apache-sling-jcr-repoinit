@@ -45,6 +45,15 @@ set ACL on /acltest/A/B
   deny jcr:write for anotherService
 end
 
+# Test that different restrictions without values are not considered the same
+create path /acltest/C
+set ACL for anotherService
+  deny jcr:read on /acltest/C restriction(rep:ntNames)
+end
+set ACL for anotherService
+  deny jcr:read on /acltest/C restriction(rep:itemNames)
+end
+
 register nodetypes
 <<===
 << <slingtest='http://sling.apache.org/ns/test/repoinit-it/v1.0'>
