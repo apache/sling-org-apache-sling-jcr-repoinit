@@ -55,7 +55,7 @@ public abstract class RepoInitTestSupport extends TestSupport {
 
     @Configuration
     public Option[] configuration() {
-        SlingOptions.versionResolver.setVersionFromProject("org.apache.jackrabbit", "jackrabbit-api");
+        SlingOptions.versionResolver.setVersionFromProject("org.apache.jackrabbit", "oak-jackrabbit-api");
         SlingOptions.versionResolver.setVersionFromProject("org.apache.sling", "org.apache.sling.repoinit.parser");
         SlingOptions.versionResolver.setVersionFromProject("org.apache.sling", "org.apache.sling.commons.metrics");
         SlingOptions.versionResolver.setVersionFromProject("org.apache.commons", "commons-lang3"); // for the metrics
@@ -68,6 +68,10 @@ public abstract class RepoInitTestSupport extends TestSupport {
                                 .groupId("org.apache.sling")
                                 .artifactId("org.apache.sling.repoinit.parser")
                                 .versionAsInProject(),
+                        mavenBundle()
+                            .groupId("org.apache.jackrabbit")
+                            .artifactId("oak-jackrabbit-api")
+                            .versionAsInProject(),
                         junitBundles(),
                         awaitility(),
                         newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")
