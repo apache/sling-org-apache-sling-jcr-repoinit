@@ -29,6 +29,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.Option;
+import org.ops4j.pax.exam.options.SystemPropertyOption;
+import org.ops4j.pax.exam.util.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +42,7 @@ import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
 import static org.ops4j.pax.exam.CoreOptions.vmOption;
+import static org.ops4j.pax.exam.CoreOptions.systemProperty;
 import static org.ops4j.pax.exam.cm.ConfigurationAdminOptions.newConfiguration;
 
 public abstract class RepoInitTestSupport extends TestSupport {
@@ -72,6 +75,8 @@ public abstract class RepoInitTestSupport extends TestSupport {
                             .groupId("org.apache.jackrabbit")
                             .artifactId("oak-jackrabbit-api")
                             .versionAsInProject(),
+                        SlingOptions.logback(),
+                        systemProperty("logback.configurationFile").value("file:" + PathUtils.getBaseDir() + "/src/test/resources/logback-it.xml"),
                         junitBundles(),
                         awaitility(),
                         newConfiguration("org.apache.sling.jcr.base.internal.LoginAdminWhitelist")

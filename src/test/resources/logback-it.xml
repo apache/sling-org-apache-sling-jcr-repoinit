@@ -1,0 +1,23 @@
+<configuration>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>
+                %d{HH:mm:ss.SSS} [%t] %-5level %logger - %msg%n
+            </Pattern>
+        </layout>
+    </appender>
+    
+    <logger name="org.eclipse.jetty" level="warn">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+    
+    <logger name="org.ops4j.pax.exam.cm.internal" level="warn">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <root level="info">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
