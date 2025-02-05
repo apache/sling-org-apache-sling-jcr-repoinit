@@ -143,8 +143,16 @@
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.testing.sling-mock.junit4</artifactId>
-            <version>3.4.10</version>
+            <version>3.5.2</version>
             <scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.jackrabbit</groupId><artifactId>oak-jcr</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.jackrabbit</groupId><artifactId>oak-jackrabbit-api</artifactId>
+				</exclusion>
+			</exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>
