@@ -122,7 +122,7 @@ public abstract class RepoInitTestSupport extends TestSupport {
                 SlingOptions.versionResolver.setVersionFromProject(JR_GID, OAK_BUNDLES[i]);
             } catch (IllegalArgumentException e) {
                 // the version is not explicitly listed in the pom, so use the provided default version
-                versionResolver.setVersion(JR_GID, OAK_BUNDLES[i], TARGET_OAK_VERSION);
+                SlingOptions.versionResolver.setVersion(JR_GID, OAK_BUNDLES[i], TARGET_OAK_VERSION);
             }
         }
         Collection<Option> nonExistingBundles = new HashSet<>();
