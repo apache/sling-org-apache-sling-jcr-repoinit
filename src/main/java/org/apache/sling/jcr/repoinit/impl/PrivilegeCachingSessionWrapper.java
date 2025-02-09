@@ -18,6 +18,7 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,6 +32,7 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 
 import com.google.common.collect.Lists;
 
@@ -43,6 +45,7 @@ public class PrivilegeCachingSessionWrapper {
     JackrabbitAccessControlManager acMgr;
     Map<String,Privilege> nameToPrivilegeMap = new HashMap<>();
     Map<Privilege,List<Privilege>> privilegeToAggreate = new HashMap<>();
+    Map<String,Principal> idToPrincipal = new HashMap<>();
     
     public PrivilegeCachingSessionWrapper (Session session) {
         AclUtil.checkState(session instanceof JackrabbitSession,"A Jackrabbit Session is required");
@@ -98,5 +101,15 @@ public class PrivilegeCachingSessionWrapper {
                 return Lists.newArrayList(p);
             }
         });
+    }
+
+    public Principal getPrincipal (String principalName) throws RepositoryException {
+        if (idToPrincipal.containsKey(principalName)) {
+            return idToPrincipal.get(principalName);
+        } else {
+            Principal p = AccessControlUtils.getPrincipal(this.getSession(), principalName);
+            idToPrincipal.put(principalName, p);
+            return p;
+        }
     }
 }

@@ -182,7 +182,7 @@ public class AclUtil {
                 .map(o -> o.contains(AclVisitor.OPTION_IGNORE_MISSING_PRINCIPAL))
                 .orElse(false);
         for (String name : principals) {
-            final Principal principal = getPrincipal(pcsw.getSession(), name, ignoreMissingPrincipal);
+            final Principal principal = getPrincipal(pcsw, name, ignoreMissingPrincipal);
             LocalAccessControlEntry newAce =
                     new LocalAccessControlEntry(pcsw, principal, jcrPriv, isAllow, localRestrictions);
             if (contains(existingAces, newAce)) {
@@ -206,13 +206,13 @@ public class AclUtil {
     }
 
     @NotNull
-    private static Principal getPrincipal(Session session, String name, boolean ignoreMissingPrincipal)
+    private static Principal getPrincipal(PrivilegeCachingSessionWrapper pcsw, String name, boolean ignoreMissingPrincipal)
             throws RepositoryException {
-        Principal principal = AccessControlUtils.getPrincipal(session, name);
+        Principal principal = pcsw.getPrincipal(name);
         if (principal == null) {
             // backwards compatibility: fallback to original code treating principal name as authorizable ID (see
             // SLING-8604)
-            final Authorizable authorizable = UserUtil.getAuthorizable(session, name);
+            final Authorizable authorizable = UserUtil.getAuthorizable(pcsw.getSession(), name);
             if (!ignoreMissingPrincipal) {
                 checkState(authorizable != null, "Authorizable not found: {0}", name);
                 principal = authorizable.getPrincipal();
@@ -238,7 +238,7 @@ public class AclUtil {
      */
     public static void removePolicy(@NotNull PrivilegeCachingSessionWrapper pcsw, @NotNull final String principalName)
             throws RepositoryException {
-        Principal principal = AccessControlUtils.getPrincipal(pcsw.getSession(), principalName);
+        Principal principal = pcsw.getPrincipal(principalName);
         if (principal == null) {
             LOG.info("Principal {} does not exist.", principalName);
             // using PrincipalImpl will prevent 'removePolicy' from failing with AccessControlException
@@ -371,12 +371,12 @@ public class AclUtil {
             PrivilegeCachingSessionWrapper pcsw, String principalName, Collection<AclLine> lines, boolean isStrict)
             throws RepositoryException {
         final JackrabbitAccessControlManager acMgr = pcsw.getAccessControlManager();
-        Principal principal = AccessControlUtils.getPrincipal(pcsw.getSession(), principalName);
+        Principal principal = pcsw.getPrincipal(principalName);
         if (principal == null) {
             // due to transient nature of the repo-init the principal lookup may not succeed if completed through query
             // -> save transient changes and retry principal lookup
             pcsw.getSession().save();
-            principal = AccessControlUtils.getPrincipal(pcsw.getSession(), principalName);
+            principal = pcsw.getPrincipal(principalName);
             checkState(principal != null, PRINCIPAL_NOT_FOUND_PATTERN, principalName);
         }
 
@@ -450,12 +450,12 @@ public class AclUtil {
     public static void removePrincipalEntries(@NotNull PrivilegeCachingSessionWrapper pcsw, String principalName, Collection<AclLine> lines)
             throws RepositoryException {
         final JackrabbitAccessControlManager acMgr = pcsw.getAccessControlManager();
-        Principal principal = AccessControlUtils.getPrincipal(pcsw.getSession(), principalName);
+        Principal principal = pcsw.getPrincipal(principalName);
         if (principal == null) {
             // due to transient nature of the repo-init the principal lookup may not succeed if completed through query
             // -> save transient changes and retry principal lookup
             pcsw.getSession().save();
-            principal = AccessControlUtils.getPrincipal(pcsw.getSession(), principalName);
+            principal = pcsw.getPrincipal(principalName);
             checkState(principal != null, PRINCIPAL_NOT_FOUND_PATTERN, principalName);
         }
 
@@ -500,7 +500,7 @@ public class AclUtil {
      */
     public static void removePrincipalPolicy(@NotNull PrivilegeCachingSessionWrapper pcsw, @NotNull String principalName)
             throws RepositoryException {
-        Principal principal = AccessControlUtils.getPrincipal(pcsw.getSession(), principalName);
+        Principal principal = pcsw.getPrincipal(principalName);
         if (principal == null) {
             LOG.info("Cannot remove principal-based ACL. Principal {} does not exist.", principalName);
             return;
