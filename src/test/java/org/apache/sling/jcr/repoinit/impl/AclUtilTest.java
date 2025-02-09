@@ -607,7 +607,7 @@ public class AclUtilTest {
             boolean contained)
             throws RepositoryException {
         AclUtil.LocalAccessControlEntry localAce =
-                new AclUtil.LocalAccessControlEntry(principal(username), privileges(privilegeNames), isAllow);
+                new AclUtil.LocalAccessControlEntry(toPCSessionWrapper(U.adminSession),principal(username), privileges(privilegeNames), isAllow);
 
         if (contained) {
             assertTrue(

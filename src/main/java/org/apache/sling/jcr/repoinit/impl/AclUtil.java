@@ -184,7 +184,7 @@ public class AclUtil {
         for (String name : principals) {
             final Principal principal = getPrincipal(pcsw.getSession(), name, ignoreMissingPrincipal);
             LocalAccessControlEntry newAce =
-                    new LocalAccessControlEntry(principal, jcrPriv, isAllow, localRestrictions);
+                    new LocalAccessControlEntry(pcsw, principal, jcrPriv, isAllow, localRestrictions);
             if (contains(existingAces, newAce)) {
                 LOG.info(
                         "Not adding {} to path {} since an equivalent access control entry already exists",
@@ -340,7 +340,7 @@ public class AclUtil {
                             continue;
                         }
                         LocalAccessControlEntry entry =
-                                new LocalAccessControlEntry(ace.getPrincipal(), privs, isAllow, restr);
+                                new LocalAccessControlEntry(pcsw, ace.getPrincipal(), privs, isAllow, restr);
                         if (entry.isEqual(ace)) {
                             acl.removeAccessControlEntry(ace);
                             modified = true;
@@ -413,7 +413,7 @@ public class AclUtil {
                         // or if there exists no node at the effective path (unable to evaluate path-based entries).
                         LOG.info("No PrincipalAccessControlList available for principal {}", principal);
                         if (!containsEquivalentEntry(
-                                pcsw.getSession(), effectivePath, principal, privileges, true, line.getRestrictions())) {
+                                pcsw, effectivePath, principal, privileges, true, line.getRestrictions())) {
                             LOG.warn(
                                     "No equivalent path-based entry exists for principal {} and effective path {} ",
                                     principal.getName(),
@@ -470,7 +470,7 @@ public class AclUtil {
                 if (!jcrPaths.contains(entry.getEffectivePath())) {
                     return false;
                 }
-                LocalAccessControlEntry lace = new LocalAccessControlEntry(
+                LocalAccessControlEntry lace = new LocalAccessControlEntry(pcsw,
                         entry.getPrincipal(), privs, line.getAction() == AclLine.Action.ALLOW, restr);
                 return lace.isEqual(entry);
             };
@@ -622,25 +622,25 @@ public class AclUtil {
     }
 
     private static boolean containsEquivalentEntry(
-            Session session,
+            PrivilegeCachingSessionWrapper pcsw,
             String absPath,
             Principal principal,
             Privilege[] privileges,
             boolean isAllow,
             List<RestrictionClause> restrictionList)
             throws RepositoryException {
-        if (absPath != null && !session.nodeExists(absPath)) {
+        if (absPath != null && !pcsw.getSession().nodeExists(absPath)) {
             LOG.info(
                     "Cannot determine existence of equivalent path-based entry for principal {}. No node at path {} ",
                     principal.getName(),
                     absPath);
             return true;
         }
-        for (AccessControlPolicy policy : session.getAccessControlManager().getPolicies(absPath)) {
+        for (AccessControlPolicy policy : pcsw.getAccessControlManager().getPolicies(absPath)) {
             if (policy instanceof JackrabbitAccessControlList) {
                 LocalRestrictions lr =
-                        createLocalRestrictions(restrictionList, ((JackrabbitAccessControlList) policy), session);
-                LocalAccessControlEntry newEntry = new LocalAccessControlEntry(principal, privileges, isAllow, lr);
+                        createLocalRestrictions(restrictionList, ((JackrabbitAccessControlList) policy), pcsw.getSession());
+                LocalAccessControlEntry newEntry = new LocalAccessControlEntry(pcsw,principal, privileges, isAllow, lr);
                 if (contains(((JackrabbitAccessControlList) policy).getAccessControlEntries(), newEntry)) {
                     LOG.info(
                             "Equivalent path-based entry exists for principal {} and effective path {} ",
@@ -711,13 +711,19 @@ public class AclUtil {
         private final Privilege[] privileges;
         private final boolean isAllow;
         private final LocalRestrictions restrictions;
+        private final PrivilegeCachingSessionWrapper pcsw;
 
-        LocalAccessControlEntry(Principal principal, Privilege[] privileges, boolean isAllow) {
-            this(principal, privileges, isAllow, null);
+        LocalAccessControlEntry(PrivilegeCachingSessionWrapper pcsw, Principal principal, Privilege[] privileges, boolean isAllow) {
+            this(pcsw,principal, privileges, isAllow, null);
         }
 
         LocalAccessControlEntry(
-                Principal principal, Privilege[] privileges, boolean isAllow, LocalRestrictions restrictions) {
+                PrivilegeCachingSessionWrapper pcsw,
+                Principal principal,
+                Privilege[] privileges,
+                boolean isAllow,
+                LocalRestrictions restrictions) {
+            this.pcsw = pcsw;
             this.principal = principal;
             this.privileges = privileges;
             this.isAllow = isAllow;
@@ -751,11 +757,7 @@ public class AclUtil {
 
             if (privileges != null) {
                 for (Privilege privilege : privileges) {
-                    if (privilege.isAggregate()) {
-                        expandedSet.addAll(Arrays.asList(privilege.getAggregatePrivileges()));
-                    } else {
-                        expandedSet.add(privilege);
-                    }
+                    expandedSet.addAll(pcsw.expandPrivilege(privilege));
                 }
             }
 

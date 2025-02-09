@@ -18,18 +18,21 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+
+import com.google.common.collect.Lists;
 
 /**
  * A simple wrapper around a session, which can cache the privilege resolution
@@ -39,6 +42,7 @@ public class PrivilegeCachingSessionWrapper {
     JackrabbitSession session;
     JackrabbitAccessControlManager acMgr;
     Map<String,Privilege> nameToPrivilegeMap = new HashMap<>();
+    Map<Privilege,List<Privilege>> privilegeToAggreate = new HashMap<>();
     
     public PrivilegeCachingSessionWrapper (Session session) {
         AclUtil.checkState(session instanceof JackrabbitSession,"A Jackrabbit Session is required");
@@ -79,5 +83,20 @@ public class PrivilegeCachingSessionWrapper {
             }
         }
         return privileges.toArray(new Privilege[privileges.size()]);
+    }
+
+    /**
+     * If a privilege is an aggreated, return the privilges it contains, otherwise return the privilege itself
+     * @param priv the privilege 
+     * @return
+     */
+    public List<Privilege> expandPrivilege (Privilege priv) {
+        return privilegeToAggreate.computeIfAbsent(priv, (p) -> {
+            if (p.isAggregate()) {
+                return Arrays.asList(p.getAggregatePrivileges());
+            } else {
+                return Lists.newArrayList(p);
+            }
+        });
     }
 }
