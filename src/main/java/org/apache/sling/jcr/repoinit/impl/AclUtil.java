@@ -168,7 +168,7 @@ public class AclUtil {
         AccessControlManager acMgr = pcsw.getAccessControlManager();
 
         final String[] privArray = privileges.toArray(new String[privileges.size()]);
-        final Privilege[] jcrPriv = AccessControlUtils.privilegesFromNames(acMgr, privArray);
+        final Privilege[] jcrPriv = pcsw.privilegesFromNames(privArray);
 
         JackrabbitAccessControlList acl = getAccessControlList(acMgr, jcrPath, true);
         checkState(acl != null, "No JackrabbitAccessControlList available for path {0}", jcrPath);
@@ -332,7 +332,7 @@ public class AclUtil {
 
                     LocalRestrictions restr = createLocalRestrictions(restrictionClauses, acl, pcsw.getSession());
                     Privilege[] privs =
-                            AccessControlUtils.privilegesFromNames(acMgr, privileges.toArray(new String[0]));
+                            pcsw.privilegesFromNames(privileges.toArray(new String[0]));
 
                     for (AccessControlEntry ace : acl.getAccessControlEntries()) {
                         Principal principal = ace.getPrincipal();
@@ -404,8 +404,8 @@ public class AclUtil {
                     modified = true;
                 }
             } else if (action == AclLine.Action.ALLOW) {
-                final Privilege[] privileges = AccessControlUtils.privilegesFromNames(
-                        acMgr, line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
+                final Privilege[] privileges = pcsw.privilegesFromNames(
+                        line.getProperty(PROP_PRIVILEGES).toArray(new String[0]));
                 for (String effectivePath : jcrPaths) {
                     if (acl == null) {
                         // no PrincipalAccessControlList available: don't fail if an equivalent path-based entry with
@@ -465,7 +465,7 @@ public class AclUtil {
             List<String> jcrPaths = getJcrPaths(pcsw.getSession(), line.getProperty(PROP_PATHS));
             LocalRestrictions restr = createLocalRestrictions(line.getRestrictions(), acl, pcsw.getSession());
             List<String> privNames = line.getProperty(PROP_PRIVILEGES);
-            Privilege[] privs = AccessControlUtils.privilegesFromNames(acMgr, privNames.toArray(new String[0]));
+            Privilege[] privs = pcsw.privilegesFromNames(privNames.toArray(new String[0]));
             Predicate<PrincipalAccessControlList.Entry> predicate = entry -> {
                 if (!jcrPaths.contains(entry.getEffectivePath())) {
                     return false;

@@ -18,8 +18,15 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -31,6 +38,7 @@ public class PrivilegeCachingSessionWrapper {
 
     JackrabbitSession session;
     JackrabbitAccessControlManager acMgr;
+    Map<String,Privilege> nameToPrivilegeMap = new HashMap<>();
     
     public PrivilegeCachingSessionWrapper (Session session) {
         AclUtil.checkState(session instanceof JackrabbitSession,"A Jackrabbit Session is required");
@@ -38,6 +46,7 @@ public class PrivilegeCachingSessionWrapper {
         try {
             AclUtil.checkState(session.getAccessControlManager() instanceof JackrabbitAccessControlManager, 
                     "A Jachrabbit AccessControlManager is required");
+            this.acMgr = (JackrabbitAccessControlManager) session.getAccessControlManager();
         } catch (RepositoryException e) {
             throw new IllegalStateException("Cannot retrieve the AcccessControlManager");
         }
@@ -51,4 +60,24 @@ public class PrivilegeCachingSessionWrapper {
         return acMgr;
     }
 
+    /**
+     * Retrieve the matching privileges from the given privilege names; uses internally a cache. The retrieval
+     * logic is identical to AccessControlUtils.privilegesFromName, but with caching
+     * @param privilegeNames the name of the privileges
+     * @return the matching privileges
+     * @throws RepositoryException in case of errors
+     */
+    public Privilege[] privilegesFromNames(String... privilegeNames) throws RepositoryException {
+        Set<Privilege> privileges = new HashSet<Privilege>(privilegeNames.length);
+        for (String privName : privilegeNames) {
+            if (nameToPrivilegeMap.containsKey(privName)) {
+                privileges.add(nameToPrivilegeMap.get(privName));
+            } else {
+                Privilege p = acMgr.privilegeFromName(privName);
+                nameToPrivilegeMap.put(privName, p);
+                privileges.add(p);
+            }
+        }
+        return privileges.toArray(new Privilege[privileges.size()]);
+    }
 }
