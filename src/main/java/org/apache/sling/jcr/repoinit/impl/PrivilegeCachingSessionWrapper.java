@@ -89,7 +89,7 @@ public class PrivilegeCachingSessionWrapper {
     }
 
     /**
-     * If a privilege is an aggreated, return the privilges it contains, otherwise return the privilege itself
+     * If a privilege is an aggregated, return the privileges it contains, otherwise return the privilege itself
      * @param priv the privilege 
      * @return
      */
@@ -104,12 +104,15 @@ public class PrivilegeCachingSessionWrapper {
     }
 
     public Principal getPrincipal (String principalName) throws RepositoryException {
+        // Do not cache null principals
         if (idToPrincipal.containsKey(principalName)) {
-            return idToPrincipal.get(principalName);
-        } else {
-            Principal p = AccessControlUtils.getPrincipal(this.getSession(), principalName);
-            idToPrincipal.put(principalName, p);
-            return p;
+            Principal p = idToPrincipal.get(principalName);
+            if (p != null) {
+                return p;
+            }
         }
+        Principal p = AccessControlUtils.getPrincipal(this.getSession(), principalName);
+        idToPrincipal.put(principalName, p);
+        return p;
     }
 }
