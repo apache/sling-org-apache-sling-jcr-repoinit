@@ -85,7 +85,7 @@ public class ManyServiceUsersTest {
 
                 try {
                     AclUtil.setAcl(
-                            new PrivilegeCachingSessionWrapper(otherSession),
+                            new CachingSessionWrapper(otherSession),
                             Arrays.asList(username),
                             Arrays.asList(path),
                             Arrays.asList("jcr:read"),

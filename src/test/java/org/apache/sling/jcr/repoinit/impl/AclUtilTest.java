@@ -627,7 +627,7 @@ public class AclUtilTest {
         return AccessControlUtils.privilegesFromNames(U.adminSession, privilegeNames);
     }
 
-    private static PrivilegeCachingSessionWrapper toPCSessionWrapper (Session session) {
-        return new PrivilegeCachingSessionWrapper(session);
+    private static CachingSessionWrapper toPCSessionWrapper (Session session) {
+        return new CachingSessionWrapper(session);
     }
 }

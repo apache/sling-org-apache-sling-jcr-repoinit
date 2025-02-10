@@ -57,7 +57,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.sling.jcr.repoinit.impl.AclUtil;
-import org.apache.sling.jcr.repoinit.impl.PrivilegeCachingSessionWrapper;
+import org.apache.sling.jcr.repoinit.impl.CachingSessionWrapper;
 import org.apache.sling.jcr.repoinit.impl.RepoInitException;
 import org.apache.sling.jcr.repoinit.impl.TestUtil;
 import org.apache.sling.repoinit.parser.RepoInitParsingException;
@@ -805,7 +805,7 @@ public class PrincipalBasedAclTest {
         line.setProperty(AclLine.PROP_PRINCIPALS, Collections.singletonList(principal.getName()));
         line.setProperty(AclLine.PROP_PRIVILEGES, Collections.singletonList(Privilege.JCR_READ));
         line.setProperty(AclLine.PROP_PATHS, Collections.singletonList(":home:" + U.username + "#"));
-        AclUtil.setPrincipalAcl(new PrivilegeCachingSessionWrapper(U.adminSession), U.username, Collections.singletonList(line), false);
+        AclUtil.setPrincipalAcl(new CachingSessionWrapper(U.adminSession), U.username, Collections.singletonList(line), false);
 
         PrincipalAccessControlList acl = getAcl(principal, U.adminSession);
         assertNotNull(acl);

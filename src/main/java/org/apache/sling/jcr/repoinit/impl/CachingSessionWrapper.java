@@ -39,7 +39,7 @@ import com.google.common.collect.Lists;
 /**
  * A simple wrapper around a session, which can cache the privilege resolution
  */
-public class PrivilegeCachingSessionWrapper {
+public class CachingSessionWrapper {
 
     JackrabbitSession session;
     JackrabbitAccessControlManager acMgr;
@@ -47,7 +47,7 @@ public class PrivilegeCachingSessionWrapper {
     Map<Privilege,List<Privilege>> privilegeToAggreate = new HashMap<>();
     Map<String,Principal> idToPrincipal = new HashMap<>();
     
-    public PrivilegeCachingSessionWrapper (Session session) {
+    public CachingSessionWrapper (Session session) {
         AclUtil.checkState(session instanceof JackrabbitSession,"A Jackrabbit Session is required");
         this.session = (JackrabbitSession) session;
         try {
