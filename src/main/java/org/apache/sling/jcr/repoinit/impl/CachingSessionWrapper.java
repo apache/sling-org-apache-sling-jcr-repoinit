@@ -18,44 +18,37 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.security.Privilege;
-
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-
-import com.google.common.collect.Lists;
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * A simple wrapper around a session, which can cache the privilege resolution
+ * A simple wrapper around a session, which can cache the principal lookup and resolves privilege names to 
+ * {@code PrivilegeCollection} objects.
  */
 public class CachingSessionWrapper {
 
     JackrabbitSession session;
     JackrabbitAccessControlManager acMgr;
-    Map<String,Privilege> nameToPrivilegeMap = new HashMap<>();
-    Map<Privilege,List<Privilege>> privilegeToAggreate = new HashMap<>();
-    Map<String,Principal> idToPrincipal = new HashMap<>();
-    
-    public CachingSessionWrapper (Session session) {
+    Map<String,Principal> nameToPrincipal = new HashMap<>();
+
+    public CachingSessionWrapper(@NotNull Session session) {
         AclUtil.checkState(session instanceof JackrabbitSession,"A Jackrabbit Session is required");
         this.session = (JackrabbitSession) session;
         try {
-            AclUtil.checkState(session.getAccessControlManager() instanceof JackrabbitAccessControlManager, 
-                    "A Jachrabbit AccessControlManager is required");
+            AclUtil.checkState(session.getAccessControlManager() instanceof JackrabbitAccessControlManager,
+                    "A Jackrabbit AccessControlManager is required");
             this.acMgr = (JackrabbitAccessControlManager) session.getAccessControlManager();
         } catch (RepositoryException e) {
-            throw new IllegalStateException("Cannot retrieve the AcccessControlManager");
+            throw new IllegalStateException("Cannot retrieve the AccessControlManager");
         }
     }
 
@@ -67,52 +60,30 @@ public class CachingSessionWrapper {
         return acMgr;
     }
 
-    /**
-     * Retrieve the matching privileges from the given privilege names; uses internally a cache. The retrieval
-     * logic is identical to AccessControlUtils.privilegesFromName, but with caching
-     * @param privilegeNames the name of the privileges
-     * @return the matching privileges
-     * @throws RepositoryException in case of errors
-     */
-    public Privilege[] privilegesFromNames(String... privilegeNames) throws RepositoryException {
-        Set<Privilege> privileges = new HashSet<Privilege>(privilegeNames.length);
-        for (String privName : privilegeNames) {
-            if (nameToPrivilegeMap.containsKey(privName)) {
-                privileges.add(nameToPrivilegeMap.get(privName));
-            } else {
-                Privilege p = acMgr.privilegeFromName(privName);
-                nameToPrivilegeMap.put(privName, p);
-                privileges.add(p);
-            }
+    public @NotNull PrivilegeCollection privilegeCollectionFromNames(@NotNull String... privilegeNames) throws RepositoryException {
+        return acMgr.privilegeCollectionFromNames(privilegeNames);
+    }
+
+    public @Nullable Principal getPrincipal (@NotNull String principalName) throws RepositoryException {
+        if (nameToPrincipal.containsKey(principalName)) {
+            return nameToPrincipal.get(principalName);
         }
-        return privileges.toArray(new Privilege[privileges.size()]);
-    }
-
-    /**
-     * If a privilege is an aggregated, return the privileges it contains, otherwise return the privilege itself
-     * @param priv the privilege 
-     * @return
-     */
-    public List<Privilege> expandPrivilege (Privilege priv) {
-        return privilegeToAggreate.computeIfAbsent(priv, (p) -> {
-            if (p.isAggregate()) {
-                return Arrays.asList(p.getAggregatePrivileges());
-            } else {
-                return Lists.newArrayList(p);
-            }
-        });
-    }
-
-    public Principal getPrincipal (String principalName) throws RepositoryException {
+        Principal p = session.getPrincipalManager().getPrincipal(principalName);
         // Do not cache null principals
-        if (idToPrincipal.containsKey(principalName)) {
-            Principal p = idToPrincipal.get(principalName);
-            if (p != null) {
-                return p;
-            }
+        if (p != null) {
+            nameToPrincipal.put(principalName, p);
         }
-        Principal p = AccessControlUtils.getPrincipal(this.getSession(), principalName);
-        idToPrincipal.put(principalName, p);
         return p;
+    }
+    
+    public @Nullable Principal getPrincipalWithSave(@NotNull String principalName) throws RepositoryException {
+        Principal principal = getPrincipal(principalName);
+        if (principal == null) {
+            // due to transient nature of the repo-init the principal lookup may not succeed if completed through query
+            // -> save transient changes and retry principal lookup
+            session.save();
+            principal = getPrincipal(principalName);
+        }
+        return principal;
     }
 }
