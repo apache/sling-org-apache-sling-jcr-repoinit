@@ -34,13 +34,13 @@ import java.util.Map;
  * A simple wrapper around a session, which can cache the principal lookup and resolves privilege names to 
  * {@code PrivilegeCollection} objects.
  */
-public class CachingSessionWrapper {
+public class SessionContext {
 
     JackrabbitSession session;
     JackrabbitAccessControlManager acMgr;
     Map<String,Principal> nameToPrincipal = new HashMap<>();
 
-    public CachingSessionWrapper(@NotNull Session session) {
+    public SessionContext(@NotNull Session session) {
         AclUtil.checkState(session instanceof JackrabbitSession,"A Jackrabbit Session is required");
         this.session = (JackrabbitSession) session;
         try {

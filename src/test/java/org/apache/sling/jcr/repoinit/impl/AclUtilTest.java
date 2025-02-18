@@ -618,7 +618,7 @@ public class AclUtilTest {
         return AccessControlUtils.getPrincipal(U.adminSession, principalName);
     }
 
-    private static CachingSessionWrapper toPCSessionWrapper (Session session) {
-        return new CachingSessionWrapper(session);
+    private static SessionContext toPCSessionWrapper (Session session) {
+        return new SessionContext(session);
     }
 }

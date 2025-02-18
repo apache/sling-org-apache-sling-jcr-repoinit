@@ -55,7 +55,7 @@ class AclVisitor extends DoNothingVisitor {
      */
     public static final String OPTION_IGNORE_MISSING_PRINCIPAL = "ignoreMissingPrincipal";
 
-    private final CachingSessionWrapper csw;
+    private final SessionContext context;
 
     private enum Instruction {
         SET,
@@ -70,7 +70,7 @@ class AclVisitor extends DoNothingVisitor {
      */
     public AclVisitor(Session s)  {
         super(s);
-        csw = new CachingSessionWrapper(s);
+        context = new SessionContext(s);
     }
 
     private void handleAclLine(
@@ -80,17 +80,17 @@ class AclVisitor extends DoNothingVisitor {
         if (action == AclLine.Action.REMOVE) {
             report("remove not supported. use 'remove acl' instead.");
         } else if (action == AclLine.Action.REMOVE_ALL) {
-            AclUtil.removeEntries(csw, principals, paths);
+            AclUtil.removeEntries(context, principals, paths);
         } else {
             final boolean isAllow = action == AclLine.Action.ALLOW;
             final String actionName = isAllow ? "allow" : "deny";
             final List<String> privileges = line.getProperty(PROP_PRIVILEGES);
             if (instruction == Instruction.SET) {
                 log.info("Adding ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
-                AclUtil.setAcl(csw, principals, paths, privileges, isAllow, line.getRestrictions(), options);
+                AclUtil.setAcl(context, principals, paths, privileges, isAllow, line.getRestrictions(), options);
             } else if (instruction == Instruction.REMOVE) {
                 log.info("Removing ACL '{}' entry '{}' for {} on {}", actionName, privileges, principals, paths);
-                AclUtil.removeEntries(csw, principals, paths, privileges, isAllow, line.getRestrictions());
+                AclUtil.removeEntries(context, principals, paths, privileges, isAllow, line.getRestrictions());
             }
         }
     }
@@ -133,7 +133,7 @@ class AclVisitor extends DoNothingVisitor {
         for (String principalName : s.getPrincipals()) {
             try {
                 log.info("Adding principal-based access control entry for {}", principalName);
-                AclUtil.setPrincipalAcl(csw, principalName, s.getLines(), false);
+                AclUtil.setPrincipalAcl(context, principalName, s.getLines(), false);
             } catch (Exception e) {
                 report(e, "Failed to set principal-based ACL (" + e.getMessage() + ")");
             }
@@ -145,7 +145,7 @@ class AclVisitor extends DoNothingVisitor {
         for (String principalName : s.getPrincipals()) {
             try {
                 log.info("Enforcing principal-based access control entry for {}", principalName);
-                AclUtil.setPrincipalAcl(csw, principalName, s.getLines(), true);
+                AclUtil.setPrincipalAcl(context, principalName, s.getLines(), true);
             } catch (Exception e) {
                 report(e, "Failed to set principal-based ACL (" + e.getMessage() + ")");
             }
@@ -181,7 +181,7 @@ class AclVisitor extends DoNothingVisitor {
         for (String principalName : s.getPrincipals()) {
             try {
                 log.info("Removing principal-based access control entries for {}", principalName);
-                AclUtil.removePrincipalEntries(csw, principalName, s.getLines());
+                AclUtil.removePrincipalEntries(context, principalName, s.getLines());
             } catch (Exception e) {
                 report(e, "Failed to remove principal-based access control entries (" + e.getMessage() + ")");
             }
@@ -193,7 +193,7 @@ class AclVisitor extends DoNothingVisitor {
         for (String principalName : s.getPrincipals()) {
             try {
                 log.info("Removing access control policy for {}", principalName);
-                AclUtil.removePolicy(csw, principalName);
+                AclUtil.removePolicy(context, principalName);
             } catch (RepositoryException e) {
                 report(e, "Failed to remove ACL (" + e.getMessage() + ")");
             }
@@ -203,7 +203,7 @@ class AclVisitor extends DoNothingVisitor {
     @Override
     public void visitDeleteAclPaths(DeleteAclPaths s) {
         try {
-            AclUtil.removePolicies(csw, s.getPaths());
+            AclUtil.removePolicies(context, s.getPaths());
         } catch (RepositoryException e) {
             report(e, "Failed to remove ACL (" + e.getMessage() + ")");
         }
@@ -214,7 +214,7 @@ class AclVisitor extends DoNothingVisitor {
         for (String principalName : s.getPrincipals()) {
             try {
                 log.info("Removing principal-based access control policy for {}", principalName);
-                AclUtil.removePrincipalPolicy(csw, principalName);
+                AclUtil.removePrincipalPolicy(context, principalName);
             } catch (RepositoryException e) {
                 report(e, "Failed to remove principal-based ACL (" + e.getMessage() + ")");
             }
