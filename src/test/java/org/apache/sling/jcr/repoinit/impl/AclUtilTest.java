@@ -18,24 +18,8 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
-import javax.jcr.AccessDeniedException;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.Privilege;
-
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -52,6 +36,18 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.Assertions;
+
+import javax.jcr.PathNotFoundException;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -243,7 +239,7 @@ public class AclUtilTest {
             assertNull(((JackrabbitSession) session).getUserManager().getAuthorizable(EveryonePrincipal.getInstance()));
 
             AclUtil.setAcl(
-                    session,
+                    toPCSessionWrapper(session),
                     Collections.singletonList(EveryonePrincipal.NAME),
                     Collections.singletonList(PathUtils.ROOT_PATH),
                     Collections.singletonList(Privilege.JCR_READ),
@@ -273,7 +269,7 @@ public class AclUtilTest {
             U.adminSession.save();
 
             AclUtil.setAcl(
-                    U.adminSession,
+                    toPCSessionWrapper(U.adminSession),
                     Collections.singletonList(principal.getName()),
                     Collections.singletonList(PathUtils.ROOT_PATH),
                     Collections.singletonList(Privilege.JCR_READ),
@@ -307,7 +303,7 @@ public class AclUtilTest {
             U.adminSession.save();
 
             AclUtil.setAcl(
-                    U.adminSession,
+                    toPCSessionWrapper(U.adminSession),
                     Collections.singletonList(U.username),
                     Collections.singletonList(PathUtils.ROOT_PATH),
                     Collections.singletonList(Privilege.JCR_READ),
@@ -342,7 +338,7 @@ public class AclUtilTest {
 
         List<String> paths = Collections.singletonList(":home:" + U.username + "#");
         AclUtil.setAcl(
-                U.adminSession,
+                toPCSessionWrapper(U.adminSession),
                 Collections.singletonList(U.username),
                 paths,
                 Collections.singletonList(Privilege.JCR_READ),
@@ -374,7 +370,7 @@ public class AclUtilTest {
 
         List<String> paths = Collections.singletonList(":home:" + U.username + "," + gr.getID() + "#");
         AclUtil.setAcl(
-                U.adminSession,
+                toPCSessionWrapper(U.adminSession),
                 Collections.singletonList(U.username),
                 paths,
                 Collections.singletonList(Privilege.JCR_READ),
@@ -399,7 +395,7 @@ public class AclUtilTest {
 
         List<String> paths = Arrays.asList(":home:" + U.username + "#", ":repository", PathUtils.ROOT_PATH);
         AclUtil.setAcl(
-                U.adminSession,
+                toPCSessionWrapper(U.adminSession),
                 Collections.singletonList(U.username),
                 paths,
                 Collections.singletonList(Privilege.JCR_ALL),
@@ -450,7 +446,7 @@ public class AclUtilTest {
 
         List<String> paths = Collections.singletonList(":home:" + U.username + "," + gr.getID() + "#/profiles/private");
         AclUtil.setAcl(
-                U.adminSession,
+                toPCSessionWrapper(U.adminSession),
                 Collections.singletonList(U.username),
                 paths,
                 Collections.singletonList(Privilege.JCR_READ),
@@ -490,8 +486,7 @@ public class AclUtilTest {
      * @param groupId the id of the group to create
      */
     protected void assertSetAclWithHomePath(String groupId)
-            throws AccessDeniedException, UnsupportedRepositoryOperationException, RepositoryException,
-                    AuthorizableExistsException {
+            throws RepositoryException{
         UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
 
         Group gr = uMgr.createGroup(groupId);
@@ -504,7 +499,7 @@ public class AclUtilTest {
 
         List<String> paths = Collections.singletonList(":home:" + gr.getID() + "," + U.username + "#");
         AclUtil.setAcl(
-                U.adminSession,
+                toPCSessionWrapper(U.adminSession),
                 Collections.singletonList(U.username),
                 paths,
                 Collections.singletonList(Privilege.JCR_READ),
@@ -537,7 +532,7 @@ public class AclUtilTest {
     public void testSetAclWithHomePathMissingTrailingHash() throws Exception {
         List<String> paths = Collections.singletonList(":home:" + U.username);
         AclUtil.setAcl(
-                U.adminSession,
+                toPCSessionWrapper(U.adminSession),
                 Collections.singletonList(U.username),
                 paths,
                 Collections.singletonList(Privilege.JCR_READ),
@@ -548,7 +543,7 @@ public class AclUtilTest {
     public void testSetAclWithHomePathUnknownUser() throws Exception {
         List<String> paths = Collections.singletonList(":home:alice#");
         AclUtil.setAcl(
-                U.adminSession,
+                toPCSessionWrapper(U.adminSession),
                 Collections.singletonList(U.username),
                 paths,
                 Collections.singletonList(Privilege.JCR_READ),
@@ -559,7 +554,7 @@ public class AclUtilTest {
     public void repeatedSetAclCallIsNoOp() throws Throwable {
         final Session session = U.adminSession;
         final ThrowingRunnable setAcls = () -> AclUtil.setAcl(
-                session,
+                toPCSessionWrapper(session),
                 Collections.singletonList(U.username),
                 Arrays.asList(":home:" + U.username + "#", ":repository", PathUtils.ROOT_PATH),
                 Collections.singletonList(Privilege.JCR_ALL),
@@ -578,7 +573,7 @@ public class AclUtilTest {
     public void nullRestrictionClauseAndNullOptionsAreHandled() {
         final Session session = U.adminSession;
         Assertions.assertDoesNotThrow(() -> AclUtil.setAcl(
-                session,
+                toPCSessionWrapper(session),
                 Collections.singletonList(U.username),
                 Collections.singletonList(PathUtils.ROOT_PATH),
                 Collections.singletonList(Privilege.JCR_READ),
@@ -607,7 +602,7 @@ public class AclUtilTest {
             boolean contained)
             throws RepositoryException {
         AclUtil.LocalAccessControlEntry localAce =
-                new AclUtil.LocalAccessControlEntry(principal(username), privileges(privilegeNames), isAllow);
+                new AclUtil.LocalAccessControlEntry(toPCSessionWrapper(U.adminSession),principal(username), privilegeNames, isAllow);
 
         if (contained) {
             assertTrue(
@@ -623,7 +618,7 @@ public class AclUtilTest {
         return AccessControlUtils.getPrincipal(U.adminSession, principalName);
     }
 
-    private Privilege[] privileges(String... privilegeNames) throws RepositoryException {
-        return AccessControlUtils.privilegesFromNames(U.adminSession, privilegeNames);
+    private static SessionContext toPCSessionWrapper (Session session) {
+        return new SessionContext(session);
     }
 }

@@ -76,13 +76,13 @@ public class TestUtil {
         username = "user_" + id;
     }
 
-    public List<Operation> parse(String... inputLines) throws RepoInitParsingException {
+    public static List<Operation> parse(String... inputLines) throws RepoInitParsingException {
         try (final StringReader r = new StringReader(String.join("\n", inputLines))) {
             return new RepoInitParserService().parse(r);
         }
     }
 
-    private void assertPathContains(Authorizable u, String pathShouldContain) throws RepositoryException {
+    private static void assertPathContains(Authorizable u, String pathShouldContain) throws RepositoryException {
         if (pathShouldContain != null) {
             final String path = u.getPath();
             assertTrue("Expecting path " + path + " to contain " + pathShouldContain, path.contains(pathShouldContain));

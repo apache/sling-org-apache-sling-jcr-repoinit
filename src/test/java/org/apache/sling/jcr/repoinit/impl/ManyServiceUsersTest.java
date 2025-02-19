@@ -85,7 +85,7 @@ public class ManyServiceUsersTest {
 
                 try {
                     AclUtil.setAcl(
-                            otherSession,
+                            new SessionContext(otherSession),
                             Arrays.asList(username),
                             Arrays.asList(path),
                             Arrays.asList("jcr:read"),
