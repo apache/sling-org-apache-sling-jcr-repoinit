@@ -98,10 +98,19 @@ public abstract class RepoInitTestSupport extends TestSupport {
                                 .groupId("org.apache.sling")
                                 .artifactId("org.apache.sling.repoinit.parser")
                                 .versionAsInProject(),
+                        mavenBundle()
+                                .groupId("org.apache.sling")
+                                .artifactId("org.apache.sling.commons.threads")
+                                .versionAsInProject(),
                         bundlesForNewerRepository()
                         )
                 .add(additionalOptions())
                 .remove(nonExistingJackrabbitBundles)
+                .remove(mavenBundle()
+                        // remove the previously used version because it lacks Java 17 support
+                        .groupId("org.apache.sling")
+                        .artifactId("org.apache.sling.commons.threads")
+                        .version("3.2.18"))
                 .remove(
                         // remove our bundle under test to avoid duplication
                         mavenBundle()
