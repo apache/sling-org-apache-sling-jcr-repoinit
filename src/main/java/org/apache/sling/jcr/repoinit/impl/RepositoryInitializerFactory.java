@@ -167,7 +167,7 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
                     }
                 }
                 Duration duration = Duration.between(start, Instant.now());
-                log.info("Total execution time for repoinit = {} miliseconds", duration.toMillis());
+                log.info("Total time for successful repoinit execution: {} miliseconds", duration.toMillis());
             } finally {
                 s.logout();
             }
