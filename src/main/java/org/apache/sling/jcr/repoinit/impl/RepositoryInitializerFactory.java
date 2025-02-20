@@ -122,7 +122,6 @@ public class RepositoryInitializerFactory implements SlingRepositoryInitializer 
     public void processRepository(final SlingRepository repo) throws Exception {
         if ((config.references() != null && config.references().length > 0)
                 || (config.scripts() != null && config.scripts().length > 0)) {
-
             // loginAdministrative is ok here, definitely an admin operation
             @SuppressWarnings("deprecation")
             final Session s = repo.loginAdministrative(null);
