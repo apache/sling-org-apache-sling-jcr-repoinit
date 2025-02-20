@@ -96,7 +96,6 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
     @Override
     public void processRepository(SlingRepository repo) throws RepositoryException {
         if (config.references() != null && config.references().length > 0) {
-
             // loginAdministrative is ok here, definitely an admin operation
             @SuppressWarnings("deprecation")
             final Session s = repo.loginAdministrative(null);
