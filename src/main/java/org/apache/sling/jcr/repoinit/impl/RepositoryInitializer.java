@@ -23,6 +23,8 @@ import javax.jcr.Session;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
@@ -98,6 +100,7 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
             @SuppressWarnings("deprecation")
             final Session s = repo.loginAdministrative(null);
             try {
+                Instant start = Instant.now();
                 final RepoinitTextProvider p = new RepoinitTextProvider();
                 for (String reference : config.references()) {
                     try {
@@ -115,6 +118,8 @@ public class RepositoryInitializer implements SlingRepositoryInitializer {
                         throw new RepoInitException("Error executing repoinit from " + reference, e);
                     }
                 }
+                Duration duration = Duration.between(start, Instant.now());
+                log.info("Total time for successful repoinit execution: {} miliseconds", duration.toMillis());
             } finally {
                 s.logout();
             }
