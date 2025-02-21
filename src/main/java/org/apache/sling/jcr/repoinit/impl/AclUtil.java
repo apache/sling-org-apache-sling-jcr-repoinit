@@ -748,9 +748,14 @@ public class AclUtil {
             if (jace.getRestrictionNames().length == (restrictions.size())) {
                 for (String rn : jace.getRestrictionNames()) {
                     Value[] oldValues = jace.getRestrictions(rn);
-                    Value[] newValues = restrictions.getRestrictions().get(rn) != null
-                            ? new Value[] {restrictions.getRestrictions().get(rn)}
-                            : restrictions.getMVRestrictions().get(rn);
+                    Value[] newValues;
+                    if (this.restrictions.getRestrictions().containsKey(rn)) {
+                        newValues = new Value[] { this.restrictions.getRestrictions().get(rn) };
+                    } else if (this.restrictions.getMVRestrictions().containsKey(rn)) {
+                        newValues = this.restrictions.getMVRestrictions().get(rn);
+                    } else {
+                        return false;
+                    }
                     if ((newValues == null || newValues.length == 0) && (oldValues == null || oldValues.length == 0)) {
                         continue;
                     }
