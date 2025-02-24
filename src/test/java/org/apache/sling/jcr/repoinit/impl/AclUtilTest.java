@@ -18,6 +18,19 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import javax.jcr.PathNotFoundException;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.Privilege;
+
+import java.security.Principal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -36,18 +49,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.Assertions;
-
-import javax.jcr.PathNotFoundException;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.Privilege;
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -485,8 +486,7 @@ public class AclUtilTest {
     /**
      * @param groupId the id of the group to create
      */
-    protected void assertSetAclWithHomePath(String groupId)
-            throws RepositoryException{
+    protected void assertSetAclWithHomePath(String groupId) throws RepositoryException {
         UserManager uMgr = ((JackrabbitSession) U.adminSession).getUserManager();
 
         Group gr = uMgr.createGroup(groupId);
@@ -601,8 +601,8 @@ public class AclUtilTest {
             boolean isAllow,
             boolean contained)
             throws RepositoryException {
-        AclUtil.LocalAccessControlEntry localAce =
-                new AclUtil.LocalAccessControlEntry(toPCSessionWrapper(U.adminSession),principal(username), privilegeNames, isAllow);
+        AclUtil.LocalAccessControlEntry localAce = new AclUtil.LocalAccessControlEntry(
+                toPCSessionWrapper(U.adminSession), principal(username), privilegeNames, isAllow);
 
         if (contained) {
             assertTrue(
@@ -618,7 +618,7 @@ public class AclUtilTest {
         return AccessControlUtils.getPrincipal(U.adminSession, principalName);
     }
 
-    private static SessionContext toPCSessionWrapper (Session session) {
+    private static SessionContext toPCSessionWrapper(Session session) {
         return new SessionContext(session);
     }
 }

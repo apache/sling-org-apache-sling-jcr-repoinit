@@ -18,33 +18,35 @@
  */
 package org.apache.sling.jcr.repoinit.impl;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * A simple wrapper around a session, which can cache the principal lookup and resolves privilege names to 
+ * A simple wrapper around a session, which can cache the principal lookup and resolves privilege names to
  * {@code PrivilegeCollection} objects.
  */
 public class SessionContext {
 
     JackrabbitSession session;
     JackrabbitAccessControlManager acMgr;
-    Map<String,Principal> nameToPrincipal = new HashMap<>();
+    Map<String, Principal> nameToPrincipal = new HashMap<>();
 
     public SessionContext(@NotNull Session session) {
-        AclUtil.checkState(session instanceof JackrabbitSession,"A Jackrabbit Session is required");
+        AclUtil.checkState(session instanceof JackrabbitSession, "A Jackrabbit Session is required");
         this.session = (JackrabbitSession) session;
         try {
-            AclUtil.checkState(session.getAccessControlManager() instanceof JackrabbitAccessControlManager,
+            AclUtil.checkState(
+                    session.getAccessControlManager() instanceof JackrabbitAccessControlManager,
                     "A Jackrabbit AccessControlManager is required");
             this.acMgr = (JackrabbitAccessControlManager) session.getAccessControlManager();
         } catch (RepositoryException e) {
@@ -60,11 +62,12 @@ public class SessionContext {
         return acMgr;
     }
 
-    public @NotNull PrivilegeCollection privilegeCollectionFromNames(@NotNull String... privilegeNames) throws RepositoryException {
+    public @NotNull PrivilegeCollection privilegeCollectionFromNames(@NotNull String... privilegeNames)
+            throws RepositoryException {
         return acMgr.privilegeCollectionFromNames(privilegeNames);
     }
 
-    public @Nullable Principal getPrincipal (@NotNull String principalName) throws RepositoryException {
+    public @Nullable Principal getPrincipal(@NotNull String principalName) throws RepositoryException {
         if (nameToPrincipal.containsKey(principalName)) {
             return nameToPrincipal.get(principalName);
         }
@@ -75,7 +78,7 @@ public class SessionContext {
         }
         return p;
     }
-    
+
     public @Nullable Principal getPrincipalWithSave(@NotNull String principalName) throws RepositoryException {
         Principal principal = getPrincipal(principalName);
         if (principal == null) {
