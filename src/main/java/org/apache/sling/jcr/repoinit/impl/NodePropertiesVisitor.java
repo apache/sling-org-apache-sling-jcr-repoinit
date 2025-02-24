@@ -291,7 +291,7 @@ class NodePropertiesVisitor extends DoNothingVisitor {
                 // note: Node#setProperty() touches the node even if the property value is unchanged
                 //       and thus needs to be explicitly avoided
                 if (hasPropertyChange(oldProperty, newType, newValues)) {
-                    if (newValues.length == 1) {
+                    if (newValues.length == 1 && !pl.isMultiple()) {
                         n.setProperty(pName, newValues[0], newType);
                     } else {
                         n.setProperty(pName, newValues, newType);
