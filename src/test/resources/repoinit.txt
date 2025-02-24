@@ -112,3 +112,12 @@ set properties on authorizable(bob)/nested,authorizable(grpB)/nested
   set quotedMix to "quoted", non-quoted, "the last \" one"
   set nested/someInteger{Long} to 42
 end
+
+ensure nodes (nt:unstructured) /forcedMultiValue with properties
+  set multiValue{String[]} to "item1","item2"
+  set singleMultiValue{String[]} to "single"
+  set emptyMultiValue{String[]} to
+  set longMultiValue{Long[]} to 1243,5678
+  set singleLongMultiValue{Long[]} to 1243
+  set emptyLongMultiValue{Long[]} to
+end

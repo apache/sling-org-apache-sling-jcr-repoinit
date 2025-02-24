@@ -19,13 +19,17 @@
 package org.apache.sling.jcr.repoinit.it;
 
 import javax.inject.Inject;
+import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -40,6 +44,7 @@ import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -406,5 +411,53 @@ public class RepoInitTextIT extends RepoInitTestSupport {
                 return null;
             }
         };
+    }
+
+    @Test
+    public void forcedMultiValue() throws Exception {
+        new Retry() {
+            @Override
+            public Void call() throws Exception {
+                Node node = session.getNode("/forcedMultiValue");
+                assertMultiProperty(node, "multiValue", new String[] {"item1", "item2"});
+                assertMultiProperty(node, "singleMultiValue", new String[] {"single"});
+                assertMultiProperty(node, "emptyMultiValue", new String[0]);
+                assertLongMultiProperty(node, "longMultiValue", new Long[] {1243L, 5678L});
+                assertLongMultiProperty(node, "singleLongMultiValue", new Long[] {1243L});
+                assertLongMultiProperty(node, "emptyMultiValue", new Long[0]);
+                return null;
+            }
+        };
+    }
+
+    private static void assertMultiProperty(Node node, String propertyName, Object[] expectedValues) throws Exception {
+        Property prop = node.getProperty(propertyName);
+        assertTrue("Property " + propertyName + " is not multiple", prop.isMultiple());
+        Object[] actualValues = Stream.of(prop.getValues())
+                .map(value -> {
+                    try {
+                        return value.getString();
+                    } catch (IllegalStateException | RepositoryException e) {
+                        return null;
+                    }
+                })
+                .toArray();
+        assertArrayEquals("Unexpected values for property " + propertyName, expectedValues, actualValues);
+    }
+
+    private static void assertLongMultiProperty(Node node, String propertyName, Object[] expectedValues)
+            throws Exception {
+        Property prop = node.getProperty(propertyName);
+        assertTrue("Property " + propertyName + " is not multiple", prop.isMultiple());
+        Object[] actualValues = Stream.of(prop.getValues())
+                .map(value -> {
+                    try {
+                        return value.getLong();
+                    } catch (IllegalStateException | RepositoryException e) {
+                        return null;
+                    }
+                })
+                .toArray();
+        assertArrayEquals("Unexpected values for property " + propertyName, expectedValues, actualValues);
     }
 }
