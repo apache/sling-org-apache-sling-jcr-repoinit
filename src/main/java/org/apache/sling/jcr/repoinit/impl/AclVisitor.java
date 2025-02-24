@@ -68,7 +68,7 @@ class AclVisitor extends DoNothingVisitor {
      * @param s must have sufficient rights to create users
      *          and set ACLs.
      */
-    public AclVisitor(Session s)  {
+    public AclVisitor(Session s) {
         super(s);
         context = new SessionContext(s);
     }
