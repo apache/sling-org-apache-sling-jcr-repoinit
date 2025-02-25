@@ -28,7 +28,7 @@
     </parent>
 
     <artifactId>org.apache.sling.jcr.repoinit</artifactId>
-    <version>1.1.54</version>
+    <version>1.1.55-SNAPSHOT</version>
     <name>Apache Sling Repoinit JCR</name>
     <description>Initializes a JCR repository based on the output
 	  of the RepoInit Language parser.</description>
@@ -36,7 +36,7 @@
     <scm>
         <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-repoinit.git</connection>
         <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-jcr-repoinit.git</developerConnection>
-        <tag>org.apache.sling.jcr.repoinit-1.1.54</tag>
+        <tag>org.apache.sling.jcr.repoinit-1.1.24</tag>
         <url>https://github.com/apache/sling-org-apache-sling-jcr-repoinit.git</url>
     </scm>
 
@@ -48,7 +48,7 @@
         <pax.vm.options>-Xmx512M</pax.vm.options>
         <junit-jupiter.version>5.10.0</junit-jupiter.version>
         <sling.java.version>8</sling.java.version>
-        <project.build.outputTimestamp>2025-02-25T08:14:48Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2025-02-25T08:16:17Z</project.build.outputTimestamp>
     </properties>
 
     <dependencies>
