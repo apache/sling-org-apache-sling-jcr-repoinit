@@ -43,7 +43,9 @@ class NamespacesVisitor extends DoNothingVisitor {
             final NamespaceRegistry reg = session.getWorkspace().getNamespaceRegistry();
             log.info("Registering namespace from {}", rn);
             if (!rn.getURI().contains(":")) {
-                log.warn("{} is not a valid namespace name (URI); certain repository operations using this namespace may fail", rn.getURI());
+                log.warn(
+                        "{} is not a valid namespace name (URI); certain repository operations using this namespace may fail",
+                        rn.getURI());
             }
             reg.registerNamespace(rn.getPrefix(), rn.getURI());
         } catch (Exception e) {
