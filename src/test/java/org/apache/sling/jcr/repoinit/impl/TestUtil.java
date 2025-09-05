@@ -1,20 +1,49 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit.impl;
+
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.Value;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.security.Privilege;
+
+import java.io.StringReader;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.sling.repoinit.parser.RepoInitParsingException;
+import org.apache.sling.repoinit.parser.impl.RepoInitParserService;
+import org.apache.sling.repoinit.parser.operations.Operation;
+import org.apache.sling.testing.mock.sling.junit.SlingContext;
+import org.jetbrains.annotations.NotNull;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -24,79 +53,54 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.StringReader;
-import java.util.List;
-import java.util.UUID;
-
-import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.Value;
-import javax.jcr.nodetype.NodeType;
-
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.sling.repoinit.parser.RepoInitParsingException;
-import org.apache.sling.repoinit.parser.impl.RepoInitParserService;
-import org.apache.sling.repoinit.parser.operations.Operation;
-import org.apache.sling.testing.mock.sling.junit.SlingContext;
-import org.jetbrains.annotations.NotNull;
-
 /** Test utilities */
 public class TestUtil {
 
     public static final String JCR_PRIMARY_TYPE = "jcr:primaryType";
+
+    @NotNull
     public final Session adminSession;
+
     public final String id;
     public final String username;
 
     public TestUtil(SlingContext ctx) {
-        adminSession = ctx.resourceResolver().adaptTo(Session.class);
+        adminSession = Objects.requireNonNull(ctx.resourceResolver().adaptTo(Session.class));
         id = UUID.randomUUID().toString();
         username = "user_" + id;
     }
 
-    public TestUtil(Session adminSession) {
+    public TestUtil(@NotNull Session adminSession) {
         this.adminSession = adminSession;
         id = UUID.randomUUID().toString();
         username = "user_" + id;
     }
 
-    public List<Operation> parse(String input) throws RepoInitParsingException {
-        List<Operation> parse = null;
-        try (final StringReader r = new StringReader(input)) {
-            parse = new RepoInitParserService().parse(r);
+    public static List<Operation> parse(String... inputLines) throws RepoInitParsingException {
+        try (final StringReader r = new StringReader(String.join("\n", inputLines))) {
+            return new RepoInitParserService().parse(r);
         }
-        return parse;
     }
 
-    private void assertPathContains(Authorizable u, String pathShouldContain) throws RepositoryException {
-        if(pathShouldContain != null) {
+    private static void assertPathContains(Authorizable u, String pathShouldContain) throws RepositoryException {
+        if (pathShouldContain != null) {
             final String path = u.getPath();
-            assertTrue(
-                    "Expecting path " + path + " to contain " + pathShouldContain,
-                    path.contains(pathShouldContain)
-            );
+            assertTrue("Expecting path " + path + " to contain " + pathShouldContain, path.contains(pathShouldContain));
         }
     }
-    
-
 
     public void assertGroup(String info, String id, boolean expectToExist) throws RepositoryException {
         assertGroup(info, id, expectToExist, null);
     }
 
-    public void assertGroup(String info, String id, boolean expectToExist, String pathShouldContain) throws RepositoryException {
+    public void assertGroup(String info, String id, boolean expectToExist, String pathShouldContain)
+            throws RepositoryException {
         final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(id);
-        if(!expectToExist) {
+        if (!expectToExist) {
             assertNull(info + ", expecting Principal to be absent:" + id, a);
         } else {
             assertNotNull(info + ", expecting Principal to exist:" + id, a);
-            final Group g = (Group)a;
+            final Group g = (Group) a;
             assertPathContains(g, pathShouldContain);
         }
     }
@@ -105,13 +109,14 @@ public class TestUtil {
         assertUser(info, id, expectToExist, null);
     }
 
-    public void assertUser(String info, String id, boolean expectToExist, String pathShouldContain) throws RepositoryException {
+    public void assertUser(String info, String id, boolean expectToExist, String pathShouldContain)
+            throws RepositoryException {
         final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(id);
-        if(!expectToExist) {
+        if (!expectToExist) {
             assertNull(info + ", expecting Principal to be absent:" + id, a);
         } else {
             assertNotNull(info + ", expecting Principal to exist:" + id, a);
-            final User u = (User)a;
+            final User u = (User) a;
             assertFalse(info + ", expecting Principal to be a plain user:" + id, u.isSystemUser());
             assertPathContains(u, pathShouldContain);
         }
@@ -121,13 +126,14 @@ public class TestUtil {
         assertServiceUser(info, id, expectToExist, null);
     }
 
-    public void assertServiceUser(String info, String id, boolean expectToExist, String pathShouldContain) throws RepositoryException {
+    public void assertServiceUser(String info, String id, boolean expectToExist, String pathShouldContain)
+            throws RepositoryException {
         final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(id);
-        if(!expectToExist) {
+        if (!expectToExist) {
             assertNull(info + ", expecting Principal to be absent:" + id, a);
         } else {
             assertNotNull(info + ", expecting Principal to exist:" + id, a);
-            final User u = (User)a;
+            final User u = (User) a;
             assertTrue(info + ", expecting Principal to be a System user:" + id, u.isSystemUser());
             assertPathContains(u, pathShouldContain);
         }
@@ -140,7 +146,7 @@ public class TestUtil {
 
     public void assertDisabledUser(String info, String id, String disabledReason) throws RepositoryException {
         final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(id);
-        final User user = (User)a;
+        final User user = (User) a;
         assertTrue(info + ", expecting Principal to be disabled: " + id, user.isDisabled());
         assertEquals("Expecting disabledReason==" + disabledReason, disabledReason, user.getDisabledReason());
     }
@@ -158,16 +164,16 @@ public class TestUtil {
     }
 
     public void assertNodeExists(String path, String primaryType, List<String> mixins) throws RepositoryException {
-        if(!adminSession.nodeExists(path)) {
+        if (!adminSession.nodeExists(path)) {
             fail("Node does not exist:" + path);
         }
-        if(primaryType != null) {
+        if (primaryType != null) {
             final Node n = adminSession.getNode(path);
-            if(!n.hasProperty(JCR_PRIMARY_TYPE)) {
+            if (!n.hasProperty(JCR_PRIMARY_TYPE)) {
                 fail("No " + JCR_PRIMARY_TYPE + " property at " + path);
             }
             final String actual = n.getProperty(JCR_PRIMARY_TYPE).getString();
-            if(!primaryType.equals(actual)) {
+            if (!primaryType.equals(actual)) {
                 fail("Primary type mismatch for " + path + ", expected " + primaryType + " but got " + actual);
             }
         }
@@ -175,17 +181,19 @@ public class TestUtil {
             final Node n = adminSession.getNode(path);
             NodeType[] mixinNodeTypes = n.getMixinNodeTypes();
             if (mixinNodeTypes.length != mixins.size()) {
-                fail("Number of mixin node types does not match, expected " + mixins.size() + " but got " + mixinNodeTypes.length);
+                fail("Number of mixin node types does not match, expected " + mixins.size() + " but got "
+                        + mixinNodeTypes.length);
             }
             for (NodeType mixinNodeType : mixinNodeTypes) {
-                if (! mixins.contains(mixinNodeType.getName())) {
+                if (!mixins.contains(mixinNodeType.getName())) {
                     fail("Node contains the unexpected mixin node type " + mixinNodeType.getName());
                 }
             }
         }
     }
 
-    public void assertGroupMembership(String userId, String groupId, boolean expectToBeMember) throws RepositoryException {
+    public void assertGroupMembership(String userId, String groupId, boolean expectToBeMember)
+            throws RepositoryException {
         final Authorizable a = UserUtil.getUserManager(adminSession).getAuthorizable(groupId);
         final Authorizable member = UserUtil.getUserManager(adminSession).getAuthorizable(userId);
         boolean isMember = ((Group) a).isMember(member);
@@ -193,10 +201,11 @@ public class TestUtil {
         if (!expectToBeMember) {
             message += " not";
         }
-        assertEquals(message +  " to be member of " + groupId, expectToBeMember, isMember);
+        assertEquals(message + " to be member of " + groupId, expectToBeMember, isMember);
     }
 
-    public void assertAuthorizableSVPropertyExists(String id, String propertyName, Value expectedValue) throws RepositoryException {
+    public void assertAuthorizableSVPropertyExists(String id, String propertyName, Value expectedValue)
+            throws RepositoryException {
         final Authorizable a = UserUtil.getAuthorizable(adminSession, id);
         assertNotNull("failed to get authorizable for " + id, a);
         if (!a.hasProperty(propertyName)) {
@@ -210,7 +219,8 @@ public class TestUtil {
         }
     }
 
-    public void assertAuthorizableMVPropertyExists(String id, String propertyName, Value[] expectedValues) throws RepositoryException {
+    public void assertAuthorizableMVPropertyExists(String id, String propertyName, Value[] expectedValues)
+            throws RepositoryException {
         final Authorizable a = UserUtil.getAuthorizable(adminSession, id);
         assertNotNull("failed to get authorizable for " + id, a);
         if (!a.hasProperty(propertyName)) {
@@ -222,9 +232,10 @@ public class TestUtil {
         }
     }
 
-    public void assertSVPropertyExists(String path, String propertyName, Value expectedValue) throws RepositoryException {
+    public void assertSVPropertyExists(String path, String propertyName, Value expectedValue)
+            throws RepositoryException {
         final Node n = adminSession.getNode(path);
-        if(!n.hasProperty(propertyName)) {
+        if (!n.hasProperty(propertyName)) {
             fail("No " + propertyName + " property at " + path);
         } else {
             Property p = n.getProperty(propertyName);
@@ -233,9 +244,10 @@ public class TestUtil {
         }
     }
 
-    public void assertMVPropertyExists(String path, String propertyName, Value[] expectedValues) throws RepositoryException {
+    public void assertMVPropertyExists(String path, String propertyName, Value[] expectedValues)
+            throws RepositoryException {
         final Node n = adminSession.getNode(path);
-        if(!n.hasProperty(propertyName)) {
+        if (!n.hasProperty(propertyName)) {
             fail("No " + propertyName + " property at " + path);
         } else {
             Property p = n.getProperty(propertyName);
@@ -244,9 +256,9 @@ public class TestUtil {
         }
     }
 
-    public boolean parseAndExecute(String input) throws RepositoryException, RepoInitParsingException {
+    public boolean parseAndExecute(String... inputLines) throws RepositoryException, RepoInitParsingException {
         final JcrRepoInitOpsProcessorImpl p = new JcrRepoInitOpsProcessorImpl();
-        p.apply(adminSession, parse(input));
+        p.apply(adminSession, parse(inputLines));
         boolean hasChanges = adminSession.hasPendingChanges();
         adminSession.save();
         return hasChanges;
@@ -255,7 +267,7 @@ public class TestUtil {
     public void cleanupUser() throws RepositoryException, RepoInitParsingException {
         cleanupServiceUser(username);
     }
-    
+
     public void cleanupServiceUser(String principalName) throws RepositoryException, RepoInitParsingException {
         parseAndExecute("delete service user " + principalName);
         assertServiceUser("in cleanupUser()", principalName, false);
@@ -270,17 +282,13 @@ public class TestUtil {
         return adminSession;
     }
 
-    public String getTestCndStatement(String nsPrefix, String nsURI) throws RepositoryException, RepoInitParsingException {
-        return "register nodetypes\n"
-                + "<<===\n"
-                + getTestCND(nsPrefix, nsURI)
-                + "===>>\n"
-        ;
+    public String getTestCndStatement(String nsPrefix, String nsURI)
+            throws RepositoryException, RepoInitParsingException {
+        return "register nodetypes\n" + "<<===\n" + getTestCND(nsPrefix, nsURI) + "===>>\n";
     }
 
     public String getTestCND(String nsPrefix, String nsURI) {
-        return "<" + nsPrefix + "='" + nsURI + "'>\n"
-                + "[" + nsPrefix + ":foo] > nt:unstructured\n";
+        return "<" + nsPrefix + "='" + nsURI + "'>\n" + "[" + nsPrefix + ":foo] > nt:unstructured\n";
     }
 
     public void cleanup(@NotNull List<String> idsToRemove) throws RepositoryException {
@@ -294,5 +302,17 @@ public class TestUtil {
         if (adminSession.hasPendingChanges()) {
             adminSession.save();
         }
+    }
+
+    public void assertPrivileges(String principalName, String path, boolean allowed, String... privilegeNames)
+            throws RepositoryException {
+        final Privilege[] privileges = AccessControlUtils.privilegesFromNames(adminSession, privilegeNames);
+        final JackrabbitAccessControlManager acMgr = AclUtil.getJACM(adminSession);
+        assertEquals(
+                String.format(
+                        "Expected %s to have %s %s on %s",
+                        principalName, String.join(", ", privilegeNames), allowed ? "allowed" : "denied", path),
+                allowed,
+                acMgr.hasPrivileges(path, Collections.singleton(() -> principalName), privileges));
     }
 }

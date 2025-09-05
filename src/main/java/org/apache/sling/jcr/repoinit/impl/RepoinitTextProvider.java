@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit.impl;
 
@@ -39,34 +41,34 @@ import org.slf4j.LoggerFactory;
 /** Retrieves repoinit statements from URLs that return either
  *  raw repoinit text or Sling provisioning models that are parsed
  *  to extract the repoinit text.
- *  
+ *
  *  Uses references like
- *  
+ *
  *  <code>model@repoinit:context:/resources/provisioning/model</code>,
- *  
- *  meaning that the supplied context:/ URI returns a provisioning model 
+ *
+ *  meaning that the supplied context:/ URI returns a provisioning model
  *  containing repoinit statements in its "repoinit" additional section, or
- *    
+ *
  *
  *  <code>raw:classpath://com.example.sling.repoinit/repoinit.txt</code>
- *  
+ *
  *  meaning that the supplied classpath: URI returns raw repoinit statements.
  */
 public class RepoinitTextProvider {
-    public enum TextFormat { 
-        RAW("raw"), 
+    public enum TextFormat {
+        RAW("raw"),
         MODEL("model");
 
         private String type;
 
         TextFormat(String type) {
             this.type = type;
-        } 
+        }
 
         public static TextFormat fromType(String v) {
             Optional<TextFormat> findFirst = Stream.of(TextFormat.values())
-                .filter(tf -> tf.type.equals(v))
-                .findFirst();
+                    .filter(tf -> tf.type.equals(v))
+                    .findFirst();
             if (!findFirst.isPresent()) {
                 throw new IllegalArgumentException("Value not found: " + v);
             }
@@ -78,6 +80,7 @@ public class RepoinitTextProvider {
             return type;
         }
     }
+
     private static final String DEFAULT_MODEL_SECTION = "repoinit";
 
     public static final Pattern REF_PATTERN = Pattern.compile("([a-z]+)(@([a-zA-Z0-9_-]+))?:(.*)");
@@ -100,7 +103,7 @@ public class RepoinitTextProvider {
             format = TextFormat.fromType(m.group(1));
             if (format.equals(TextFormat.RAW)) {
                 modelSection = null;
-            } else if(format.equals(TextFormat.MODEL) && m.group(3) == null) {
+            } else if (format.equals(TextFormat.MODEL) && m.group(3) == null) {
                 modelSection = DEFAULT_MODEL_SECTION;
             } else {
                 modelSection = m.group(3);
@@ -113,7 +116,7 @@ public class RepoinitTextProvider {
             final StringBuilder sb = new StringBuilder();
             sb.append(getClass().getSimpleName()).append(":");
             sb.append("format=").append(format);
-            if(modelSection != null) {
+            if (modelSection != null) {
                 sb.append(", model section=").append(modelSection);
             }
             sb.append(", URL=").append(url);
@@ -128,7 +131,7 @@ public class RepoinitTextProvider {
         log.debug("Raw text from {}: \n{}", ref.url, rawText);
         if (TextFormat.MODEL.equals(ref.format)) {
             log.debug("Extracting provisioning model section {}", ref.modelSection);
-            return extractFromModel(ref.url, rawText, ref.modelSection); 
+            return extractFromModel(ref.url, rawText, ref.modelSection);
         } else {
             return rawText;
         }
@@ -143,7 +146,11 @@ public class RepoinitTextProvider {
         }
         for (final Feature feature : model.getFeatures()) {
             for (final Section section : feature.getAdditionalSections(modelSection)) {
-                sb.append("# ").append(modelSection).append(" from ").append(feature.getName()).append("\n");
+                sb.append("# ")
+                        .append(modelSection)
+                        .append(" from ")
+                        .append(feature.getName())
+                        .append("\n");
                 sb.append("# ").append(section.getComment()).append("\n");
                 sb.append(section.getContents()).append("\n");
             }

@@ -1,20 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit.impl;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -30,9 +35,6 @@ import org.apache.sling.repoinit.parser.operations.DisableServiceUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
 import static org.apache.sling.jcr.repoinit.impl.UserUtil.getPath;
 import static org.apache.sling.jcr.repoinit.impl.UserUtil.getUserManager;
 
@@ -45,7 +47,7 @@ class UserVisitor extends DoNothingVisitor {
 
     /**
      * Create a visitor using the supplied JCR Session.
-     * 
+     *
      * @param s must have sufficient rights to create users and set ACLs.
      */
     public UserVisitor(Session s) {
@@ -125,7 +127,9 @@ class UserVisitor extends DoNothingVisitor {
                     // TODO we might revise this warning once we're able
                     // to create users by providing their encoded password
                     // using u.getPasswordEncoding - for now I think only cleartext works
-                    log.warn("Creating user {} with cleartext password - should NOT be used on production systems", username);
+                    log.warn(
+                            "Creating user {} with cleartext password - should NOT be used on production systems",
+                            username);
                 } else {
                     log.info("Creating user {}", username);
                 }
@@ -153,7 +157,7 @@ class UserVisitor extends DoNothingVisitor {
     public void visitDisableServiceUser(DisableServiceUser dsu) {
         final String username = dsu.getUsername();
         final String reason = dsu.getReason();
-        log.info("Disabling service user {} reason {}", username, reason );
+        log.info("Disabling service user {} reason {}", username, reason);
         try {
             if (!UserUtil.disableUser(session, username, reason)) {
                 log.debug("Service user {} doesn't exist - assuming disable to be a noop.", username);
@@ -165,21 +169,37 @@ class UserVisitor extends DoNothingVisitor {
 
     private void checkUserType(@NotNull String id, @Nullable User user, boolean expectedSystemUser) {
         if (user != null && user.isSystemUser() != expectedSystemUser) {
-            String msg = (expectedSystemUser) ? "Existing user %s is not a service user." : "Existing user %s is a service user.";
+            String msg = (expectedSystemUser)
+                    ? "Existing user %s is not a service user."
+                    : "Existing user %s is a service user.";
             report(String.format(msg, id));
         }
     }
 
-    private boolean needsRecreate(@NotNull String id, @NotNull Authorizable authorizable, @NotNull String intermediatePath, @NotNull String type) throws RepositoryException {
+    private boolean needsRecreate(
+            @NotNull String id,
+            @NotNull Authorizable authorizable,
+            @NotNull String intermediatePath,
+            @NotNull String type)
+            throws RepositoryException {
         String path = getPath(authorizable);
         if (path != null) {
             String requiredIntermediate = intermediatePath + "/";
             if (!path.contains(requiredIntermediate)) {
-                log.info("Recreating {} '{}' with path '{}' to match required intermediate path '{}'", type, id, path, intermediatePath);
+                log.info(
+                        "Recreating {} '{}' with path '{}' to match required intermediate path '{}'",
+                        type,
+                        id,
+                        path,
+                        intermediatePath);
                 authorizable.remove();
                 return true;
             } else {
-                log.info("{} '{}' already exists with required intermediate path '{}', no changes made.", type, id, intermediatePath);
+                log.info(
+                        "{} '{}' already exists with required intermediate path '{}', no changes made.",
+                        type,
+                        id,
+                        intermediatePath);
             }
         } else {
             log.error("{} '{}' already exists but path cannot be determined, no changes made.", type, id);

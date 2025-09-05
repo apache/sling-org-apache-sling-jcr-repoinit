@@ -1,44 +1,44 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit.impl;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class RetryableOperationTest {
-
 
     @Test
     public void testWithoutRetry() {
 
         RetryableOperation ro = new RetryableOperation.Builder().build();
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
-            return new RetryableOperation.RetryableOperationResult(true,false,null);
+            return new RetryableOperation.RetryableOperationResult(true, false, null, null);
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
-        assertEquals(0,ro.retryCount);
+        assertEquals(0, ro.retryCount);
         assertTrue(result.isSuccessful());
     }
 
@@ -54,13 +54,13 @@ public class RetryableOperationTest {
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // 1 regular execution + 2 retries
             if (retries.getAndAdd(1) == 2) {
-                return new RetryableOperation.RetryableOperationResult(true,false,null);
+                return new RetryableOperation.RetryableOperationResult(true, false, null, null);
             } else {
-                return new RetryableOperation.RetryableOperationResult(false,true,new RuntimeException());
+                return new RetryableOperation.RetryableOperationResult(false, true, null, new RuntimeException());
             }
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
-        assertEquals(2,ro.retryCount);
+        assertEquals(2, ro.retryCount);
         assertTrue(result.isSuccessful());
     }
 
@@ -76,13 +76,13 @@ public class RetryableOperationTest {
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // 1 regular execution + 4 retries
             if (retries.getAndAdd(1) == 4) {
-                return new RetryableOperation.RetryableOperationResult(true,false,null);
+                return new RetryableOperation.RetryableOperationResult(true, false, null, null);
             } else {
-                return new RetryableOperation.RetryableOperationResult(false,true, new RuntimeException());
+                return new RetryableOperation.RetryableOperationResult(false, true, null, new RuntimeException());
             }
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
-        assertEquals(3,ro.retryCount); //only 3 retries and then stopped
+        assertEquals(3, ro.retryCount); // only 3 retries and then stopped
         assertFalse(result.isSuccessful());
         assertNotNull(result.getFailureTrace());
     }
@@ -96,11 +96,10 @@ public class RetryableOperationTest {
                 .build();
         Supplier<RetryableOperation.RetryableOperationResult> op = () -> {
             // indicate a permanent failure, where it doesn't make sense to retry
-            return new RetryableOperation.RetryableOperationResult(false,false, new RuntimeException());
+            return new RetryableOperation.RetryableOperationResult(false, false, null, new RuntimeException());
         };
         RetryableOperation.RetryableOperationResult result = ro.apply(op, "log");
-        assertEquals(0,ro.retryCount); // no retry
+        assertEquals(0, ro.retryCount); // no retry
         assertFalse(result.isSuccessful());
     }
-
 }

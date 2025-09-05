@@ -1,30 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.sling.jcr.repoinit.impl;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
+
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.sling.repoinit.parser.operations.AddMixins;
 import org.apache.sling.repoinit.parser.operations.CreatePath;
@@ -63,7 +63,8 @@ public class NodeVisitor extends DoNothingVisitor {
         createNodes(cp.getDefinitions(), cp.getPropertyLines(), false);
     }
 
-    private void createNodes(List<PathSegmentDefinition> pathSegmentDefinitions, List<PropertyLine> propertyLines, boolean strict) {
+    private void createNodes(
+            List<PathSegmentDefinition> pathSegmentDefinitions, List<PropertyLine> propertyLines, boolean strict) {
         StringBuilder parentPathBuilder = new StringBuilder();
         for (PathSegmentDefinition psd : pathSegmentDefinitions) {
             String parentPath = parentPathBuilder.toString();
@@ -74,7 +75,8 @@ public class NodeVisitor extends DoNothingVisitor {
                     if (session.nodeExists(fullPath)) {
                         log.info("Node at {} already exists, checking/adjusting its types", fullPath);
                         node = session.getNode(fullPath);
-                        if (psd.getPrimaryType() != null && !node.getPrimaryNodeType().getName().equals(psd.getPrimaryType())) {
+                        if (psd.getPrimaryType() != null
+                                && !node.getPrimaryNodeType().getName().equals(psd.getPrimaryType())) {
                             log.info("Adjusting primary type of node {} to {}", fullPath, psd.getPrimaryType());
                             node.setPrimaryType(psd.getPrimaryType());
                         }
@@ -82,13 +84,17 @@ public class NodeVisitor extends DoNothingVisitor {
                         final Node parent = parentPath.equals("") ? session.getRootNode() : session.getNode(parentPath);
                         log.info("Creating node {} with primary type {}", fullPath, psd.getPrimaryType());
                         node = addChildNode(parent, psd);
-                        
+
                     } else {
-                        throw new RepoInitException("There is a property with the name of the to be created node already at " + fullPath + ", therefore bailing out here as potentially not supported by the underlying JCR");
+                        throw new RepoInitException(
+                                "There is a property with the name of the to be created node already at " + fullPath
+                                        + ", therefore bailing out here as potentially not supported by the underlying JCR");
                     }
                 } else {
                     if (session.itemExists(fullPath)) {
-                        log.info("Path already exists, nothing to do (and not checking its primary type for now): {}", fullPath);
+                        log.info(
+                                "Path already exists, nothing to do (and not checking its primary type for now): {}",
+                                fullPath);
                         node = null;
                     } else {
                         final Node parent = parentPath.equals("") ? session.getRootNode() : session.getNode(parentPath);
@@ -96,7 +102,7 @@ public class NodeVisitor extends DoNothingVisitor {
                         node = addChildNode(parent, psd);
                     }
                 }
-                
+
                 if (node != null) {
                     List<String> mixins = psd.getMixins();
                     if (mixins != null) {
@@ -113,12 +119,15 @@ public class NodeVisitor extends DoNothingVisitor {
         }
         if (!propertyLines.isEmpty()) {
             // delegate to the NodePropertiesVisitor to set the properties
-            SetProperties sp = new SetProperties(Collections.singletonList(parentPathBuilder.toString()), propertyLines);
+            SetProperties sp =
+                    new SetProperties(Collections.singletonList(parentPathBuilder.toString()), propertyLines);
             NodePropertiesVisitor npv = new NodePropertiesVisitor(session);
             npv.visitSetProperties(sp);
         }
         try {
-            session.save();
+            if (session.hasPendingChanges()) {
+                session.save();
+            }
         } catch (Exception e) {
             report(e, "Session.save failed: " + e);
         }
@@ -175,7 +184,8 @@ public class NodeVisitor extends DoNothingVisitor {
     }
 
     @NotNull
-    private static Node addChildNode(@NotNull Node parent, @NotNull PathSegmentDefinition psd) throws RepositoryException {
+    private static Node addChildNode(@NotNull Node parent, @NotNull PathSegmentDefinition psd)
+            throws RepositoryException {
         String primaryType = psd.getPrimaryType();
         if (primaryType == null) {
             try {
@@ -189,6 +199,4 @@ public class NodeVisitor extends DoNothingVisitor {
             return parent.addNode(psd.getSegment(), psd.getPrimaryType());
         }
     }
-
-
 }
