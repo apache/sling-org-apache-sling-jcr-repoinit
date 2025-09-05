@@ -43,14 +43,19 @@ public class RegisterNamespacesTest {
     private NamespaceRegistry ns;
 
     private static final String TEST_ID = UUID.randomUUID().toString();
+    // URN
     private static final String NS1 = "uri:ns:test1:" + TEST_ID;
+    // HTTP URI
     private static final String NS2 = "http://example.com/ns/" + TEST_ID;
+    // not a namespace name (URI) at all
+    private static final String NS3 = TEST_ID;
 
     @Before
     public void setup() throws RepositoryException, RepoInitParsingException {
         U = new TestUtil(context);
         U.parseAndExecute("register namespace (one) " + NS1);
         U.parseAndExecute("register namespace (two) " + NS2);
+        U.parseAndExecute("register namespace (three) " + NS3);
         ns = U.getAdminSession().getWorkspace().getNamespaceRegistry();
     }
 
@@ -62,5 +67,17 @@ public class RegisterNamespacesTest {
     @Test
     public void NS2registered() throws Exception {
         assertEquals(NS2, ns.getURI("two"));
+    }
+
+    @Test
+    public void NS3registered() throws Exception {
+        // this will succeed although it is wrong
+        // (repoinit will log a warning though)
+        assertEquals(NS3, ns.getURI("three"));
+    }
+
+    @Test(expected = RepoInitParsingException.class)
+    public void EmptyNamespaceName() throws RepoInitParsingException, RepositoryException {
+        U.parseAndExecute("register namespace (four)");
     }
 }
