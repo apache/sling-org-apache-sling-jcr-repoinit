@@ -34,12 +34,15 @@ class NamespacesVisitor extends DoNothingVisitor {
     public NamespacesVisitor(Session s) {
         super(s);
     }
-    
+
     @Override
     public void visitRegisterNamespace(RegisterNamespace rn) {
         try {
             final NamespaceRegistry reg = session.getWorkspace().getNamespaceRegistry();
             log.info("Registering namespace from {}", rn);
+            if (!rn.getURI().contains(":")) {
+                log.warn("{} is not a valid namespace name (URI); certain repository operations using this namespace may fail", rn.getURI());
+            }
             reg.registerNamespace(rn.getPrefix(), rn.getURI());
         } catch(Exception e) {
             report(e, "Unable to register namespace from " + rn);
